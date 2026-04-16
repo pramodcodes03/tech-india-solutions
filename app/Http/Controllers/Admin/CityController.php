@@ -1,0 +1,94 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\City;
+use Illuminate\Http\Request;
+
+class CityController extends Controller
+{
+    public function index(Request $request)
+    {
+        $cities = City::when($request->search, fn ($q, $s) => $q->where('name', 'like', "%{$s}%")->orWhere('state', 'like', "%{$s}%"))
+            ->latest()
+            ->paginate(10);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'data' => $cities->items(),
+                'pagination' => [
+                    'total' => $cities->total(),
+                    'per_page' => $cities->perPage(),
+                    'current_page' => $cities->currentPage(),
+                    'last_page' => $cities->lastPage(),
+                    'from' => $cities->firstItem() ?? 0,
+                    'to' => $cities->lastItem() ?? 0,
+                ],
+            ]);
+        }
+
+        return view('admin.cities.index', compact('cities'));
+    }
+
+    public function create()
+    {
+        return view('admin.cities.create');
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'state' => 'nullable|string|max:255',
+        ]);
+
+        City::create($request->only('name', 'state'));
+
+        return redirect()->route('admin.cities.index')->with('success', 'City created successfully.');
+    }
+
+    public function edit($id)
+    {
+        $city = City::findOrFail($id);
+
+        return view('admin.cities.edit', compact('city'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'state' => 'nullable|string|max:255',
+        ]);
+
+        $city = City::findOrFail($id);
+        $city->update($request->only('name', 'state'));
+
+        return redirect()->route('admin.cities.index')->with('success', 'City updated successfully.');
+    }
+
+    public function destroy(Request $request, $id)
+    {
+        $city = City::findOrFail($id);
+        $city->delete();
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'City deleted successfully.']);
+        }
+
+        return redirect()->route('admin.cities.index')->with('success', 'City deleted successfully.');
+    }
+
+    public function toggleStatus(Request $request, $id)
+    {
+        $city = City::findOrFail($id);
+        $city->update(['is_active' => ! $city->is_active]);
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Status updated successfully.']);
+        }
+
+        return redirect()->back()->with('success', 'City status updated.');
+    }
+}
