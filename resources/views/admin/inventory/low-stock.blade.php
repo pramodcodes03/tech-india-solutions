@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Low Stock Alerts">
     <div>
+        <x-admin.breadcrumb :items="[['label'=>'Inventory','url'=>route('admin.inventory.index')],['label'=>'Low Stock Alerts']]" />
+
         <div class="flex items-center justify-between gap-4 mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Low Stock Alerts</h5>
             <a href="{{ route('admin.inventory.index') }}" class="btn btn-outline-primary">

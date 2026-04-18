@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Record Payment">
     <div x-data="paymentForm()">
+        <x-admin.breadcrumb :items="[['label'=>'Payments','url'=>route('admin.payments.index')],['label'=>'Record Payment']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Record Payment</h5>
             <a href="{{ route('admin.payments.index') }}" class="btn btn-outline-primary">
@@ -23,14 +25,65 @@
                 <h6 class="text-base font-semibold mb-4">Payment Details</h6>
                 <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
                     {{-- Invoice Selection --}}
-                    <div class="md:col-span-2">
-                        <label for="invoice_id">Invoice <span class="text-danger">*</span></label>
-                        <select id="invoice_id" name="invoice_id" class="form-select" x-model="selectedInvoiceId" @change="selectInvoice()" required>
-                            <option value="">-- Select Invoice --</option>
-                            <template x-for="inv in invoices" :key="inv.id">
-                                <option :value="inv.id" :selected="inv.id == selectedInvoiceId" x-text="`${inv.invoice_number} - ${inv.customer_name} (Balance: ${formatCurrency(inv.balance)})`"></option>
-                            </template>
-                        </select>
+                    <div class="md:col-span-2"
+                         x-data="{
+                             open: false,
+                             search: '',
+                             get filteredInvoices() {
+                                 if (!this.search) return invoices;
+                                 const q = this.search.toLowerCase();
+                                 return invoices.filter(i =>
+                                     i.invoice_number.toLowerCase().includes(q) ||
+                                     i.customer_name.toLowerCase().includes(q)
+                                 );
+                             },
+                             get selectedLabel() {
+                                 if (!selectedInvoiceId) return '';
+                                 const inv = invoices.find(i => i.id == selectedInvoiceId);
+                                 return inv ? `${inv.invoice_number} — ${inv.customer_name} (Balance: ${formatCurrency(inv.balance)})` : '';
+                             },
+                             pick(inv) {
+                                 selectedInvoiceId = String(inv.id);
+                                 selectInvoice();
+                                 this.search = '';
+                                 this.open = false;
+                             }
+                         }"
+                         x-on:click.outside="open = false">
+                        <label>Invoice <span class="text-danger">*</span></label>
+                        <input type="hidden" name="invoice_id" :value="selectedInvoiceId" x-bind:required="!selectedInvoiceId" />
+                        <button type="button" @click="open = !open"
+                                class="form-input w-full text-left flex items-center justify-between cursor-pointer"
+                                :class="open ? 'border-primary ring-1 ring-primary' : ''">
+                            <span :class="selectedLabel ? 'text-current' : 'text-gray-400 dark:text-gray-500'"
+                                  x-text="selectedLabel || '-- Select Invoice --'"></span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400 transition-transform shrink-0 ml-2" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div x-show="open" x-transition class="relative z-50" style="display:none;">
+                            <div class="absolute top-1 left-0 right-0 bg-white dark:bg-[#1b2e4b] border border-[#e0e6ed] dark:border-[#253b5e] rounded-md shadow-lg">
+                                <div class="p-2 border-b border-[#e0e6ed] dark:border-[#253b5e]">
+                                    <input type="text" x-model="search" x-on:click.stop @keydown.escape="open=false"
+                                           placeholder="Search invoice or customer..."
+                                           class="w-full px-3 py-1.5 text-sm border border-[#e0e6ed] dark:border-[#253b5e] rounded bg-white dark:bg-[#1b2e4b] focus:outline-none focus:border-primary"
+                                           autocomplete="off" />
+                                </div>
+                                <ul class="max-h-56 overflow-y-auto py-1">
+                                    <li @click="selectedInvoiceId=''; selectInvoice(); open=false"
+                                        class="px-3 py-2 text-sm cursor-pointer text-gray-400 hover:bg-primary/10">-- Select Invoice --</li>
+                                    <template x-for="inv in filteredInvoices" :key="inv.id">
+                                        <li @click="pick(inv)"
+                                            class="px-3 py-2 text-sm cursor-pointer hover:bg-primary/10 dark:hover:bg-primary/20"
+                                            :class="inv.id == selectedInvoiceId ? 'bg-primary/10 font-semibold text-primary' : ''">
+                                            <span class="font-mono font-semibold" x-text="inv.invoice_number"></span>
+                                            <span class="text-gray-400 mx-1">—</span>
+                                            <span x-text="inv.customer_name"></span>
+                                            <span class="text-danger font-semibold ml-2" x-text="'₹' + formatCurrency(inv.balance)"></span>
+                                        </li>
+                                    </template>
+                                    <li x-show="filteredInvoices.length === 0" class="px-3 py-2 text-sm text-gray-400 text-center">No results found</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
 
                     {{-- Invoice Info Panel --}}

@@ -29,12 +29,12 @@ class InventoryReportExport implements FromCollection, ShouldAutoSize, WithHeadi
     public function map($row): array
     {
         return [
-            $row->product_code,
+            $row->code ?? '-',
             $row->name,
             $row->category->name ?? '-',
-            $row->warehouse->name ?? '-',
+            '-',
             $row->current_stock,
-            $row->reorder_level,
+            $row->reorder_level ?? 0,
         ];
     }
 }

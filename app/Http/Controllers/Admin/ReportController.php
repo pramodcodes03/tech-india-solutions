@@ -41,7 +41,30 @@ class ReportController extends Controller
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
         $products = Product::where('status', 'active')->orderBy('name')->get();
 
-        return view('admin.reports.sales', compact('data', 'filters', 'customers', 'products'));
+        // Flatten invoice → line items for the table
+        $results = collect();
+        foreach ($data as $invoice) {
+            foreach ($invoice->items as $item) {
+                $results->push((object) [
+                    'date'          => $invoice->invoice_date?->format('d M Y') ?? '-',
+                    'invoice_number'=> $invoice->invoice_number,
+                    'customer_name' => $invoice->customer->name ?? '-',
+                    'product_name'  => $item->product->name ?? $item->description ?? '-',
+                    'quantity'      => $item->quantity,
+                    'rate'          => $item->rate,
+                    'amount'        => $item->line_total,
+                    'status'        => $invoice->status,
+                ]);
+            }
+        }
+
+        $summary = [
+            'total_sales'     => $data->sum('grand_total'),
+            'total_invoices'  => $data->count(),
+            'avg_order_value' => $data->count() > 0 ? $data->sum('grand_total') / $data->count() : 0,
+        ];
+
+        return view('admin.reports.sales', compact('results', 'summary', 'filters', 'customers', 'products'));
     }
 
     public function inventory(Request $request)
@@ -54,7 +77,16 @@ class ReportController extends Controller
         $categories = ProductCategory::orderBy('name')->get();
         $warehouses = Warehouse::where('is_active', true)->orderBy('name')->get();
 
-        return view('admin.reports.inventory', compact('data', 'filters', 'products', 'categories', 'warehouses'));
+        $results = $data->map(fn ($p) => (object) [
+            'product_code'  => $p->code ?? '-',
+            'product_name'  => $p->name,
+            'category_name' => $p->category->name ?? '-',
+            'warehouse_name'=> '-',
+            'current_stock' => $p->current_stock,
+            'reorder_level' => $p->reorder_level ?? 0,
+        ]);
+
+        return view('admin.reports.inventory', compact('results', 'filters', 'products', 'categories', 'warehouses'));
     }
 
     public function customers(Request $request)
@@ -65,7 +97,14 @@ class ReportController extends Controller
         $data = $this->reportService->customerReport($filters);
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
 
-        return view('admin.reports.customers', compact('data', 'filters', 'customers'));
+        $results = $data->map(fn ($c) => (object) [
+            'customer_name'  => $c->name,
+            'total_orders'   => $c->invoices->count(),
+            'total_invoiced' => $c->total_invoiced ?? 0,
+            'total_paid'     => $c->total_paid ?? 0,
+        ]);
+
+        return view('admin.reports.customers', compact('results', 'filters', 'customers'));
     }
 
     public function purchases(Request $request)
@@ -76,7 +115,16 @@ class ReportController extends Controller
         $data = $this->reportService->purchaseReport($filters);
         $vendors = Vendor::where('status', 'active')->orderBy('name')->get();
 
-        return view('admin.reports.purchases', compact('data', 'filters', 'vendors'));
+        $results = $data->map(fn ($po) => (object) [
+            'po_number'   => $po->po_number,
+            'vendor_name' => $po->vendor->name ?? '-',
+            'date'        => $po->po_date?->format('d M Y') ?? '-',
+            'grand_total' => $po->grand_total,
+            'status'      => $po->status,
+            'received'    => $po->status === 'received' ? $po->updated_at?->format('d M Y') : null,
+        ]);
+
+        return view('admin.reports.purchases', compact('results', 'filters', 'vendors'));
     }
 
     public function payments(Request $request)
@@ -87,7 +135,17 @@ class ReportController extends Controller
         $data = $this->reportService->paymentReport($filters);
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
 
-        return view('admin.reports.payments', compact('data', 'filters', 'customers'));
+        $results = $data->map(fn ($p) => (object) [
+            'payment_number'   => $p->payment_number,
+            'date'             => $p->payment_date?->format('d M Y') ?? '-',
+            'customer_name'    => $p->customer->name ?? '-',
+            'invoice_number'   => $p->invoice->invoice_number ?? '-',
+            'amount'           => $p->amount,
+            'mode'             => $p->mode ?? '-',
+            'reference_number' => $p->reference_no ?? '-',
+        ]);
+
+        return view('admin.reports.payments', compact('results', 'filters', 'customers'));
     }
 
     public function exportExcel(Request $request, string $type)
@@ -114,7 +172,7 @@ class ReportController extends Controller
 
         $filename = "{$type}-report-".now()->format('Y-m-d').'.pdf';
 
-        return $pdf->download($filename);
+        return $pdf->stream($filename);
     }
 
     protected function getReportData(string $type, array $filters)

@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Customer Details">
     <div x-data="{ activeTab: 'quotations' }">
+        <x-admin.breadcrumb :items="[['label'=>'Customers','url'=>route('admin.customers.index')],['label'=>'Customer Details']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Customer Details</h5>
             <div class="flex items-center gap-3">

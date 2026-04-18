@@ -159,6 +159,65 @@
     <script defer src="/assets/js/alpine-focus.min.js"></script>
     <script defer src="/assets/js/alpine.min.js"></script>
     <script src="/assets/js/custom.js"></script>
+
+    <script>
+    // ── Global: Date formatter ────────────────────────────────────────────
+    function formatDate(val) {
+        if (!val) return '-';
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return val;
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    // ── Global: Keyboard shortcuts ─────────────────────────────────────────
+    document.addEventListener('keydown', function (e) {
+        // Ctrl+S / Cmd+S → submit the first form with a submit button
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            const submitBtn = document.querySelector('form:not([data-no-shortcut]) button[type="submit"]');
+            if (submitBtn) {
+                e.preventDefault();
+                submitBtn.closest('form').requestSubmit(submitBtn);
+            }
+        }
+        // Escape → click Cancel / Back button if visible
+        if (e.key === 'Escape') {
+            const cancelBtn = document.querySelector('a.btn-outline-secondary, a.btn-outline-primary[href*="back"], a[href$="index"]');
+            // Only trigger if user is not in an input
+            if (cancelBtn && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
+                cancelBtn.click();
+            }
+        }
+    });
+
+    // ── Global: Form submit loading spinner ────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('submit', function (e) {
+            const form = e.target;
+            if (form.tagName !== 'FORM') return;
+            const btn = form.querySelector('button[type="submit"]:not([data-no-spinner])');
+            if (!btn || btn.disabled) return;
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `<svg class="animate-spin w-4 h-4 mr-2 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Processing...`;
+            // Re-enable on page back (bfcache)
+            window.addEventListener('pageshow', function () {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }, { once: true });
+        });
+
+        // ── Global: Tippy.js tooltips (data-tippy-content) ─────────────────
+        if (typeof tippy !== 'undefined') {
+            tippy('[data-tippy-content]', {
+                placement: 'top',
+                animation: 'shift-away',
+                theme: 'material',
+                arrow: true,
+            });
+        }
+    });
+    </script>
+    @stack('scripts')
 </body>
 
 </html>

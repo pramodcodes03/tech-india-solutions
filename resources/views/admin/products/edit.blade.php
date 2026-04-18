@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Edit Product">
     <div x-data="{ imagePreview: null }">
+        <x-admin.breadcrumb :items="[['label'=>'Products','url'=>route('admin.products.index')],['label'=>'Edit Product']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Edit Product</h5>
             <a href="{{ route('admin.products.index') }}" class="btn btn-outline-primary">
@@ -27,12 +29,7 @@
                     </div>
                     <div>
                         <label for="category_id">Category <span class="text-danger">*</span></label>
-                        <select id="category_id" name="category_id" class="form-select" required>
-                            <option value="">-- Select Category --</option>
-                            @foreach($categories as $category)
-                                <option value="{{ $category->id }}" {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
-                            @endforeach
-                        </select>
+                        <x-admin.searchable-select name="category_id" :options="$categories" :selected="$product->category_id" placeholder="-- Select Category --" required />
                     </div>
                     <div>
                         <label for="hsn_code">HSN Code</label>

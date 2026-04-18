@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Adjust Stock">
     <div x-data="stockAdjustment()">
+        <x-admin.breadcrumb :items="[['label'=>'Inventory','url'=>route('admin.inventory.index')],['label'=>'Adjust Stock']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Stock Adjustment</h5>
             <a href="{{ route('admin.inventory.index') }}" class="btn btn-outline-primary">
@@ -17,7 +19,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('admin.inventory.adjust.store') }}" method="POST">
+            <form action="{{ route('admin.inventory.store-adjustment') }}" method="POST">
                 @csrf
                 <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
                     <div>

@@ -23,7 +23,7 @@ class UpdateAdminRequest extends FormRequest
             ],
             'phone' => ['nullable', 'string', 'max:20'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', 'exists:roles,name'],
+            'role_id' => ['required', 'integer', 'exists:roles,id'],
             'status' => ['nullable', 'in:active,inactive'],
         ];
     }
@@ -37,8 +37,8 @@ class UpdateAdminRequest extends FormRequest
             'email.unique' => 'This email address is already in use.',
             'password.min' => 'Password must be at least 8 characters.',
             'password.confirmed' => 'Password confirmation does not match.',
-            'role.required' => 'Please select a role.',
-            'role.exists' => 'The selected role does not exist.',
+            'role_id.required' => 'Please select a role.',
+            'role_id.exists' => 'The selected role does not exist.',
             'status.in' => 'Status must be either active or inactive.',
         ];
     }

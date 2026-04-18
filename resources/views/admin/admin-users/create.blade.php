@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Add User">
     <div>
+        <x-admin.breadcrumb :items="[['label'=>'Users','url'=>route('admin.admin-users.index')],['label'=>'Add User']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Add Admin User</h5>
             <a href="{{ route('admin.admin-users.index') }}" class="btn btn-outline-primary">
@@ -34,12 +36,7 @@
                     </div>
                     <div>
                         <label for="role_id">Role <span class="text-danger">*</span></label>
-                        <select id="role_id" name="role_id" class="form-select" required>
-                            <option value="">-- Select Role --</option>
-                            @foreach($roles as $role)
-                                <option value="{{ $role->id }}" {{ old('role_id') == $role->id ? 'selected' : '' }}>{{ $role->name }}</option>
-                            @endforeach
-                        </select>
+                        <x-admin.searchable-select name="role_id" :options="$roles" placeholder="-- Select Role --" required />
                     </div>
                     <div>
                         <label for="password">Password <span class="text-danger">*</span></label>

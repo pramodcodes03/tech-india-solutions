@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ProductCategory as Category;
 use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\Warehouse;
@@ -20,34 +21,21 @@ class InventoryController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('inventory.view'), 403);
 
-        $products = Product::with(['category'])
-            ->when($request->search, fn ($q, $s) => $q->where(function ($q) use ($s) {
-                $q->where('name', 'like', "%{$s}%")
-                    ->orWhere('code', 'like', "%{$s}%");
-            }))
-            ->when($request->category_id, fn ($q, $c) => $q->where('category_id', $c))
-            ->when($request->warehouse_id, fn ($q, $w) => $q->whereHas('stockMovements', fn ($sq) => $sq->where('warehouse_id', $w)))
-            ->where('status', 'active')
-            ->orderBy('name')
+        $inventories = StockMovement::with(['product.category', 'warehouse'])
+            ->selectRaw('product_id, warehouse_id, COALESCE(SUM(CASE WHEN type IN (\'in\', \'adjustment\') THEN quantity ELSE -quantity END), 0) as quantity')
+            ->groupBy('product_id', 'warehouse_id')
+            ->when($request->warehouse_id, fn ($q, $w) => $q->where('warehouse_id', $w))
+            ->when($request->category_id, fn ($q, $c) => $q->whereHas('product', fn ($pq) => $pq->where('category_id', $c)))
+            ->when($request->search, fn ($q, $s) => $q->whereHas('product', fn ($pq) => $pq->where(function ($pq) use ($s) {
+                $pq->where('name', 'like', "%{$s}%")->orWhere('code', 'like', "%{$s}%");
+            })))
+            ->whereHas('product', fn ($q) => $q->where('status', 'active'))
             ->paginate(10);
 
-        if ($request->ajax()) {
-            return response()->json([
-                'data' => $products->items(),
-                'pagination' => [
-                    'total' => $products->total(),
-                    'per_page' => $products->perPage(),
-                    'current_page' => $products->currentPage(),
-                    'last_page' => $products->lastPage(),
-                    'from' => $products->firstItem() ?? 0,
-                    'to' => $products->lastItem() ?? 0,
-                ],
-            ]);
-        }
-
         $warehouses = Warehouse::where('is_active', true)->orderBy('name')->get();
+        $categories = Category::orderBy('name')->get();
 
-        return view('admin.inventory.index', compact('products', 'warehouses'));
+        return view('admin.inventory.index', compact('inventories', 'warehouses', 'categories'));
     }
 
     public function movements(Request $request)

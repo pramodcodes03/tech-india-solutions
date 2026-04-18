@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Sales Report">
     <div>
+        <x-admin.breadcrumb :items="[['label'=>'Reports','url'=>route('admin.reports.index')],['label'=>'Sales Report']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Sales Report</h5>
             <a href="{{ route('admin.reports.index') }}" class="btn btn-outline-primary">

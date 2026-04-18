@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Inventory">
     <div>
+        <x-admin.breadcrumb :items="[['label' => 'Inventory']]" />
+
         <div class="flex items-center justify-between gap-4 mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Current Stock Overview</h5>
             <div class="flex items-center gap-3 flex-wrap">

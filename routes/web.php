@@ -26,9 +26,11 @@ Route::get('/', function () {
 });
 
 // Public documentation site
-Route::get('/documentation/{page?}', [DocumentationController::class, 'show'])
-    ->where('page', '.*')
-    ->name('documentation');
+Route::prefix('documentation')->name('documentation.')->group(function () {
+    Route::get('/', [DocumentationController::class, 'index'])->name('index');
+    Route::get('/search', [DocumentationController::class, 'search'])->name('search');
+    Route::get('/{section}', [DocumentationController::class, 'section'])->name('section');
+});
 
 // Admin auth routes
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -62,7 +64,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('quotations', QuotationController::class);
         Route::get('quotations/{quotation}/pdf', [QuotationController::class, 'pdf'])->name('quotations.pdf');
         Route::post('quotations/{quotation}/clone', [QuotationController::class, 'clone'])->name('quotations.clone');
-        Route::post('quotations/{quotation}/convert', [QuotationController::class, 'convertToOrder'])->name('quotations.convert');
+        Route::post('quotations/{quotation}/convert-to-order', [QuotationController::class, 'convertToOrder'])->name('quotations.convert-to-order');
+        Route::patch('quotations/{quotation}/status', [QuotationController::class, 'updateStatus'])->name('quotations.update-status');
 
         // Sales Order Management
         Route::resource('sales-orders', SalesOrderController::class)->parameters(['sales-orders' => 'sales_order']);

@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Edit Order">
     <div x-data="salesOrderEditForm()">
+        <x-admin.breadcrumb :items="[['label'=>'Sales Orders','url'=>route('admin.sales-orders.index')],['label'=>'Edit Order']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Edit Sales Order</h5>
             <a href="{{ route('admin.sales-orders.index') }}" class="btn btn-outline-primary">
@@ -85,12 +87,7 @@
                                 <tr>
                                     <td class="px-4 py-2" x-text="index + 1"></td>
                                     <td class="px-4 py-2">
-                                        <select class="form-select" :name="`items[${index}][product_id]`" x-model="item.product_id" @change="selectProduct(index)">
-                                            <option value="">-- Select --</option>
-                                            <template x-for="product in products" :key="product.id">
-                                                <option :value="product.id" x-text="product.name" :selected="item.product_id == product.id"></option>
-                                            </template>
-                                        </select>
+                                        <x-admin.product-select />
                                     </td>
                                     <td class="px-4 py-2">
                                         <input type="text" class="form-input" :name="`items[${index}][description]`" x-model="item.description" placeholder="Description" />

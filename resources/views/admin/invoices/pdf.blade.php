@@ -53,9 +53,22 @@
         .status-paid { background-color: #d4edda; color: #155724; }
         .status-overdue { background-color: #f8d7da; color: #721c24; }
         .status-cancelled { background-color: #e0e0e0; color: #333; }
+        /* DRAFT watermark */
+        .watermark { position: fixed; top: 38%; left: 10%; font-size: 90px; font-weight: 900; color: rgba(0,0,0,0.06); transform: rotate(-35deg); text-transform: uppercase; letter-spacing: 10px; z-index: 0; }
+        /* Signature */
+        .signature-section { display: table; width: 100%; margin-top: 50px; }
+        .signature-box { display: table-cell; width: 45%; vertical-align: top; border-top: 1px solid #333; padding-top: 8px; }
+        .signature-label { font-size: 10px; color: #999; }
     </style>
 </head>
 <body>
+    @if($invoice->status === 'draft')
+    <div class="watermark">DRAFT</div>
+    @endif
+    @if($invoice->status === 'paid')
+    <div class="watermark" style="color:rgba(0,171,85,0.08);">PAID</div>
+    @endif
+
     <div class="container">
         {{-- Header --}}
         <div class="header">
@@ -78,11 +91,11 @@
                         </tr>
                         <tr>
                             <td>Date</td>
-                            <td>{{ $invoice->invoice_date }}</td>
+                            <td>{{ $invoice->invoice_date ? \Carbon\Carbon::parse($invoice->invoice_date)->format('d-m-Y') : '-' }}</td>
                         </tr>
                         <tr>
                             <td>Due Date</td>
-                            <td>{{ $invoice->due_date }}</td>
+                            <td>{{ $invoice->due_date ? \Carbon\Carbon::parse($invoice->due_date)->format('d-m-Y') : '-' }}</td>
                         </tr>
                         <tr>
                             <td>Status</td>
@@ -226,8 +239,21 @@
         @endif
 
         {{-- Footer --}}
+        {{-- Signature Line --}}
+        <div class="signature-section">
+            <div class="signature-box">
+                <div class="signature-label">Authorised Signatory</div>
+                <div style="font-size:11px;font-weight:bold;margin-top:2px;">{{ $settings['company_name'] ?? 'Company Name' }}</div>
+            </div>
+            <div style="display:table-cell;width:10%;"></div>
+            <div class="signature-box">
+                <div class="signature-label">Received By</div>
+                <div style="font-size:11px;color:#999;margin-top:2px;">Signature & Date</div>
+            </div>
+        </div>
+
         <div class="footer">
-            This is a computer-generated invoice and does not require a physical signature.
+            This is a computer-generated invoice. For queries contact {{ $settings['company_email'] ?? '' }}
         </div>
     </div>
 </body>

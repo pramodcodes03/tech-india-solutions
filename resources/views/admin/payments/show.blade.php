@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Payment Details">
     <div>
+        <x-admin.breadcrumb :items="[['label'=>'Payments','url'=>route('admin.payments.index')],['label'=>'Payment Details']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Payment Details</h5>
             <div class="flex items-center gap-2">

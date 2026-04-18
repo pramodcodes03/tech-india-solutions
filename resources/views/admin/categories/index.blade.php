@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Categories">
     <div>
+        <x-admin.breadcrumb :items="[['label' => 'Categories']]" />
+
         <div class="flex items-center justify-between gap-4 mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Categories</h5>
             <a href="{{ route('admin.categories.create') }}" class="btn btn-primary gap-2 whitespace-nowrap">
@@ -49,7 +51,7 @@
                                 </td>
                                 <td class="px-4 py-2">
                                     <div class="flex items-center justify-center gap-2">
-                                        <a href="{{ route('admin.categories.edit', $category->id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <a href="{{ route('admin.categories.edit', $category->id) }}" class="btn btn-sm btn-outline-primary p-1.5" data-tippy-content="Edit"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></a>
                                         @if(($category->products_count ?? 0) === 0 && ($category->children_count ?? 0) === 0)
                                             <form action="{{ route('admin.categories.destroy', $category->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this category?')">
                                                 @csrf

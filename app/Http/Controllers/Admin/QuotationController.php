@@ -91,7 +91,19 @@ class QuotationController extends Controller
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
         $products = Product::where('status', 'active')->orderBy('name')->get();
 
-        return view('admin.quotations.edit', compact('quotation', 'customers', 'products'));
+        $quotationItems = $quotation->items->map(fn($i) => [
+            'product_id'       => $i->product_id ?? '',
+            'description'      => $i->description ?? '',
+            'hsn_code'         => $i->hsn_code ?? '',
+            'quantity'         => $i->quantity ?? 1,
+            'unit'             => $i->unit ?? 'pcs',
+            'rate'             => $i->rate ?? 0,
+            'discount_percent' => $i->discount_percent ?? 0,
+            'tax_percent'      => $i->tax_percent ?? 0,
+            'line_total'       => $i->line_total ?? 0,
+        ])->values();
+
+        return view('admin.quotations.edit', compact('quotation', 'customers', 'products', 'quotationItems'));
     }
 
     public function update(UpdateQuotationRequest $request, $id)
@@ -127,9 +139,56 @@ class QuotationController extends Controller
 
         $quotation = Quotation::with(['customer', 'items.product', 'creator'])->findOrFail($id);
 
-        $pdf = Pdf::loadView('admin.quotations.pdf', compact('quotation'));
+        $pdfSubtotal = 0;
+        foreach ($quotation->items as $item) {
+            $g = floatval($item->quantity ?? 0) * floatval($item->rate ?? 0);
+            $a = $g - $g * (floatval($item->discount_percent ?? 0) / 100);
+            $pdfSubtotal += $a + $a * (floatval($item->tax_percent ?? 0) / 100);
+        }
+        $pdfSubtotal   = round($pdfSubtotal, 2);
+        $pdfDiscVal    = floatval($quotation->discount_value ?? 0);
+        $pdfDiscAmt    = $quotation->discount_type === 'percent'
+            ? round($pdfSubtotal * $pdfDiscVal / 100, 2)
+            : round($pdfDiscVal, 2);
+        $pdfAfterDisc  = $pdfSubtotal - $pdfDiscAmt;
+        $pdfTaxAmt     = round($pdfAfterDisc * (floatval($quotation->tax_percent ?? 0) / 100), 2);
+        $pdfGrandTotal = round($pdfAfterDisc + $pdfTaxAmt, 2);
 
-        return $pdf->download("Quotation-{$quotation->quotation_number}.pdf");
+        $pdf = Pdf::loadView('admin.quotations.pdf', compact(
+            'quotation', 'pdfSubtotal', 'pdfDiscVal', 'pdfDiscAmt', 'pdfTaxAmt', 'pdfGrandTotal'
+        ));
+
+        return $pdf->stream("Quotation-{$quotation->quotation_number}.pdf");
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('quotations.edit'), 403);
+
+        $quotation = Quotation::findOrFail($id);
+
+        $allowed = ['draft', 'sent', 'accepted', 'rejected', 'expired'];
+        $request->validate(['status' => 'required|in:' . implode(',', $allowed)]);
+
+        $transitions = [
+            'draft'    => ['sent'],
+            'sent'     => ['accepted', 'rejected', 'expired'],
+            'accepted' => [],
+            'rejected' => ['draft'],
+            'expired'  => ['draft'],
+        ];
+
+        if (!in_array($request->status, $transitions[$quotation->status] ?? [])) {
+            $msg = "Cannot change status from '{$quotation->status}' to '{$request->status}'.";
+            if ($request->ajax()) return response()->json(['success' => false, 'message' => $msg], 422);
+            return redirect()->back()->with('error', $msg);
+        }
+
+        $quotation->update(['status' => $request->status]);
+
+        $msg = 'Quotation marked as ' . ucfirst($request->status) . '.';
+        if ($request->ajax()) return response()->json(['success' => true, 'message' => $msg]);
+        return redirect()->back()->with('success', $msg);
     }
 
     public function clone($id)
@@ -138,6 +197,10 @@ class QuotationController extends Controller
 
         $quotation = Quotation::with('items')->findOrFail($id);
         $newQuotation = $this->quotationService->clone($quotation);
+
+        if (request()->ajax()) {
+            return response()->json(['success' => true, 'message' => "Quotation cloned. New number: {$newQuotation->quotation_number}"]);
+        }
 
         return redirect()->route('admin.quotations.edit', $newQuotation->id)
             ->with('success', "Quotation cloned successfully. New number: {$newQuotation->quotation_number}");
@@ -150,10 +213,17 @@ class QuotationController extends Controller
         $quotation = Quotation::with('items')->findOrFail($id);
 
         if ($quotation->status === 'accepted') {
+            if (request()->ajax()) {
+                return response()->json(['success' => false, 'message' => 'This quotation has already been converted.'], 422);
+            }
             return redirect()->back()->with('error', 'This quotation has already been converted to a sales order.');
         }
 
         $salesOrder = $this->quotationService->convertToSalesOrder($quotation);
+
+        if (request()->ajax()) {
+            return response()->json(['success' => true, 'message' => "Converted to Sales Order #{$salesOrder->order_number}."]);
+        }
 
         return redirect()->route('admin.sales-orders.show', $salesOrder->id)
             ->with('success', "Quotation converted to Sales Order #{$salesOrder->order_number} successfully.");

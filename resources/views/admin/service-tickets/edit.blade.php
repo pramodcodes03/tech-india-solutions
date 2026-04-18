@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Edit Ticket">
     <div x-data="{ status: '{{ old('status', $ticket->status) }}' }">
+        <x-admin.breadcrumb :items="[['label'=>'Service Tickets','url'=>route('admin.service-tickets.index')],['label'=>'Edit Ticket']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Edit Service Ticket</h5>
             <a href="{{ route('admin.service-tickets.index') }}" class="btn btn-outline-primary">
@@ -27,12 +29,7 @@
                     </div>
                     <div>
                         <label for="product_id">Product</label>
-                        <select id="product_id" name="product_id" class="form-select">
-                            <option value="">-- Select Product --</option>
-                            @foreach($products as $product)
-                                <option value="{{ $product->id }}" {{ old('product_id', $ticket->product_id) == $product->id ? 'selected' : '' }}>{{ $product->name }}</option>
-                            @endforeach
-                        </select>
+                        <x-admin.searchable-select name="product_id" :options="$products" :selected="$ticket->product_id" placeholder="-- Select Product --" />
                     </div>
                     <div>
                         <label for="priority">Priority <span class="text-danger">*</span></label>
@@ -45,12 +42,7 @@
                     </div>
                     <div>
                         <label for="assigned_to">Assigned To</label>
-                        <select id="assigned_to" name="assigned_to" class="form-select">
-                            <option value="">-- Select Admin --</option>
-                            @foreach($admins as $admin)
-                                <option value="{{ $admin->id }}" {{ old('assigned_to', $ticket->assigned_to) == $admin->id ? 'selected' : '' }}>{{ $admin->name }}</option>
-                            @endforeach
-                        </select>
+                        <x-admin.searchable-select name="assigned_to" :options="$admins" :selected="$ticket->assigned_to" placeholder="-- Select Admin --" />
                     </div>
                     <div>
                         <label for="status">Status</label>

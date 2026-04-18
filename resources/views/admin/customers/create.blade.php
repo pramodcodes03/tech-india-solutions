@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Add Customer">
     <div>
+        <x-admin.breadcrumb :items="[['label'=>'Customers','url'=>route('admin.customers.index')],['label'=>'Add Customer']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Add Customer</h5>
             <a href="{{ route('admin.customers.index') }}" class="btn btn-outline-primary">

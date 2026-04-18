@@ -15,6 +15,7 @@ class RoleController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('roles.view'), 403);
 
         $roles = Role::where('guard_name', 'admin')
+            ->where('name', '!=', 'Super Admin')
             ->withCount('permissions')
             ->when($request->search, fn ($q, $s) => $q->where('name', 'like', "%{$s}%"))
             ->latest()
@@ -41,14 +42,29 @@ class RoleController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('roles.create'), 403);
 
-        $permissions = Permission::where('guard_name', 'admin')
+        $allPermissionNames = Permission::where('guard_name', 'admin')
             ->orderBy('name')
-            ->get()
-            ->groupBy(function ($permission) {
-                return explode('.', $permission->name)[0];
-            });
+            ->pluck('name')
+            ->toArray();
 
-        return view('admin.roles.create', compact('permissions'));
+        $modules = collect($allPermissionNames)
+            ->map(fn ($p) => explode('.', $p)[0])
+            ->unique()
+            ->sort()
+            ->values()
+            ->toArray();
+
+        $actions = collect($allPermissionNames)
+            ->map(fn ($p) => explode('.', $p)[1] ?? null)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->toArray();
+
+        $allPermissions = $allPermissionNames;
+
+        return view('admin.roles.create', compact('modules', 'actions', 'allPermissions'));
     }
 
     public function store(Request $request)
@@ -58,7 +74,7 @@ class RoleController extends Controller
         $request->validate([
             'name' => 'required|string|max:255|unique:roles,name',
             'permissions' => 'nullable|array',
-            'permissions.*' => 'exists:permissions,id',
+            'permissions.*' => 'exists:permissions,name',
         ]);
 
         $role = Role::create([
@@ -79,16 +95,32 @@ class RoleController extends Controller
 
         $role = Role::where('guard_name', 'admin')->findOrFail($id);
 
-        $permissions = Permission::where('guard_name', 'admin')
+        abort_if($role->name === 'Super Admin', 403, 'The Super Admin role cannot be edited.');
+
+        $allPermissionNames = Permission::where('guard_name', 'admin')
             ->orderBy('name')
-            ->get()
-            ->groupBy(function ($permission) {
-                return explode('.', $permission->name)[0];
-            });
+            ->pluck('name')
+            ->toArray();
 
-        $rolePermissions = $role->permissions->pluck('id')->toArray();
+        $modules = collect($allPermissionNames)
+            ->map(fn ($p) => explode('.', $p)[0])
+            ->unique()
+            ->sort()
+            ->values()
+            ->toArray();
 
-        return view('admin.roles.edit', compact('role', 'permissions', 'rolePermissions'));
+        $actions = collect($allPermissionNames)
+            ->map(fn ($p) => explode('.', $p)[1] ?? null)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->toArray();
+
+        $allPermissions = $allPermissionNames;
+        $rolePermissions = $role->permissions->pluck('name')->toArray();
+
+        return view('admin.roles.edit', compact('role', 'modules', 'actions', 'allPermissions', 'rolePermissions'));
     }
 
     public function update(Request $request, $id)
@@ -97,10 +129,12 @@ class RoleController extends Controller
 
         $role = Role::where('guard_name', 'admin')->findOrFail($id);
 
+        abort_if($role->name === 'Super Admin', 403, 'The Super Admin role cannot be edited.');
+
         $request->validate([
             'name' => 'required|string|max:255|unique:roles,name,'.$role->id,
             'permissions' => 'nullable|array',
-            'permissions.*' => 'exists:permissions,id',
+            'permissions.*' => 'exists:permissions,name',
         ]);
 
         $role->update(['name' => $request->name]);

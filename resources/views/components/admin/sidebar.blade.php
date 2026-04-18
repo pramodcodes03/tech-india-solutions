@@ -1,3 +1,8 @@
+@php
+    $sidebarLowStock    = app(\App\Services\InventoryService::class)->getLowStockProducts()->count();
+    $sidebarOpenTickets = \App\Models\ServiceTicket::whereNotIn('status', ['closed', 'resolved'])->count();
+@endphp
+
 <div :class="{ 'dark text-white-dark': $store.app.semidark }">
     <nav x-data="sidebar"
         class="sidebar fixed min-h-screen h-full top-0 bottom-0 w-[260px] shadow-[5px_0_25px_0_rgba(94,92,154,0.1)] z-50 transition-all duration-300">
@@ -22,8 +27,24 @@
                     </svg>
                 </a>
             </div>
+
+            {{-- Sidebar Search --}}
+            <div class="px-4 pb-2">
+                <div class="relative">
+                    <input type="text"
+                        id="sidebarSearchInput"
+                        placeholder="Search menu..."
+                        autocomplete="off"
+                        oninput="filterAdminSidebar(this.value)"
+                        class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-gray-100 dark:bg-[#1b2e4b] border-0 focus:ring-1 focus:ring-primary outline-none dark:text-gray-300 dark:placeholder-gray-500 transition" />
+                    <svg class="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                    </svg>
+                </div>
+            </div>
+
             <ul
-                class="perfect-scrollbar relative font-semibold space-y-0.5 h-[calc(100vh-80px)] overflow-y-auto overflow-x-hidden p-4 py-0">
+                class="perfect-scrollbar relative font-semibold space-y-0.5 h-[calc(100vh-140px)] overflow-y-auto overflow-x-hidden p-4 py-0">
 
                 {{-- ========== Dashboard ========== --}}
                 <li class="menu nav-item">
@@ -323,6 +344,9 @@
                                 <path opacity="0.5" d="M12 12L20 7M12 12L4 7M12 12V21" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
                             </svg>
                             <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Stock</span>
+                            @if($sidebarLowStock > 0)
+                            <span class="ml-auto mr-1 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-danger text-white">{{ $sidebarLowStock > 99 ? '99+' : $sidebarLowStock }}</span>
+                            @endif
                         </div>
                         <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'stock' }">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -416,6 +440,9 @@
                                 <path opacity="0.5" d="M12 8V12L14.5 14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                             <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Service Tickets</span>
+                            @if($sidebarOpenTickets > 0)
+                            <span class="ml-auto mr-1 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-info text-white">{{ $sidebarOpenTickets > 99 ? '99+' : $sidebarOpenTickets }}</span>
+                            @endif
                         </div>
                         <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'service-tickets' }">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -485,32 +512,136 @@
                 @endcan
 
             </ul>
+
+            {{-- Recently Visited --}}
+            <div class="px-4 py-2 border-t border-gray-100 dark:border-gray-700/50"
+                 x-data="recentlyVisited"
+                 x-show="recentPages.length > 0">
+                <p class="text-[10px] uppercase font-extrabold text-gray-400 tracking-wider mb-2 px-1">Recently Visited</p>
+                <ul class="space-y-0.5">
+                    <template x-for="page in recentPages.slice(0,4)" :key="page.url">
+                        <li>
+                            <a :href="page.url"
+                               class="flex items-center gap-2 px-2 py-1 rounded-md text-xs text-gray-500 dark:text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-[#1b2e4b] transition-colors truncate">
+                                <svg class="w-3 h-3 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <span x-text="page.label" class="truncate"></span>
+                            </a>
+                        </li>
+                    </template>
+                </ul>
+            </div>
         </div>
     </nav>
 </div>
 
 <script>
+    // ── Map URL segments → dropdown keys ─────────────────────────────────
+    const _dropdownMap = {
+        'admin-users':     'users',
+        'customers':       'customers',
+        'leads':           'leads',
+        'quotations':      'quotations',
+        'sales-orders':    'sales-orders',
+        'invoices':        'invoices',
+        'payments':        'payments',
+        'products':        'products',
+        'categories':      'products',
+        'inventory':       'stock',
+        'vendors':         'vendors',
+        'purchase-orders': 'purchase-orders',
+        'service-tickets': 'service-tickets',
+        'reports':         'reports',
+    };
+
+    function _detectActiveDropdown() {
+        const segments = window.location.pathname.split('/').filter(Boolean);
+        for (const seg of segments) {
+            if (_dropdownMap[seg]) return _dropdownMap[seg];
+        }
+        return null;
+    }
+
     document.addEventListener("alpine:init", () => {
         Alpine.data("sidebar", () => ({
-            activeDropdown: null
+            activeDropdown: _detectActiveDropdown(),
+
+            init() {
+                const currentPath = window.location.pathname.replace(/\/$/, '');
+                const scrollEl    = this.$el.querySelector('.perfect-scrollbar');
+
+                // Mark active links
+                this.$el.querySelectorAll('a[href]').forEach(link => {
+                    let lp = link.getAttribute('href').replace(/\/$/, '');
+                    if (lp.startsWith('http')) {
+                        try { lp = new URL(lp).pathname.replace(/\/$/, ''); } catch(e) {}
+                    }
+                    if (lp === currentPath) link.classList.add('active');
+                });
+
+                // Scroll after x-collapse finishes expanding (its default duration is ~300ms)
+                if (scrollEl) {
+                    setTimeout(() => {
+                        const activeLink = scrollEl.querySelector('ul.sub-menu a.active')
+                                       || scrollEl.querySelector('a.active');
+                        if (!activeLink) return;
+
+                        // Walk up to the parent <li class="menu nav-item"> so we scroll to
+                        // the dropdown button, not just the sub-link buried inside
+                        const parentItem = activeLink.closest('li.menu.nav-item') || activeLink;
+
+                        const containerRect = scrollEl.getBoundingClientRect();
+                        const itemRect      = parentItem.getBoundingClientRect();
+                        const rawOffset     = itemRect.top - containerRect.top + scrollEl.scrollTop;
+                        const target        = rawOffset - 80; // 80px top padding so button isn't flush at top
+
+                        scrollEl.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+                    }, 400);
+                }
+            }
         }));
     });
 
-    document.addEventListener("DOMContentLoaded", function() {
-        const currentPath = window.location.pathname.replace(/\/$/, '');
-        const links = document.querySelectorAll('.sidebar a[href]');
-        links.forEach(function(link) {
-            let linkPath = link.getAttribute('href').replace(/\/$/, '');
-            if (linkPath.startsWith('http')) {
-                linkPath = new URL(linkPath).pathname.replace(/\/$/, '');
+    // ── Recently Visited ─────────────────────────────────────────────────
+    Alpine.data('recentlyVisited', () => ({
+        recentPages: [],
+        init() {
+            const stored = JSON.parse(localStorage.getItem('erp_recent_pages') || '[]');
+            this.recentPages = stored;
+            const label = document.title.replace(' | Admin Panel', '').replace('Admin Panel', 'Dashboard').trim();
+            const url   = window.location.pathname;
+            if (url !== '/admin/login') {
+                const filtered = stored.filter(p => p.url !== url);
+                const updated  = [{ label, url }, ...filtered].slice(0, 8);
+                localStorage.setItem('erp_recent_pages', JSON.stringify(updated));
+                this.recentPages = updated.slice(1);
             }
-            if (linkPath === currentPath) {
-                link.classList.add('active');
-                const parentLi = link.closest('ul.sub-menu')?.previousElementSibling;
-                if (parentLi) {
-                    parentLi.click();
-                }
-            }
+        }
+    }));
+
+    function filterAdminSidebar(val) {
+        const q = val.toLowerCase().trim();
+        const ul = document.querySelector('.sidebar .perfect-scrollbar');
+        if (!ul) return;
+
+        // Show/hide each menu item
+        ul.querySelectorAll('li.menu.nav-item').forEach(li => {
+            li.style.display = (!q || li.textContent.toLowerCase().includes(q)) ? '' : 'none';
         });
-    });
+
+        // Show/hide section headers: hide if no visible li follows before the next h2
+        ul.querySelectorAll('h2').forEach(h2 => {
+            if (!q) { h2.style.display = ''; return; }
+            let sibling = h2.nextElementSibling;
+            let hasVisible = false;
+            while (sibling) {
+                if (sibling.tagName === 'H2') break;
+                if (sibling.tagName === 'LI' && sibling.style.display !== 'none') {
+                    hasVisible = true;
+                    break;
+                }
+                sibling = sibling.nextElementSibling;
+            }
+            h2.style.display = hasVisible ? '' : 'none';
+        });
+    }
 </script>

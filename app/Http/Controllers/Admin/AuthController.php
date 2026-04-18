@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Invoice;
 use App\Services\DashboardService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -53,6 +54,19 @@ class AuthController extends Controller
         $topProducts = $this->dashboardService->getTopProducts();
         $recentQuotations = \App\Models\Quotation::with('customer')->latest()->take(5)->get();
         $recentInvoices = \App\Models\Invoice::with('customer')->latest()->take(5)->get();
+        $overdueInvoices = Invoice::with('customer')
+            ->where('status', 'overdue')
+            ->orWhere(function ($q) {
+                $q->whereIn('status', ['unpaid', 'partial'])
+                  ->where('due_date', '<', now()->toDateString());
+            })
+            ->latest()
+            ->take(5)
+            ->get();
+        $recentActivity = \Spatie\Activitylog\Models\Activity::with('causer')
+            ->latest()
+            ->take(10)
+            ->get();
 
         return view('admin.dashboard', compact(
             'stats',
@@ -62,6 +76,8 @@ class AuthController extends Controller
             'topProducts',
             'recentQuotations',
             'recentInvoices',
+            'overdueInvoices',
+            'recentActivity',
         ));
     }
 

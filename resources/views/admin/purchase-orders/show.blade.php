@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="PO Details">
     <div>
+        <x-admin.breadcrumb :items="[['label'=>'Purchase Orders','url'=>route('admin.purchase-orders.index')],['label'=>'PO Details']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Purchase Order Details</h5>
             <div class="flex items-center gap-2">

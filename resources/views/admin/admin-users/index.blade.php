@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Users">
     <div x-data="adminUserList">
+        <x-admin.breadcrumb :items="[['label' => 'Admin Users']]" />
+
         <div class="flex items-center justify-between gap-4 mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Admin Users</h5>
             <div class="flex items-center gap-3 flex-wrap">
@@ -57,7 +59,7 @@
                                 <td class="px-4 py-2" x-text="item.email"></td>
                                 <td class="px-4 py-2" x-text="item.phone || '-'"></td>
                                 <td class="px-4 py-2">
-                                    <span class="badge bg-primary" x-text="item.role ? item.role.name : '-'"></span>
+                                    <span class="badge bg-primary" x-text="item.roles && item.roles.length ? item.roles[0].name : '-'"></span>
                                 </td>
                                 <td class="px-4 py-2">
                                     <span class="badge cursor-pointer" :class="item.status === 'active' ? 'bg-success' : 'bg-danger'" x-text="item.status" @click="toggleStatus(item.id)"></span>
@@ -65,14 +67,21 @@
                                 <td class="px-4 py-2" x-text="item.last_login_at || '-'"></td>
                                 <td class="px-4 py-2">
                                     <div class="flex items-center justify-center gap-2">
-                                        <a :href="`{{ url('admin/admin-users') }}/${item.id}/edit`" class="btn btn-sm btn-outline-primary">Edit</a>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" @click="deleteItem(item.id)">Delete</button>
+                                        <a :href="`{{ url('admin/admin-users') }}/${item.id}/edit`" class="btn btn-sm btn-outline-primary p-1.5" data-tippy-content="Edit"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger p-1.5" @click="deleteItem(item.id)" data-tippy-content="Delete"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
                                     </div>
                                 </td>
                             </tr>
                         </template>
-                        <tr x-show="items.length === 0">
-                            <td colspan="8" class="px-4 py-4 text-center text-gray-500">No records found.</td>
+                        <tr x-show="items.length === 0" x-cloak>
+                            <x-admin.empty-state
+                                icon="users"
+                                title="No users yet"
+                                description="Add team members to give them access to the system."
+                                action-url="{{ route('admin.admin-users.create') }}"
+                                action-label="Add User"
+                                :colspan="7"
+                            />
                         </tr>
                     </tbody>
                 </table>

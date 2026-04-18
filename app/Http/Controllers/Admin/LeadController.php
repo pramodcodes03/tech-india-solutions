@@ -58,12 +58,12 @@ class LeadController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('leads.view'), 403);
 
-        $leads = Lead::with(['assignedTo'])
+        $leadsByStatus = Lead::with(['assignedTo'])
             ->orderBy('updated_at', 'desc')
             ->get()
             ->groupBy('status');
 
-        return view('admin.leads.kanban', compact('leads'));
+        return view('admin.leads.kanban', compact('leadsByStatus'));
     }
 
     public function create()
@@ -71,8 +71,10 @@ class LeadController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('leads.create'), 403);
 
         $admins = Admin::where('status', 'active')->orderBy('name')->get();
+        $sources = Lead::distinct()->whereNotNull('source')->pluck('source')
+            ->map(fn($s) => ['id' => $s, 'name' => ucfirst($s)])->values();
 
-        return view('admin.leads.create', compact('admins'));
+        return view('admin.leads.create', compact('admins', 'sources'));
     }
 
     public function store(StoreLeadRequest $request)
@@ -99,8 +101,9 @@ class LeadController extends Controller
 
         $lead = Lead::findOrFail($id);
         $admins = Admin::where('status', 'active')->orderBy('name')->get();
+        $sources = Lead::distinct()->whereNotNull('source')->pluck('source');
 
-        return view('admin.leads.edit', compact('lead', 'admins'));
+        return view('admin.leads.edit', compact('lead', 'admins', 'sources'));
     }
 
     public function update(UpdateLeadRequest $request, $id)

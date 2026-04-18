@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Edit City">
     <div>
+        <x-admin.breadcrumb :items="[['label'=>'Cities','url'=>route('admin.cities.index')],['label'=>'Edit City']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Edit City</h5>
             <a href="{{ route('admin.cities.index') }}" class="btn btn-outline-primary">

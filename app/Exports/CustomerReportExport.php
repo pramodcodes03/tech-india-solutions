@@ -28,14 +28,16 @@ class CustomerReportExport implements FromCollection, ShouldAutoSize, WithHeadin
 
     public function map($row): array
     {
+        $invoiced = $row->total_invoiced ?? 0;
+        $paid     = $row->total_paid ?? 0;
         return [
-            $row->customer_code,
+            $row->code ?? '-',
             $row->name,
-            $row->company_name ?? '-',
-            $row->total_orders ?? 0,
-            number_format($row->total_invoiced ?? 0, 2),
-            number_format($row->amount_paid ?? 0, 2),
-            number_format($row->outstanding_balance ?? 0, 2),
+            $row->company ?? '-',
+            $row->invoices->count(),
+            number_format($invoiced, 2),
+            number_format($paid, 2),
+            number_format($invoiced - $paid, 2),
         ];
     }
 }

@@ -1,10 +1,16 @@
-<x-layout.admin>
+<x-layout.admin title="Invoice Details">
     <div>
+        <x-admin.breadcrumb :items="[['label'=>'Invoices','url'=>route('admin.invoices.index')],['label'=>'Invoice Details']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Invoice Details</h5>
             <div class="flex items-center gap-2">
                 <a href="{{ route('admin.invoices.edit', $invoice->id) }}" class="btn btn-outline-primary btn-sm">Edit</a>
-                <a href="{{ route('admin.invoices.pdf', $invoice->id) }}" class="btn btn-outline-secondary btn-sm" target="_blank">PDF Download</a>
+                <a href="{{ route('admin.invoices.pdf', $invoice->id) }}" class="btn btn-outline-secondary btn-sm" target="_blank" data-tippy-content="Download PDF">PDF Download</a>
+                <button type="button" onclick="window.print()" class="btn btn-outline-dark btn-sm" data-tippy-content="Print this invoice">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    Print
+                </button>
                 @if($invoice->status !== 'paid' && $invoice->status !== 'cancelled')
                     <a href="{{ route('admin.payments.create', ['invoice_id' => $invoice->id]) }}" class="btn btn-outline-success btn-sm">Record Payment</a>
                 @endif
@@ -40,11 +46,11 @@
                 </div>
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Invoice Date</p>
-                    <p class="font-semibold">{{ $invoice->invoice_date }}</p>
+                    <p class="font-semibold">@formatDate($invoice->invoice_date)</p>
                 </div>
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Due Date</p>
-                    <p class="font-semibold">{{ $invoice->due_date }}</p>
+                    <p class="font-semibold">@formatDate($invoice->due_date)</p>
                 </div>
                 @if($invoice->salesOrder)
                     <div>
@@ -178,7 +184,7 @@
                             <tr>
                                 <td class="px-4 py-2">{{ $index + 1 }}</td>
                                 <td class="px-4 py-2 font-semibold">{{ $payment->payment_number }}</td>
-                                <td class="px-4 py-2">{{ $payment->payment_date }}</td>
+                                <td class="px-4 py-2">@formatDate($payment->payment_date)</td>
                                 <td class="px-4 py-2">{{ ucfirst(str_replace('_', ' ', $payment->mode)) }}</td>
                                 <td class="px-4 py-2">{{ $payment->reference_number ?? '-' }}</td>
                                 <td class="px-4 py-2 text-right font-semibold">{{ number_format($payment->amount, 2) }}</td>

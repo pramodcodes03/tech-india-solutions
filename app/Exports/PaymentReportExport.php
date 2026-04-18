@@ -34,8 +34,8 @@ class PaymentReportExport implements FromCollection, ShouldAutoSize, WithHeading
             $row->customer->name ?? '-',
             $row->invoice->invoice_number ?? '-',
             number_format($row->amount, 2),
-            $row->payment_mode,
-            $row->reference ?? '-',
+            ucfirst(str_replace('_', ' ', $row->mode ?? '-')),
+            $row->reference_no ?? '-',
         ];
     }
 }

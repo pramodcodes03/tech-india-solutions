@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Order Details">
     <div x-data="salesOrderShow">
+        <x-admin.breadcrumb :items="[['label'=>'Sales Orders','url'=>route('admin.sales-orders.index')],['label'=>'Order Details']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Sales Order Details</h5>
             <div class="flex items-center gap-2">

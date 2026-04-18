@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Reports">
     <div>
+        <x-admin.breadcrumb :items="[['label' => 'Reports']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Reports</h5>
         </div>

@@ -18,12 +18,13 @@ class AdminUserController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('users.view'), 403);
 
         $admins = Admin::with('roles')
+            ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'Super Admin'))
             ->when($request->search, fn ($q, $s) => $q->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
                     ->orWhere('email', 'like', "%{$s}%")
                     ->orWhere('phone', 'like', "%{$s}%");
             }))
-            ->when($request->role, fn ($q, $r) => $q->whereHas('roles', fn ($rq) => $rq->where('name', $r)))
+            ->when($request->role_id, fn ($q, $r) => $q->whereHas('roles', fn ($rq) => $rq->where('id', $r)))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->latest()
             ->paginate(10);
@@ -42,7 +43,7 @@ class AdminUserController extends Controller
             ]);
         }
 
-        $roles = Role::where('guard_name', 'admin')->orderBy('name')->get();
+        $roles = Role::where('guard_name', 'admin')->where('name', '!=', 'Super Admin')->orderBy('name')->get();
 
         $adminUsers = $admins;
 
@@ -53,7 +54,7 @@ class AdminUserController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('users.create'), 403);
 
-        $roles = Role::where('guard_name', 'admin')->orderBy('name')->get();
+        $roles = Role::where('guard_name', 'admin')->where('name', '!=', 'Super Admin')->orderBy('name')->get();
 
         return view('admin.admin-users.create', compact('roles'));
     }
@@ -70,7 +71,7 @@ class AdminUserController extends Controller
             'status' => $request->status ?? 'active',
         ]);
 
-        $admin->assignRole($request->role);
+        $admin->assignRole(Role::findById($request->role_id, 'admin'));
 
         return redirect()->route('admin.admin-users.index')->with('success', 'Admin user created successfully.');
     }
@@ -88,10 +89,10 @@ class AdminUserController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('users.edit'), 403);
 
-        $admin = Admin::with('roles')->findOrFail($id);
-        $roles = Role::where('guard_name', 'admin')->orderBy('name')->get();
+        $adminUser = Admin::with('roles')->findOrFail($id);
+        $roles = Role::where('guard_name', 'admin')->where('name', '!=', 'Super Admin')->orderBy('name')->get();
 
-        return view('admin.admin-users.edit', compact('admin', 'roles'));
+        return view('admin.admin-users.edit', compact('adminUser', 'roles'));
     }
 
     public function update(UpdateAdminRequest $request, $id)
@@ -106,7 +107,7 @@ class AdminUserController extends Controller
         }
 
         $admin->update($data);
-        $admin->syncRoles([$request->role]);
+        $admin->syncRoles([Role::findById($request->role_id, 'admin')]);
 
         return redirect()->route('admin.admin-users.index')->with('success', 'Admin user updated successfully.');
     }

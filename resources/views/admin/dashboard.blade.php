@@ -1,17 +1,99 @@
-<x-layout.admin>
+<x-layout.admin title="Dashboard">
     <div>
-        <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center justify-between mb-2">
             <h5 class="text-lg font-semibold dark:text-white-light">Dashboard</h5>
-        </div>
 
-        {{-- Row 1: Stat Cards --}}
+            {{-- Quick Action Buttons --}}
+            <div class="flex items-center gap-2 flex-wrap">
+                @can('quotations.create')
+                <a href="{{ route('admin.quotations.create') }}"
+                   class="btn btn-sm btn-outline-primary gap-1"
+                   data-tippy-content="Create a new quotation">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    New Quotation
+                </a>
+                @endcan
+                @can('customers.create')
+                <a href="{{ route('admin.customers.create') }}"
+                   class="btn btn-sm btn-outline-success gap-1"
+                   data-tippy-content="Add a new customer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    New Customer
+                </a>
+                @endcan
+                @can('payments.create')
+                <a href="{{ route('admin.payments.create') }}"
+                   class="btn btn-sm btn-outline-warning gap-1"
+                   data-tippy-content="Record a payment against an invoice">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    Record Payment
+                </a>
+                @endcan
+            </div>
+        </div>
+        <x-admin.breadcrumb :items="[]" />
+
+        {{-- Overdue Invoice Alert Banner --}}
+        @if(isset($overdueInvoices) && $overdueInvoices->count() > 0)
+        <div class="mb-5 rounded-xl border border-danger/25 bg-danger-light dark:bg-danger/10 overflow-hidden">
+            {{-- Header row --}}
+            <div class="flex items-center justify-between px-4 py-3 border-b border-danger/15 dark:border-danger/20">
+                <div class="flex items-center gap-2">
+                    <span class="flex items-center justify-center w-6 h-6 rounded-full bg-danger/15">
+                        <svg class="w-3.5 h-3.5 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zm9.303-7.124c.866 1.5-.217 3.374-1.948 3.374H4.645c-1.73 0-2.813-1.874-1.948-3.374L10.052 3.378c.866-1.5 3.032-1.5 3.898 0l7.353 12.748z"/>
+                        </svg>
+                    </span>
+                    <span class="text-sm font-semibold text-danger">
+                        {{ $overdueInvoices->count() }} Overdue Invoice{{ $overdueInvoices->count() > 1 ? 's' : '' }}
+                    </span>
+                    <span class="text-xs text-danger/60 dark:text-danger/50 hidden sm:inline">— immediate follow-up required</span>
+                </div>
+                <a href="{{ route('admin.invoices.index', ['status' => 'overdue']) }}"
+                   class="text-xs font-semibold text-danger hover:underline whitespace-nowrap">
+                    View All →
+                </a>
+            </div>
+            {{-- Invoice rows --}}
+            <div class="divide-y divide-danger/10 dark:divide-danger/15">
+                @foreach($overdueInvoices->take(5) as $ov)
+                @php $due = $ov->balance_due ?? ($ov->grand_total - $ov->amount_paid); @endphp
+                <a href="{{ route('admin.invoices.show', $ov->id) }}"
+                   class="flex items-center justify-between px-4 py-2.5 hover:bg-danger/5 transition-colors group">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="text-xs font-mono font-semibold text-danger/80 shrink-0">{{ $ov->invoice_number }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $ov->customer->name ?? '-' }}</span>
+                        @if($ov->due_date)
+                        <span class="text-xs text-danger/50 hidden md:inline shrink-0">
+                            Due {{ \Carbon\Carbon::parse($ov->due_date)->diffForHumans() }}
+                        </span>
+                        @endif
+                    </div>
+                    <span class="text-sm font-bold text-danger shrink-0 ml-4">₹{{ number_format($due, 2) }}</span>
+                </a>
+                @endforeach
+            </div>
+            @if($overdueInvoices->count() > 5)
+            <div class="px-4 py-2 text-center border-t border-danger/10">
+                <a href="{{ route('admin.invoices.index', ['status' => 'overdue']) }}"
+                   class="text-xs text-danger/70 hover:text-danger font-medium">
+                    + {{ $overdueInvoices->count() - 5 }} more overdue invoices
+                </a>
+            </div>
+            @endif
+        </div>
+        @endif
+
+        {{-- Row 1: Stat Cards (clickable) --}}
         <div class="grid grid-cols-1 gap-6 mb-6 sm:grid-cols-2 lg:grid-cols-4">
             {{-- Total Sales This Month --}}
-            <div class="panel">
+            <a href="{{ route('admin.invoices.index', ['status' => 'paid']) }}"
+               class="panel hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer block">
                 <div class="flex items-center justify-between">
                     <div>
-                        <div class="text-lg font-bold text-primary">{{ number_format($stats['total_sales_this_month'] ?? 0, 2) }}</div>
+                        <div class="text-lg font-bold text-primary">&#8377; {{ number_format($stats['total_sales_this_month'] ?? 0, 2) }}</div>
                         <div class="text-sm text-gray-500 dark:text-gray-400">Sales This Month</div>
+                        <div class="text-xs text-primary mt-1 opacity-70">View invoices →</div>
                     </div>
                     <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-primary-light dark:bg-primary dark:bg-opacity-20">
                         <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -19,14 +101,16 @@
                         </svg>
                     </div>
                 </div>
-            </div>
+            </a>
 
             {{-- Total Receivables --}}
-            <div class="panel">
+            <a href="{{ route('admin.invoices.index', ['status' => 'overdue']) }}"
+               class="panel hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer block">
                 <div class="flex items-center justify-between">
                     <div>
-                        <div class="text-lg font-bold text-warning">{{ number_format($stats['total_receivables'] ?? 0, 2) }}</div>
+                        <div class="text-lg font-bold text-warning">&#8377; {{ number_format($stats['total_receivables'] ?? 0, 2) }}</div>
                         <div class="text-sm text-gray-500 dark:text-gray-400">Total Receivables</div>
+                        <div class="text-xs text-warning mt-1 opacity-70">View overdue →</div>
                     </div>
                     <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-warning-light dark:bg-warning dark:bg-opacity-20">
                         <svg class="w-5 h-5 text-warning" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -35,14 +119,16 @@
                         </svg>
                     </div>
                 </div>
-            </div>
+            </a>
 
             {{-- Low Stock Items --}}
-            <div class="panel">
+            <a href="{{ route('admin.inventory.low-stock') }}"
+               class="panel hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer block">
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="text-lg font-bold text-danger">{{ $stats['low_stock_count'] ?? 0 }}</div>
                         <div class="text-sm text-gray-500 dark:text-gray-400">Low Stock Items</div>
+                        <div class="text-xs text-danger mt-1 opacity-70">View alerts →</div>
                     </div>
                     <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-danger-light dark:bg-danger dark:bg-opacity-20">
                         <svg class="w-5 h-5 text-danger" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -52,14 +138,16 @@
                         </svg>
                     </div>
                 </div>
-            </div>
+            </a>
 
             {{-- Open Tickets --}}
-            <div class="panel">
+            <a href="{{ route('admin.service-tickets.index', ['status' => 'open']) }}"
+               class="panel hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer block">
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="text-lg font-bold text-info">{{ $stats['open_tickets_count'] ?? 0 }}</div>
                         <div class="text-sm text-gray-500 dark:text-gray-400">Open Tickets</div>
+                        <div class="text-xs text-info mt-1 opacity-70">View tickets →</div>
                     </div>
                     <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-info-light dark:bg-info dark:bg-opacity-20">
                         <svg class="w-5 h-5 text-info" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -68,7 +156,7 @@
                         </svg>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         {{-- Row 2: Charts --}}
@@ -96,42 +184,31 @@
             </div>
         </div>
 
-        {{-- Row 3: Top Tables --}}
+        {{-- Row 3: Top Customers Bar Chart + Top Products --}}
         <div class="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-2">
-            {{-- Top 5 Customers --}}
+            {{-- Top 5 Customers — Bar Chart --}}
             <div class="panel">
-                <h5 class="text-lg font-semibold mb-4 dark:text-white-light">Top 5 Customers</h5>
-                <div class="table-responsive">
-                    <table class="table-hover">
-                        <thead>
-                            <tr>
-                                <th class="px-4 py-2">#</th>
-                                <th class="px-4 py-2">Customer</th>
-                                <th class="px-4 py-2 text-right">Total Orders</th>
-                                <th class="px-4 py-2 text-right">Total Revenue</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse(($topCustomers ?? []) as $index => $customer)
-                                <tr>
-                                    <td class="px-4 py-2">{{ $index + 1 }}</td>
-                                    <td class="px-4 py-2">{{ $customer->name ?? '-' }}</td>
-                                    <td class="px-4 py-2 text-right">{{ $customer->invoices_count ?? 0 }}</td>
-                                    <td class="px-4 py-2 text-right font-semibold">{{ number_format($customer->invoices_sum_grand_total ?? 0, 2) }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="4" class="px-4 py-4 text-center text-gray-500">No customer data available.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <div class="flex items-center justify-between mb-4">
+                    <h5 class="text-lg font-semibold dark:text-white-light">Top 5 Customers by Revenue</h5>
+                    <a href="{{ route('admin.customers.index') }}" class="text-primary text-sm hover:underline">View All</a>
                 </div>
+                @if(!empty($topCustomers) && count($topCustomers) > 0)
+                    <div style="height: 260px;">
+                        <canvas id="topCustomersChart"></canvas>
+                    </div>
+                @else
+                    <div class="flex items-center justify-center" style="height: 260px;">
+                        <p class="text-gray-500 dark:text-gray-400">No customer data available.</p>
+                    </div>
+                @endif
             </div>
 
             {{-- Top 5 Products --}}
             <div class="panel">
-                <h5 class="text-lg font-semibold mb-4 dark:text-white-light">Top 5 Products</h5>
+                <div class="flex items-center justify-between mb-4">
+                    <h5 class="text-lg font-semibold dark:text-white-light">Top 5 Products by Quantity</h5>
+                    <a href="{{ route('admin.products.index') }}" class="text-primary text-sm hover:underline">View All</a>
+                </div>
                 <div class="table-responsive">
                     <table class="table-hover">
                         <thead>
@@ -144,15 +221,15 @@
                         </thead>
                         <tbody>
                             @forelse(($topProducts ?? []) as $index => $product)
-                                <tr>
-                                    <td class="px-4 py-2">{{ $index + 1 }}</td>
-                                    <td class="px-4 py-2">{{ $product->name ?? '-' }}</td>
+                                <tr class="border-l-2 border-transparent hover:border-primary transition-colors">
+                                    <td class="px-4 py-2 text-gray-500">{{ $index + 1 }}</td>
+                                    <td class="px-4 py-2 font-medium">{{ $product->name ?? '-' }}</td>
                                     <td class="px-4 py-2 text-right">{{ number_format($product->sales_order_items_sum_quantity ?? 0) }}</td>
-                                    <td class="px-4 py-2 text-right font-semibold">{{ number_format($product->selling_price * ($product->sales_order_items_sum_quantity ?? 0), 2) }}</td>
+                                    <td class="px-4 py-2 text-right font-semibold text-primary">₹{{ number_format($product->selling_price * ($product->sales_order_items_sum_quantity ?? 0), 2) }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-4 py-4 text-center text-gray-500">No product data available.</td>
+                                    <td colspan="4" class="px-4 py-10 text-center text-gray-400">No product data available.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -190,7 +267,7 @@
                                         <a href="{{ route('admin.quotations.show', $quotation->id) }}" class="text-primary hover:underline">{{ $quotation->quotation_number }}</a>
                                     </td>
                                     <td class="px-4 py-2">{{ $quotation->customer->name ?? '-' }}</td>
-                                    <td class="px-4 py-2">{{ $quotation->quotation_date }}</td>
+                                    <td class="px-4 py-2">@formatDate($quotation->quotation_date)</td>
                                     <td class="px-4 py-2">
                                         <span class="badge {{ $quotationStatusColors[$quotation->status] ?? 'bg-dark' }}">{{ ucfirst($quotation->status) }}</span>
                                     </td>
@@ -233,7 +310,7 @@
                                         <a href="{{ route('admin.invoices.show', $invoice->id) }}" class="text-primary hover:underline">{{ $invoice->invoice_number }}</a>
                                     </td>
                                     <td class="px-4 py-2">{{ $invoice->customer->name ?? '-' }}</td>
-                                    <td class="px-4 py-2">{{ $invoice->invoice_date }}</td>
+                                    <td class="px-4 py-2">@formatDate($invoice->invoice_date)</td>
                                     <td class="px-4 py-2">
                                         <span class="badge {{ $invoiceStatusColors[$invoice->status] ?? 'bg-dark' }}">{{ ucfirst($invoice->status) }}</span>
                                     </td>
@@ -249,6 +326,38 @@
                 </div>
             </div>
         </div>
+
+        {{-- Row 5: Today's Activity Feed --}}
+        @if(isset($recentActivity) && $recentActivity->count() > 0)
+        <div class="panel mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h5 class="text-lg font-semibold dark:text-white-light">Recent Activity</h5>
+                <span class="text-xs text-gray-400">Last 10 actions across all modules</span>
+            </div>
+            <div class="space-y-3">
+                @foreach($recentActivity as $activity)
+                <div class="flex items-start gap-3 pb-3 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 shrink-0 mt-0.5">
+                        <svg class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm text-gray-700 dark:text-gray-300">
+                            <span class="font-semibold">{{ $activity->causer->name ?? 'System' }}</span>
+                            {{ $activity->description }}
+                            @if($activity->subject_type)
+                                <span class="text-gray-400 text-xs ml-1">({{ class_basename($activity->subject_type) }})</span>
+                            @endif
+                        </p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ $activity->created_at->diffForHumans() }}</p>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -295,6 +404,45 @@
                         x: {
                             grid: { display: false }
                         }
+                    }
+                }
+            });
+        }
+
+        // Top 5 Customers Bar Chart
+        const topCustomerNames  = @json(collect($topCustomers ?? [])->pluck('name'));
+        const topCustomerRevs   = @json(collect($topCustomers ?? [])->map(fn($c) => round((float)($c->invoices_sum_grand_total ?? 0), 2)));
+        if (document.getElementById('topCustomersChart') && topCustomerNames.length > 0) {
+            new Chart(document.getElementById('topCustomersChart'), {
+                type: 'bar',
+                data: {
+                    labels: topCustomerNames,
+                    datasets: [{
+                        label: 'Revenue (₹)',
+                        data: topCustomerRevs,
+                        backgroundColor: ['#4361ee','#805dca','#00ab55','#e2a03f','#e7515a'],
+                        borderRadius: 6,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => '₹' + ctx.parsed.y.toLocaleString('en-IN')
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: v => '₹' + Number(v).toLocaleString('en-IN') },
+                            grid: { color: 'rgba(0,0,0,0.04)' }
+                        },
+                        x: { grid: { display: false } }
                     }
                 }
             });

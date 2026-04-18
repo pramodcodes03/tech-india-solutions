@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Lead Details">
     <div>
+        <x-admin.breadcrumb :items="[['label'=>'Leads','url'=>route('admin.leads.index')],['label'=>'Lead Details']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Lead Details</h5>
             <div class="flex items-center gap-3">
@@ -8,10 +10,13 @@
                     Edit
                 </a>
                 @if($lead->status !== 'won' && $lead->status !== 'lost')
-                    <a href="{{ route('admin.leads.convert', $lead->id) }}" class="btn btn-success gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                        Convert to Customer
-                    </a>
+                    <form method="POST" action="{{ route('admin.leads.convert', $lead->id) }}" onsubmit="return confirm('Convert this lead to a customer?')">
+                        @csrf
+                        <button type="submit" class="btn btn-success gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            Convert to Customer
+                        </button>
+                    </form>
                 @endif
                 <a href="{{ route('admin.leads.index') }}" class="btn btn-outline-primary">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>

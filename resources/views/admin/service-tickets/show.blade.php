@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Ticket Details">
     <div>
+        <x-admin.breadcrumb :items="[['label'=>'Service Tickets','url'=>route('admin.service-tickets.index')],['label'=>'Ticket Details']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Ticket Details</h5>
             <div class="flex items-center gap-2">
@@ -105,7 +107,7 @@
 
             {{-- Add Comment Form --}}
             <div class="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700">
-                <form action="{{ route('admin.service-tickets.comments.store', $ticket->id) }}" method="POST">
+                <form action="{{ route('admin.service-tickets.add-comment', $ticket->id) }}" method="POST">
                     @csrf
                     <div class="mb-3">
                         <label for="comment" class="text-sm font-semibold text-gray-500 dark:text-gray-400">Add a Comment</label>

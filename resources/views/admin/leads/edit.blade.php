@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Edit Lead">
     <div>
+        <x-admin.breadcrumb :items="[['label'=>'Leads','url'=>route('admin.leads.index')],['label'=>'Edit Lead']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Edit Lead</h5>
             <a href="{{ route('admin.leads.index') }}" class="btn btn-outline-primary">
@@ -39,12 +41,7 @@
                     </div>
                     <div>
                         <label for="source">Source <span class="text-danger">*</span></label>
-                        <select id="source" name="source" class="form-select" required>
-                            <option value="">-- Select Source --</option>
-                            @foreach($sources as $source)
-                                <option value="{{ $source }}" {{ old('source', $lead->source) === $source ? 'selected' : '' }}>{{ ucfirst($source) }}</option>
-                            @endforeach
-                        </select>
+                        <x-admin.searchable-select name="source" :options="$sources" :selected="$lead->source" placeholder="-- Select Source --" required />
                     </div>
                     <div>
                         <label for="status">Status</label>
@@ -59,12 +56,7 @@
                     </div>
                     <div>
                         <label for="assigned_to">Assigned To</label>
-                        <select id="assigned_to" name="assigned_to" class="form-select">
-                            <option value="">-- Select Admin --</option>
-                            @foreach($admins as $admin)
-                                <option value="{{ $admin->id }}" {{ old('assigned_to', $lead->assigned_to) == $admin->id ? 'selected' : '' }}>{{ $admin->name }}</option>
-                            @endforeach
-                        </select>
+                        <x-admin.searchable-select name="assigned_to" :options="$admins" :selected="$lead->assigned_to" placeholder="-- Select Admin --" />
                     </div>
                     <div>
                         <label for="expected_value">Expected Value</label>

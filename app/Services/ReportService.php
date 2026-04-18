@@ -79,6 +79,7 @@ class ReportService
     public function customerReport(array $filters): Collection
     {
         $query = Customer::query()
+            ->with('invoices')
             ->withSum('invoices as total_invoiced', 'grand_total')
             ->withSum('payments as total_paid', 'amount')
             ->whereNull('deleted_at');

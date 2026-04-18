@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Vendor Details">
     <div>
+        <x-admin.breadcrumb :items="[['label'=>'Vendors','url'=>route('admin.vendors.index')],['label'=>'Vendor Details']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Vendor Details</h5>
             <div class="flex items-center gap-3">

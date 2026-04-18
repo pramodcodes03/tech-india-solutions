@@ -1,5 +1,7 @@
-<x-layout.admin>
+<x-layout.admin title="Add Category">
     <div x-data="{ name: '{{ old('name') }}', slug: '{{ old('slug') }}', isActive: {{ old('is_active', '1') ? 'true' : 'false' }} }">
+        <x-admin.breadcrumb :items="[['label'=>'Categories','url'=>route('admin.categories.index')],['label'=>'Add Category']]" />
+
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Add Category</h5>
             <a href="{{ route('admin.categories.index') }}" class="btn btn-outline-primary">
@@ -31,12 +33,7 @@
                     </div>
                     <div>
                         <label for="parent_id">Parent Category</label>
-                        <select id="parent_id" name="parent_id" class="form-select">
-                            <option value="">-- None --</option>
-                            @foreach($parentCategories as $parent)
-                                <option value="{{ $parent->id }}" {{ old('parent_id') == $parent->id ? 'selected' : '' }}>{{ $parent->name }}</option>
-                            @endforeach
-                        </select>
+                        <x-admin.searchable-select name="parent_id" :options="$parentCategories" placeholder="-- None --" />
                     </div>
                     <div>
                         <label for="sort_order">Sort Order</label>
