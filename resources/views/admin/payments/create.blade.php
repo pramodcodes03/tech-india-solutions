@@ -77,7 +77,7 @@
                                             <span class="font-mono font-semibold" x-text="inv.invoice_number"></span>
                                             <span class="text-gray-400 mx-1">—</span>
                                             <span x-text="inv.customer_name"></span>
-                                            <span class="text-danger font-semibold ml-2" x-text="'₹' + formatCurrency(inv.balance)"></span>
+                                            <span class="text-danger font-semibold ml-2" x-text="formatCurrency(inv.balance)"></span>
                                         </li>
                                     </template>
                                     <li x-show="filteredInvoices.length === 0" class="px-3 py-2 text-sm text-gray-400 text-center">No results found</li>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCustomerRequest;
 use App\Http\Requests\Admin\UpdateCustomerRequest;
 use App\Models\Customer;
+use App\Models\State;
 use App\Services\CustomerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -56,7 +57,9 @@ class CustomerController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('customers.create'), 403);
 
-        return view('admin.customers.create');
+        $states = State::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+
+        return view('admin.customers.create', compact('states'));
     }
 
     public function store(StoreCustomerRequest $request)
@@ -88,8 +91,9 @@ class CustomerController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('customers.edit'), 403);
 
         $customer = Customer::findOrFail($id);
+        $states = State::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
-        return view('admin.customers.edit', compact('customer'));
+        return view('admin.customers.edit', compact('customer', 'states'));
     }
 
     public function update(UpdateCustomerRequest $request, $id)

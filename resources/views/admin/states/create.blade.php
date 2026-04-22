@@ -1,10 +1,10 @@
-<x-layout.admin title="Add City">
+<x-layout.admin title="Add State">
     <div>
-        <x-admin.breadcrumb :items="[['label'=>'Cities','url'=>route('admin.cities.index')],['label'=>'Add City']]" />
+        <x-admin.breadcrumb :items="[['label'=>'States','url'=>route('admin.states.index')],['label'=>'Add State']]" />
 
         <div class="flex items-center justify-between mb-5">
-            <h5 class="text-lg font-semibold dark:text-white-light">Add City</h5>
-            <a href="{{ route('admin.cities.index') }}" class="btn btn-outline-primary">
+            <h5 class="text-lg font-semibold dark:text-white-light">Add State</h5>
+            <a href="{{ route('admin.states.index') }}" class="btn btn-outline-primary">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                 Back
             </a>
@@ -19,26 +19,21 @@
                 </div>
             @endif
 
-            <form action="{{ route('admin.cities.store') }}" method="POST">
+            <form action="{{ route('admin.states.store') }}" method="POST">
                 @csrf
                 <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
                     <div>
-                        <label for="name">City Name <span class="text-danger">*</span></label>
+                        <label for="name">State Name <span class="text-danger">*</span></label>
                         <input id="name" name="name" type="text" class="form-input" value="{{ old('name') }}" required />
                     </div>
                     <div>
-                        <label for="state">State</label>
-                        <select id="state" name="state" class="form-select">
-                            <option value="">-- Select State --</option>
-                            @foreach($states as $s)
-                                <option value="{{ $s->name }}" {{ old('state') === $s->name ? 'selected' : '' }}>{{ $s->name }}</option>
-                            @endforeach
-                        </select>
+                        <label for="code">Code</label>
+                        <input id="code" name="code" type="text" maxlength="10" class="form-input" value="{{ old('code') }}" placeholder="e.g. MH" />
                     </div>
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
-                    <a href="{{ route('admin.cities.index') }}" class="btn btn-outline-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-primary">Save City</button>
+                    <a href="{{ route('admin.states.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save State</button>
                 </div>
             </form>
         </div>

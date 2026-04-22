@@ -41,7 +41,7 @@
                 <button type="button" class="btn btn-outline-danger btn-sm" x-show="searchText || filterStatus || filterSource || filterAssignedTo" @click="clearFilters()">Clear</button>
                 <a href="{{ route('admin.leads.kanban') }}" class="btn btn-outline-primary gap-2 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
-                    Kanban View
+                    Leads Board
                 </a>
                 <a href="{{ route('admin.leads.create') }}" class="btn btn-primary gap-2 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -71,7 +71,7 @@
                         <template x-for="(item, index) in items" :key="item.id">
                             <tr>
                                 <td class="px-4 py-2" x-text="(pagination.current_page - 1) * pagination.per_page + index + 1"></td>
-                                <td class="px-4 py-2" x-text="item.code || '-'"></td>
+                                <td class="px-4 py-2" x-text="item.code ? item.code.replace('LEAD-', '') : '-'"></td>
                                 <td class="px-4 py-2" x-text="item.name"></td>
                                 <td class="px-4 py-2" x-text="item.company || '-'"></td>
                                 <td class="px-4 py-2">

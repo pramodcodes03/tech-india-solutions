@@ -1,13 +1,13 @@
 <x-layout.admin title="Roles & Permissions">
     <style>
         .role-card { transition: all 0.2s ease; border: 1.5px solid #e5e7eb; }
-        .role-card:hover { border-color: #7C3AEC; box-shadow: 0 4px 20px rgba(124,58,236,0.12); transform: translateY(-2px); }
-        .badge-violet { background: rgba(124,58,236,0.12); color: #7C3AEC; font-weight: 600; font-size: 11px; padding: 3px 10px; border-radius: 20px; }
+        .role-card:hover { border-color: #122e6d; box-shadow: 0 4px 20px rgba(18,46,109,0.12); transform: translateY(-2px); }
+        .badge-violet { background: rgba(18,46,109,0.12); color: #122e6d; font-weight: 600; font-size: 11px; padding: 3px 10px; border-radius: 20px; }
         .badge-slate  { background: rgba(100,116,139,0.1); color: #475569; font-weight: 600; font-size: 11px; padding: 3px 10px; border-radius: 20px; }
-        .btn-violet   { background: #7C3AEC; color: #fff; border: none; }
-        .btn-violet:hover { background: #6D28D9; color: #fff; box-shadow: 0 4px 14px rgba(124,58,236,0.4); }
-        .btn-violet-outline { border: 1.5px solid #7C3AEC; color: #7C3AEC; background: transparent; }
-        .btn-violet-outline:hover { background: #7C3AEC; color: #fff; }
+        .btn-violet   { background: #122e6d; color: #fff; border: none; }
+        .btn-violet:hover { background: #0d2050; color: #fff; box-shadow: 0 4px 14px rgba(18,46,109,0.4); }
+        .btn-violet-outline { border: 1.5px solid #122e6d; color: #122e6d; background: transparent; }
+        .btn-violet-outline:hover { background: #122e6d; color: #fff; }
     </style>
 
     <div>
@@ -27,8 +27,8 @@
         {{-- Stats bar --}}
         <div class="grid grid-cols-3 gap-4 mb-6">
             <div class="panel flex items-center gap-4 py-4">
-                <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(124,58,236,0.1)">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" style="color:#7C3AEC" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(18,46,109,0.1)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" style="color:#122e6d" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                 </div>
                 <div>
                     <div class="text-2xl font-bold text-gray-800 dark:text-white">{{ $roles->count() }}</div>
@@ -45,7 +45,7 @@
                 </div>
             </div>
             <div class="panel flex items-center gap-4 py-4">
-                <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(59,130,246,0.1)">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(18,46,109,0.12)">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
                 </div>
                 <div>
@@ -62,7 +62,7 @@
                     <div class="flex items-start justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-white text-sm"
-                                style="background: linear-gradient(135deg, #7C3AEC, #A855F7)">
+                                style="background: linear-gradient(135deg, #122e6d, #1e4aad)">
                                 {{ strtoupper(substr($role->name, 0, 2)) }}
                             </div>
                             <div>
@@ -70,7 +70,7 @@
                                 @if($role->name === 'Super Admin')
                                     <span style="background:rgba(239,68,68,0.1);color:#DC2626;font-size:10px;padding:1px 8px;border-radius:20px;font-weight:600;">SYSTEM</span>
                                 @else
-                                    <span style="background:rgba(124,58,236,0.1);color:#7C3AEC;font-size:10px;padding:1px 8px;border-radius:20px;font-weight:600;">CUSTOM</span>
+                                    <span style="background:rgba(18,46,109,0.1);color:#122e6d;font-size:10px;padding:1px 8px;border-radius:20px;font-weight:600;">CUSTOM</span>
                                 @endif
                             </div>
                         </div>
@@ -96,7 +96,7 @@
 
                     <div class="flex gap-3 mb-4">
                         <div class="flex-1 rounded-lg p-3 text-center" style="background:#f8f4ff;">
-                            <div class="text-lg font-bold" style="color:#7C3AEC">{{ $role->permissions_count ?? $role->permissions->count() }}</div>
+                            <div class="text-lg font-bold" style="color:#122e6d">{{ $role->permissions_count ?? $role->permissions->count() }}</div>
                             <div class="text-xs text-gray-500">Permissions</div>
                         </div>
                         <div class="flex-1 rounded-lg p-3 text-center" style="background:#f0fdf4;">

@@ -40,7 +40,7 @@ class InventoryService
      */
     public function getLowStockProducts(): Collection
     {
-        return Product::whereHas('stockMovements')
+        return Product::where('status', 'active')
             ->get()
             ->filter(function (Product $product) {
                 return $product->current_stock <= $product->reorder_level;

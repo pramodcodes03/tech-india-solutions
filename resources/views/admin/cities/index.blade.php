@@ -2,9 +2,15 @@
     <div x-data="cityList">
         <x-admin.breadcrumb :items="[['label' => 'Cities']]" />
 
-        <div class="flex items-center justify-between gap-4 mb-5">
+        <div class="flex items-center justify-between gap-4 mb-5 flex-wrap">
             <h5 class="text-lg font-semibold dark:text-white-light">Cities</h5>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 flex-wrap">
+                <select class="form-select py-2 w-48" x-model="filterState" @change="fetchData(1)">
+                    <option value="">-- All States --</option>
+                    @foreach($states as $s)
+                        <option value="{{ $s->name }}">{{ $s->name }}</option>
+                    @endforeach
+                </select>
                 <div class="relative">
                     <input type="text" placeholder="Search..."
                         class="form-input py-2 ltr:pr-11 rtl:pl-11 peer"
@@ -17,6 +23,7 @@
                         </svg>
                     </div>
                 </div>
+                <button type="button" class="btn btn-outline-danger btn-sm" x-show="searchText || filterState" @click="searchText=''; filterState=''; fetchData(1)">Clear</button>
                 <a href="{{ route('admin.cities.create') }}" class="btn btn-primary gap-2 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     Add City
@@ -104,10 +111,12 @@
                     to: {{ $cities->lastItem() ?? 0 }}
                 },
                 searchText: '',
+                filterState: '',
 
                 fetchData(page = 1) {
                     let url = `{{ route('admin.cities.index') }}?page=${page}`;
                     if (this.searchText) url += `&search=${encodeURIComponent(this.searchText)}`;
+                    if (this.filterState) url += `&state=${encodeURIComponent(this.filterState)}`;
                     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(res => res.json())
                     .then(data => { this.items = data.data; this.pagination = data.pagination; });

@@ -7,10 +7,6 @@
             <div class="flex items-center gap-2">
                 <a href="{{ route('admin.invoices.edit', $invoice->id) }}" class="btn btn-outline-primary btn-sm">Edit</a>
                 <a href="{{ route('admin.invoices.pdf', $invoice->id) }}" class="btn btn-outline-secondary btn-sm" target="_blank" data-tippy-content="Download PDF">PDF Download</a>
-                <button type="button" onclick="window.print()" class="btn btn-outline-dark btn-sm" data-tippy-content="Print this invoice">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                    Print
-                </button>
                 @if($invoice->status !== 'paid' && $invoice->status !== 'cancelled')
                     <a href="{{ route('admin.payments.create', ['invoice_id' => $invoice->id]) }}" class="btn btn-outline-success btn-sm">Record Payment</a>
                 @endif

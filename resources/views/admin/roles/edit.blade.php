@@ -2,11 +2,11 @@
 <style>
 /* ── Variables ── */
 :root {
-    --v: #7C3AEC;
-    --v2: #6D28D9;
-    --v3: #A855F7;
-    --vl: rgba(124,58,236,0.08);
-    --vb: rgba(124,58,236,0.18);
+    --v: #122e6d;
+    --v2: #0d2050;
+    --v3: #1e4aad;
+    --vl: rgba(18,46,109,0.08);
+    --vb: rgba(18,46,109,0.18);
 }
 
 /* ── Custom checkbox ── */
@@ -20,7 +20,7 @@
 .dark .perm-cb + .cb-box { background: #1e2a3b; border-color: #374151; }
 .perm-cb:checked + .cb-box {
     background: var(--v); border-color: var(--v);
-    box-shadow: 0 2px 8px rgba(124,58,236,0.35);
+    box-shadow: 0 2px 8px rgba(18,46,109,0.35);
 }
 .perm-cb:checked + .cb-box svg { display: block; }
 .perm-cb + .cb-box svg { display: none; }
@@ -35,7 +35,7 @@
     cursor: pointer; transition: all 0.18s ease;
 }
 .dark .mod-cb + .mod-box { background: #1e2a3b; border-color: #374151; }
-.mod-cb:checked + .mod-box { background: var(--v); border-color: var(--v); box-shadow: 0 2px 8px rgba(124,58,236,0.35); }
+.mod-cb:checked + .mod-box { background: var(--v); border-color: var(--v); box-shadow: 0 2px 8px rgba(18,46,109,0.35); }
 .mod-cb:checked + .mod-box svg { display: block; }
 .mod-cb + .mod-box svg { display: none; }
 
@@ -53,10 +53,10 @@
 .perm-table thead tr th.text-center { text-align: center; }
 
 .perm-table tbody tr { transition: background 0.15s; }
-.perm-table tbody tr:nth-child(even) { background: rgba(124,58,236,0.03); }
-.perm-table tbody tr:hover { background: rgba(124,58,236,0.07) !important; }
-.dark .perm-table tbody tr:nth-child(even) { background: rgba(124,58,236,0.05); }
-.dark .perm-table tbody tr:hover { background: rgba(124,58,236,0.1) !important; }
+.perm-table tbody tr:nth-child(even) { background: rgba(18,46,109,0.03); }
+.perm-table tbody tr:hover { background: rgba(18,46,109,0.07) !important; }
+.dark .perm-table tbody tr:nth-child(even) { background: rgba(18,46,109,0.05); }
+.dark .perm-table tbody tr:hover { background: rgba(18,46,109,0.1) !important; }
 
 .perm-table tbody td {
     padding: 11px 16px;
@@ -75,7 +75,7 @@
 
 /* Select-All column header highlight */
 .th-selectall { background: rgba(255,255,255,0.15) !important; border-left: 1px solid rgba(255,255,255,0.15); border-right: 1px solid rgba(255,255,255,0.15); }
-.td-selectall { background: rgba(124,58,236,0.04); border-left: 1px solid rgba(124,58,236,0.08); border-right: 1px solid rgba(124,58,236,0.08); }
+.td-selectall { background: rgba(18,46,109,0.04); border-left: 1px solid rgba(18,46,109,0.08); border-right: 1px solid rgba(18,46,109,0.08); }
 
 /* Dash for unavailable permissions */
 .perm-dash { color: #d1d5db; font-size: 16px; display: block; text-align: center; }
@@ -91,12 +91,12 @@
     transition: border-color 0.2s, box-shadow 0.2s; outline: none; width: 100%;
     background: #fff; color: #1f2937;
 }
-.role-input:focus { border-color: var(--v); box-shadow: 0 0 0 3px rgba(124,58,236,0.12); }
+.role-input:focus { border-color: var(--v); box-shadow: 0 0 0 3px rgba(18,46,109,0.12); }
 .dark .role-input { background: #121e32; color: #e2e8f0; border-color: #17263c; }
 
 /* Btn */
 .btn-v { background: var(--v); color: #fff; border-color: var(--v); }
-.btn-v:hover { background: var(--v2); color: #fff; box-shadow: 0 4px 14px rgba(124,58,236,0.4); }
+.btn-v:hover { background: var(--v2); color: #fff; box-shadow: 0 4px 14px rgba(18,46,109,0.4); }
 
 /* Floating save bar */
 .save-bar {
@@ -176,7 +176,7 @@
                         <div class="text-2xl font-black text-success">{{ $role->users->count() }}</div>
                         <div class="text-xs text-gray-500 font-medium">Users</div>
                     </div>
-                    <div class="text-center px-5 py-3 rounded-xl" style="background:rgba(59,130,246,0.08)">
+                    <div class="text-center px-5 py-3 rounded-xl" style="background:rgba(18,46,109,0.1)">
                         <div class="text-2xl font-black text-info">{{ count($modules) }}</div>
                         <div class="text-xs text-gray-500 font-medium">Modules</div>
                     </div>

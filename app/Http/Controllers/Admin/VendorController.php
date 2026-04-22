@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreVendorRequest;
 use App\Http\Requests\Admin\UpdateVendorRequest;
+use App\Models\State;
 use App\Models\Vendor;
 use App\Services\VendorService;
 use Illuminate\Http\Request;
@@ -53,7 +54,9 @@ class VendorController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('vendors.create'), 403);
 
-        return view('admin.vendors.create');
+        $states = State::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+
+        return view('admin.vendors.create', compact('states'));
     }
 
     public function store(StoreVendorRequest $request)
@@ -79,8 +82,9 @@ class VendorController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('vendors.edit'), 403);
 
         $vendor = Vendor::findOrFail($id);
+        $states = State::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
-        return view('admin.vendors.edit', compact('vendor'));
+        return view('admin.vendors.edit', compact('vendor', 'states'));
     }
 
     public function update(UpdateVendorRequest $request, $id)

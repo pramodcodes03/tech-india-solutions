@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\InvoiceController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SalesOrderController;
 use App\Http\Controllers\Admin\ServiceTicketController;
 use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\WarehouseController;
 use App\Http\Controllers\DocumentationController;
@@ -50,6 +52,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Role & Permission Management
         Route::resource('roles', RoleController::class);
 
+        // Location Management
+        Route::get('locations/cities', [StateController::class, 'cities'])->name('locations.cities');
+        Route::resource('states', StateController::class);
+        Route::patch('states/{state}/toggle-status', [StateController::class, 'toggleStatus'])->name('states.toggle-status');
+        Route::resource('cities', CityController::class);
+        Route::patch('cities/{city}/toggle-status', [CityController::class, 'toggleStatus'])->name('cities.toggle-status');
+
         // Customer Management
         Route::resource('customers', CustomerController::class);
         Route::patch('customers/{customer}/toggle-status', [CustomerController::class, 'toggleStatus'])->name('customers.toggle-status');
@@ -70,7 +79,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Sales Order Management
         Route::resource('sales-orders', SalesOrderController::class)->parameters(['sales-orders' => 'sales_order']);
         Route::patch('sales-orders/{sales_order}/status', [SalesOrderController::class, 'updateStatus'])->name('sales-orders.update-status');
-        Route::post('sales-orders/{sales_order}/invoice', [SalesOrderController::class, 'generateInvoice'])->name('sales-orders.generate-invoice');
+        Route::post('sales-orders/{sales_order}/generate-invoice', [SalesOrderController::class, 'generateInvoice'])->name('sales-orders.generate-invoice');
 
         // Product Management
         Route::resource('products', ProductController::class);

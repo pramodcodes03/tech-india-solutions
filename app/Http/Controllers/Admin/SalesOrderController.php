@@ -156,13 +156,21 @@ class SalesOrderController extends Controller
         return redirect()->back()->with('success', 'Sales order status updated successfully.');
     }
 
-    public function generateInvoice($id)
+    public function generateInvoice(Request $request, $id)
     {
         abort_unless(Auth::guard('admin')->user()->can('sales_orders.edit'), 403);
 
         $salesOrder = SalesOrder::with('items')->findOrFail($id);
 
         $invoice = $this->salesOrderService->generateInvoice($salesOrder);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success'  => true,
+                'message'  => "Invoice #{$invoice->invoice_number} generated successfully.",
+                'redirect' => route('admin.invoices.show', $invoice->id),
+            ]);
+        }
 
         return redirect()->route('admin.invoices.show', $invoice->id)
             ->with('success', "Invoice #{$invoice->invoice_number} generated successfully.");

@@ -111,6 +111,30 @@
                 </li>
                 @endcan
 
+                {{-- Locations (States & Cities) --}}
+                <li class="menu nav-item">
+                    <button type="button" class="nav-link group w-full"
+                        :class="{ 'active': activeDropdown === 'locations' }"
+                        @click="activeDropdown = activeDropdown === 'locations' ? null : 'locations'">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13Z" stroke="currentColor" stroke-width="1.5"/>
+                                <path opacity="0.5" d="M3.62 8.49C5.59 -0.169998 18.42 -0.159997 20.38 8.5C21.53 13.58 18.37 17.88 15.6 20.54C13.59 22.48 10.41 22.48 8.39 20.54C5.63 17.88 2.47 13.57 3.62 8.49Z" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Locations</span>
+                        </div>
+                        <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'locations' }">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </button>
+                    <ul x-collapse x-show="activeDropdown === 'locations'" class="sub-menu text-gray-500">
+                        <li><a href="{{ route('admin.states.index') }}">States</a></li>
+                        <li><a href="{{ route('admin.cities.index') }}">Cities</a></li>
+                    </ul>
+                </li>
+
                 {{-- ========== CRM ========== --}}
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>CRM</span>
@@ -165,7 +189,7 @@
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'leads'" class="sub-menu text-gray-500">
                         <li><a href="{{ route('admin.leads.index') }}">All Leads</a></li>
-                        <li><a href="{{ route('admin.leads.kanban') }}">Kanban Board</a></li>
+                        <li><a href="{{ route('admin.leads.kanban') }}">Leads Board</a></li>
                         <li><a href="{{ route('admin.leads.create') }}">Add Lead</a></li>
                     </ul>
                 </li>
@@ -551,6 +575,8 @@
         'purchase-orders': 'purchase-orders',
         'service-tickets': 'service-tickets',
         'reports':         'reports',
+        'states':          'locations',
+        'cities':          'locations',
     };
 
     function _detectActiveDropdown() {
@@ -602,21 +628,23 @@
     });
 
     // ── Recently Visited ─────────────────────────────────────────────────
-    Alpine.data('recentlyVisited', () => ({
-        recentPages: [],
-        init() {
-            const stored = JSON.parse(localStorage.getItem('erp_recent_pages') || '[]');
-            this.recentPages = stored;
-            const label = document.title.replace(' | Admin Panel', '').replace('Admin Panel', 'Dashboard').trim();
-            const url   = window.location.pathname;
-            if (url !== '/admin/login') {
-                const filtered = stored.filter(p => p.url !== url);
-                const updated  = [{ label, url }, ...filtered].slice(0, 8);
-                localStorage.setItem('erp_recent_pages', JSON.stringify(updated));
-                this.recentPages = updated.slice(1);
+    document.addEventListener("alpine:init", () => {
+        Alpine.data('recentlyVisited', () => ({
+            recentPages: [],
+            init() {
+                const stored = JSON.parse(localStorage.getItem('erp_recent_pages') || '[]');
+                this.recentPages = stored;
+                const label = document.title.replace(' | Admin Panel', '').replace('Admin Panel', 'Dashboard').trim();
+                const url   = window.location.pathname;
+                if (url !== '/admin/login') {
+                    const filtered = stored.filter(p => p.url !== url);
+                    const updated  = [{ label, url }, ...filtered].slice(0, 8);
+                    localStorage.setItem('erp_recent_pages', JSON.stringify(updated));
+                    this.recentPages = updated.slice(1);
+                }
             }
-        }
-    }));
+        }));
+    });
 
     function filterAdminSidebar(val) {
         const q = val.toLowerCase().trim();

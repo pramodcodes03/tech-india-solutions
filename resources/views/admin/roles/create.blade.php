@@ -1,6 +1,6 @@
 <x-layout.admin title="Create Role">
 <style>
-:root { --v: #7C3AEC; --v2: #6D28D9; --v3: #A855F7; --vl: rgba(124,58,236,0.08); }
+:root { --v: #122e6d; --v2: #0d2050; --v3: #1e4aad; --vl: rgba(18,46,109,0.08); }
 
 .perm-cb { position: absolute; opacity: 0; width: 0; height: 0; }
 .perm-cb + .cb-box {
@@ -10,7 +10,7 @@
     cursor: pointer; transition: all 0.18s ease; flex-shrink: 0;
 }
 .dark .perm-cb + .cb-box { background: #1e2a3b; border-color: #374151; }
-.perm-cb:checked + .cb-box { background: var(--v); border-color: var(--v); box-shadow: 0 2px 8px rgba(124,58,236,0.35); }
+.perm-cb:checked + .cb-box { background: var(--v); border-color: var(--v); box-shadow: 0 2px 8px rgba(18,46,109,0.35); }
 .perm-cb:checked + .cb-box svg { display: block; }
 .perm-cb + .cb-box svg { display: none; }
 .perm-cb:hover + .cb-box { border-color: var(--v); }
@@ -23,7 +23,7 @@
     cursor: pointer; transition: all 0.18s ease;
 }
 .dark .mod-cb + .mod-box { background: #1e2a3b; border-color: #374151; }
-.mod-cb:checked + .mod-box { background: var(--v); border-color: var(--v); box-shadow: 0 2px 8px rgba(124,58,236,0.35); }
+.mod-cb:checked + .mod-box { background: var(--v); border-color: var(--v); box-shadow: 0 2px 8px rgba(18,46,109,0.35); }
 .mod-cb:checked + .mod-box svg { display: block; }
 .mod-cb + .mod-box svg { display: none; }
 
@@ -38,10 +38,10 @@
 .perm-table thead tr th:last-child  { border-radius: 0 10px 0 0; }
 .perm-table thead tr th.text-center { text-align: center; }
 .perm-table tbody tr { transition: background 0.15s; }
-.perm-table tbody tr:nth-child(even) { background: rgba(124,58,236,0.03); }
-.perm-table tbody tr:hover { background: rgba(124,58,236,0.07) !important; }
-.dark .perm-table tbody tr:nth-child(even) { background: rgba(124,58,236,0.05); }
-.dark .perm-table tbody tr:hover { background: rgba(124,58,236,0.1) !important; }
+.perm-table tbody tr:nth-child(even) { background: rgba(18,46,109,0.03); }
+.perm-table tbody tr:hover { background: rgba(18,46,109,0.07) !important; }
+.dark .perm-table tbody tr:nth-child(even) { background: rgba(18,46,109,0.05); }
+.dark .perm-table tbody tr:hover { background: rgba(18,46,109,0.1) !important; }
 .perm-table tbody td { padding: 11px 16px; border-bottom: 1px solid rgba(0,0,0,0.05); vertical-align: middle; }
 .dark .perm-table tbody td { border-bottom-color: rgba(255,255,255,0.04); }
 .perm-table tbody tr:last-child td { border-bottom: none; }
@@ -53,16 +53,16 @@
 .mod-icon svg { width: 15px; height: 15px; color: var(--v); }
 
 .th-selectall { background: rgba(255,255,255,0.15) !important; border-left: 1px solid rgba(255,255,255,0.15); border-right: 1px solid rgba(255,255,255,0.15); }
-.td-selectall { background: rgba(124,58,236,0.04); border-left: 1px solid rgba(124,58,236,0.08); border-right: 1px solid rgba(124,58,236,0.08); }
+.td-selectall { background: rgba(18,46,109,0.04); border-left: 1px solid rgba(18,46,109,0.08); border-right: 1px solid rgba(18,46,109,0.08); }
 .perm-dash { color: #d1d5db; font-size: 16px; display: block; text-align: center; }
 .prog-bar-wrap { height: 3px; background: #e5e7eb; border-radius: 99px; margin-top: 3px; width: 60px; }
 .prog-bar { height: 3px; border-radius: 99px; background: linear-gradient(90deg, var(--v), var(--v3)); transition: width 0.3s; }
 
 .role-input { border: 2px solid #e5e7eb; border-radius: 10px; padding: 11px 16px; font-size: 15px; font-weight: 600; transition: border-color 0.2s, box-shadow 0.2s; outline: none; width: 100%; background: #fff; color: #1f2937; }
-.role-input:focus { border-color: var(--v); box-shadow: 0 0 0 3px rgba(124,58,236,0.12); }
+.role-input:focus { border-color: var(--v); box-shadow: 0 0 0 3px rgba(18,46,109,0.12); }
 .dark .role-input { background: #121e32; color: #e2e8f0; border-color: #17263c; }
 .btn-v { background: var(--v); color: #fff; border-color: var(--v); }
-.btn-v:hover { background: var(--v2); color: #fff; box-shadow: 0 4px 14px rgba(124,58,236,0.4); }
+.btn-v:hover { background: var(--v2); color: #fff; box-shadow: 0 4px 14px rgba(18,46,109,0.4); }
 
 .filter-input { border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 8px 14px 8px 36px; font-size: 13px; outline: none; transition: border-color 0.2s; background: #fff; color: #374151; }
 .dark .filter-input { background: #121e32; color: #e2e8f0; border-color: #17263c; }
@@ -109,7 +109,7 @@
                         <div class="text-2xl font-black" style="color:var(--v)" x-text="checkedCount">0</div>
                         <div class="text-xs text-gray-500 font-medium">Selected</div>
                     </div>
-                    <div class="text-center px-5 py-3 rounded-xl" style="background:rgba(59,130,246,0.08)">
+                    <div class="text-center px-5 py-3 rounded-xl" style="background:rgba(18,46,109,0.1)">
                         <div class="text-2xl font-black text-info">{{ count($modules) }}</div>
                         <div class="text-xs text-gray-500 font-medium">Modules</div>
                     </div>

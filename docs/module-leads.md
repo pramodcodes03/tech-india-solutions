@@ -20,11 +20,11 @@ The Lead Management module tracks prospective customers from initial contact thr
 | Next Follow-up | datetime | Scheduled follow-up date |
 | Notes | textarea | Internal notes |
 
-## Kanban View
+## Leads Board
 
 The kanban board displays leads organized by status columns: New, Contacted, Qualified, Proposal, Negotiation, Won, Lost. Leads can be dragged between columns to update their status via AJAX.
 
-Access the kanban view at **Leads > Kanban Board** or via the route `/admin/leads/kanban`.
+Access the Leads Board at **Leads > Kanban Board** or via the route `/admin/leads/kanban`.
 
 ## Lead-to-Customer Conversion
 

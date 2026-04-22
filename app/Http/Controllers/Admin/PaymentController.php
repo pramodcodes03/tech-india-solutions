@@ -59,9 +59,18 @@ class PaymentController extends Controller
 
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
         $invoices = Invoice::whereIn('status', ['unpaid', 'partial'])
-            ->with('customer')
+            ->with('customer:id,name')
             ->orderByDesc('invoice_date')
-            ->get();
+            ->get()
+            ->map(fn ($inv) => [
+                'id'             => $inv->id,
+                'invoice_number' => $inv->invoice_number,
+                'customer_name'  => $inv->customer?->name ?? '-',
+                'grand_total'    => (float) $inv->grand_total,
+                'amount_paid'    => (float) $inv->amount_paid,
+                'balance'        => (float) $inv->balance_due,
+            ])
+            ->values();
 
         return view('admin.payments.create', compact('customers', 'invoices'));
     }

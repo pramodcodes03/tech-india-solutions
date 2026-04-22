@@ -29,7 +29,12 @@
                     </div>
                     <div>
                         <label for="state">State</label>
-                        <input id="state" name="state" type="text" class="form-input" value="{{ old('state', $city->state) }}" />
+                        <select id="state" name="state" class="form-select">
+                            <option value="">-- Select State --</option>
+                            @foreach($states as $s)
+                                <option value="{{ $s->name }}" {{ old('state', $city->state) === $s->name ? 'selected' : '' }}>{{ $s->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
                 <div class="flex justify-end gap-3 mt-6">

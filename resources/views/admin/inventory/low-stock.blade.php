@@ -26,16 +26,16 @@
                     <tbody>
                         @forelse($lowStockItems as $item)
                             <tr class="bg-danger/10 dark:bg-danger/5">
-                                <td class="px-4 py-2 font-semibold">{{ $item->product->code ?? '-' }}</td>
-                                <td class="px-4 py-2">{{ $item->product->name ?? '-' }}</td>
-                                <td class="px-4 py-2">{{ $item->warehouse->name ?? '-' }}</td>
+                                <td class="px-4 py-2 font-semibold">{{ $item->code ?? '-' }}</td>
+                                <td class="px-4 py-2">{{ $item->name ?? '-' }}</td>
+                                <td class="px-4 py-2">—</td>
                                 <td class="px-4 py-2">
-                                    <span class="font-semibold text-danger">{{ $item->quantity }}</span>
+                                    <span class="font-semibold text-danger">{{ $item->current_stock }}</span>
                                 </td>
-                                <td class="px-4 py-2">{{ $item->product->reorder_level ?? 0 }}</td>
+                                <td class="px-4 py-2">{{ $item->reorder_level ?? 0 }}</td>
                                 <td class="px-4 py-2">
                                     <span class="font-semibold text-danger">
-                                        {{ ($item->product->reorder_level ?? 0) - $item->quantity }}
+                                        {{ max(0, ($item->reorder_level ?? 0) - $item->current_stock) }}
                                     </span>
                                 </td>
                             </tr>

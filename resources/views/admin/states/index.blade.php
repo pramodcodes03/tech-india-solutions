@@ -1,10 +1,10 @@
-<x-layout.admin title="Sales Orders">
-    <div x-data="salesOrderList">
-        <x-admin.breadcrumb :items="[['label' => 'Sales Orders']]" />
+<x-layout.admin title="States">
+    <div x-data="stateList">
+        <x-admin.breadcrumb :items="[['label' => 'States']]" />
 
         <div class="flex items-center justify-between gap-4 mb-5">
-            <h5 class="text-lg font-semibold dark:text-white-light">Sales Orders</h5>
-            <div class="flex items-center gap-3 flex-wrap">
+            <h5 class="text-lg font-semibold dark:text-white-light">States</h5>
+            <div class="flex items-center gap-3">
                 <div class="relative">
                     <input type="text" placeholder="Search..."
                         class="form-input py-2 ltr:pr-11 rtl:pl-11 peer"
@@ -17,21 +17,9 @@
                         </svg>
                     </div>
                 </div>
-                <select class="form-select py-2 w-48" x-model="filterStatus" @change="fetchData(1)">
-                    <option value="">-- All Statuses --</option>
-                    <option value="pending">Pending</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="processing">Processing</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
-                <input type="date" class="form-input py-2 w-40" x-model="filterDateFrom" @change="fetchData(1)" placeholder="From" />
-                <input type="date" class="form-input py-2 w-40" x-model="filterDateTo" @change="fetchData(1)" placeholder="To" />
-                <button type="button" class="btn btn-outline-danger btn-sm" x-show="searchText || filterStatus || filterDateFrom || filterDateTo" @click="clearFilters()">Clear</button>
-                <a href="{{ route('admin.sales-orders.create') }}" class="btn btn-primary gap-2 whitespace-nowrap">
+                <a href="{{ route('admin.states.create') }}" class="btn btn-primary gap-2 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    Add Sales Order
+                    Add State
                 </a>
             </div>
         </div>
@@ -42,11 +30,9 @@
                     <thead>
                         <tr>
                             <th class="px-4 py-2">#</th>
-                            <th class="px-4 py-2">Order #</th>
-                            <th class="px-4 py-2">Customer</th>
-                            <th class="px-4 py-2">Date</th>
+                            <th class="px-4 py-2">Name</th>
+                            <th class="px-4 py-2">Code</th>
                             <th class="px-4 py-2">Status</th>
-                            <th class="px-4 py-2 text-right">Grand Total</th>
                             <th class="px-4 py-2 !text-center">Actions</th>
                         </tr>
                     </thead>
@@ -54,18 +40,14 @@
                         <template x-for="(item, index) in items" :key="item.id">
                             <tr>
                                 <td class="px-4 py-2" x-text="(pagination.current_page - 1) * pagination.per_page + index + 1"></td>
-                                <td class="px-4 py-2 font-semibold" x-text="item.order_number"></td>
-                                <td class="px-4 py-2" x-text="item.customer ? item.customer.name : '-'"></td>
-                                <td class="px-4 py-2" x-text="formatDate(item.order_date)"></td>
+                                <td class="px-4 py-2 font-semibold" x-text="item.name"></td>
+                                <td class="px-4 py-2" x-text="item.code || '-'"></td>
                                 <td class="px-4 py-2">
-                                    <span class="badge" :class="statusBadge(item.status)" x-text="item.status"></span>
+                                    <span class="badge cursor-pointer" :class="item.is_active ? 'bg-success' : 'bg-danger'" x-text="item.is_active ? 'Active' : 'Inactive'" @click="toggleStatus(item.id)"></span>
                                 </td>
-                                <td class="px-4 py-2 text-right" x-text="formatCurrency(item.grand_total)"></td>
                                 <td class="px-4 py-2">
                                     <div class="flex items-center justify-center gap-2">
-                                        <a :href="`{{ url('admin/sales-orders') }}/${item.id}`" class="btn btn-sm btn-outline-info p-1.5" data-tippy-content="View Details"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></a>
-                                        <a :href="`{{ url('admin/sales-orders') }}/${item.id}/edit`" class="btn btn-sm btn-outline-primary" x-show="item.status !== 'delivered' && item.status !== 'cancelled'">Edit</a>
-                                        <button type="button" class="btn btn-sm btn-outline-success" @click="generateInvoice(item.id)">Generate Invoice</button>
+                                        <a :href="`{{ url('admin/states') }}/${item.id}/edit`" class="btn btn-sm btn-outline-primary p-1.5" data-tippy-content="Edit"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></a>
                                         <button type="button" class="btn btn-sm btn-outline-danger p-1.5" @click="deleteItem(item.id)" data-tippy-content="Delete"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
                                     </div>
                                 </td>
@@ -73,12 +55,12 @@
                         </template>
                         <tr x-show="items.length === 0">
                             <x-admin.empty-state
-                                icon="sales-orders"
-                                title="No sales orders yet"
-                                description="Convert a quotation or create a sales order to get started."
-                                action-url="{{ route('admin.sales-orders.create') }}"
-                                action-label="Create Order"
-                                :colspan="8"
+                                icon="categories"
+                                title="No states yet"
+                                description="Add states to use in customer, vendor and city records."
+                                action-url="{{ route('admin.states.create') }}"
+                                action-label="Add State"
+                                :colspan="5"
                             />
                         </tr>
                     </tbody>
@@ -111,27 +93,21 @@
 
     <script>
         document.addEventListener("alpine:init", () => {
-            Alpine.data('salesOrderList', () => ({
-                items: @json($salesOrders->items()),
+            Alpine.data('stateList', () => ({
+                items: @json($states->items()),
                 pagination: {
-                    total: {{ $salesOrders->total() }},
-                    per_page: {{ $salesOrders->perPage() }},
-                    current_page: {{ $salesOrders->currentPage() }},
-                    last_page: {{ $salesOrders->lastPage() }},
-                    from: {{ $salesOrders->firstItem() ?? 0 }},
-                    to: {{ $salesOrders->lastItem() ?? 0 }}
+                    total: {{ $states->total() }},
+                    per_page: {{ $states->perPage() }},
+                    current_page: {{ $states->currentPage() }},
+                    last_page: {{ $states->lastPage() }},
+                    from: {{ $states->firstItem() ?? 0 }},
+                    to: {{ $states->lastItem() ?? 0 }}
                 },
                 searchText: '',
-                filterStatus: '',
-                filterDateFrom: '',
-                filterDateTo: '',
 
                 fetchData(page = 1) {
-                    let url = `{{ route('admin.sales-orders.index') }}?page=${page}`;
+                    let url = `{{ route('admin.states.index') }}?page=${page}`;
                     if (this.searchText) url += `&search=${encodeURIComponent(this.searchText)}`;
-                    if (this.filterStatus) url += `&status=${this.filterStatus}`;
-                    if (this.filterDateFrom) url += `&date_from=${this.filterDateFrom}`;
-                    if (this.filterDateTo) url += `&date_to=${this.filterDateTo}`;
                     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(res => res.json())
                     .then(data => { this.items = data.data; this.pagination = data.pagination; });
@@ -150,50 +126,22 @@
                     return pages;
                 },
 
-                clearFilters() {
-                    this.searchText = '';
-                    this.filterStatus = '';
-                    this.filterDateFrom = '';
-                    this.filterDateTo = '';
-                    this.fetchData(1);
-                },
-
-                statusBadge(status) {
-                    const map = { pending: 'bg-warning', confirmed: 'bg-info', processing: 'bg-primary', shipped: 'bg-secondary', delivered: 'bg-success', cancelled: 'bg-danger' };
-                    return map[status] || 'bg-dark';
-                },
-
-                formatCurrency(amount) {
-                    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount || 0);
-                },
-
-                generateInvoice(id) {
-                    const swalWithButtons = window.Swal.mixin({ customClass: { confirmButton: 'btn btn-success', cancelButton: 'btn btn-outline-secondary ltr:mr-3 rtl:ml-3' }, buttonsStyling: false });
-                    swalWithButtons.fire({ title: 'Generate Invoice?', text: 'This will create a new invoice from this sales order.', icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, generate!', cancelButtonText: 'Cancel', reverseButtons: true, padding: '2em' }).then((result) => {
-                        if (result.isConfirmed) {
-                            fetch(`{{ url('admin/sales-orders') }}/${id}/generate-invoice`, {
-                                method: 'POST',
-                                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-                            })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    this.showMessage(data.message);
-                                    if (data.redirect) window.location.href = data.redirect;
-                                } else {
-                                    this.showMessage(data.message || 'Failed to generate invoice.', 'error');
-                                }
-                            })
-                            .catch(() => this.showMessage('Failed to generate invoice.', 'error'));
-                        }
+                toggleStatus(id) {
+                    fetch(`{{ url('admin/states') }}/${id}/toggle-status`, {
+                        method: 'PATCH',
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) { this.showMessage(data.message); this.fetchData(this.pagination.current_page); }
                     });
                 },
 
                 deleteItem(id) {
-                    const swalWithButtons = window.Swal.mixin({ customClass: { confirmButton: 'btn btn-danger', cancelButton: 'btn btn-outline-secondary ltr:mr-3 rtl:ml-3' }, buttonsStyling: false });
+                    const swalWithButtons = window.Swal.mixin({ confirmButtonClass: 'btn btn-danger', cancelButtonClass: 'btn btn-outline-secondary ltr:mr-3 rtl:ml-3', buttonsStyling: false });
                     swalWithButtons.fire({ title: 'Are you sure?', text: 'This action cannot be undone!', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it!', cancelButtonText: 'Cancel', reverseButtons: true, padding: '2em' }).then((result) => {
                         if (result.isConfirmed) {
-                            fetch(`{{ url('admin/sales-orders') }}/${id}`, {
+                            fetch(`{{ url('admin/states') }}/${id}`, {
                                 method: 'DELETE',
                                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest' }
                             })
