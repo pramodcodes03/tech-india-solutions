@@ -35,6 +35,7 @@ class LeadService
      */
     public function create(array $data): Lead
     {
+        $data = $this->normalize($data);
         $data['code'] = $this->generateCode();
         $data['created_by'] = Auth::guard('admin')->id();
 
@@ -46,10 +47,30 @@ class LeadService
      */
     public function update(Lead $lead, array $data): Lead
     {
+        $data = $this->normalize($data);
         $data['updated_by'] = Auth::guard('admin')->id();
         $lead->update($data);
 
         return $lead->refresh();
+    }
+
+    /**
+     * Coerce optional-but-NOT-NULL columns to sensible defaults so empty form
+     * fields don't blow up at the database layer. Empty strings from HTML forms
+     * are normalised to null (when nullable) or to a safe default.
+     */
+    private function normalize(array $data): array
+    {
+        if (array_key_exists('expected_value', $data) && ($data['expected_value'] === null || $data['expected_value'] === '')) {
+            $data['expected_value'] = 0;
+        }
+        foreach (['next_follow_up_at', 'assigned_to', 'phone', 'email', 'company', 'notes'] as $k) {
+            if (array_key_exists($k, $data) && $data[$k] === '') {
+                $data[$k] = null;
+            }
+        }
+
+        return $data;
     }
 
     /**

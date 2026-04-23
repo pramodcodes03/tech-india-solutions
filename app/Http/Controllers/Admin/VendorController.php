@@ -55,8 +55,9 @@ class VendorController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('vendors.create'), 403);
 
         $states = State::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $cities = \App\Models\City::where('is_active', true)->orderBy('name')->get(['id', 'name', 'state']);
 
-        return view('admin.vendors.create', compact('states'));
+        return view('admin.vendors.create', compact('states', 'cities'));
     }
 
     public function store(StoreVendorRequest $request)
@@ -83,8 +84,9 @@ class VendorController extends Controller
 
         $vendor = Vendor::findOrFail($id);
         $states = State::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $cities = \App\Models\City::where('is_active', true)->orderBy('name')->get(['id', 'name', 'state']);
 
-        return view('admin.vendors.edit', compact('vendor', 'states'));
+        return view('admin.vendors.edit', compact('vendor', 'states', 'cities'));
     }
 
     public function update(UpdateVendorRequest $request, $id)

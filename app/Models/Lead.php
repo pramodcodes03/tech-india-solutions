@@ -13,6 +13,40 @@ class Lead extends Model
 {
     use LogsActivity, SoftDeletes;
 
+    /**
+     * Canonical lead source list. Keys are stored in DB (lowercase snake_case);
+     * values are the labels shown in dropdowns.
+     */
+    public const SOURCES = [
+        'website' => 'Website',
+        'referral' => 'Referral',
+        'walk_in' => 'Walk-in',
+        'cold_call' => 'Cold Call',
+        'email' => 'Email',
+        'social_media' => 'Social Media',
+        'exhibition' => 'Exhibition',
+        'trade_fair' => 'Trade Fair',
+        'partner' => 'Partner',
+        'other' => 'Other',
+    ];
+
+    public static function sourceOptions(): array
+    {
+        return collect(self::SOURCES)
+            ->map(fn ($label, $key) => ['id' => $key, 'name' => $label])
+            ->values()
+            ->all();
+    }
+
+    public static function sourceLabel(?string $value): string
+    {
+        if (! $value) {
+            return '—';
+        }
+
+        return self::SOURCES[$value] ?? ucwords(str_replace('_', ' ', $value));
+    }
+
     protected $fillable = [
         'code',
         'name',

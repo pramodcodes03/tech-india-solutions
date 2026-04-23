@@ -50,7 +50,7 @@
                 </div>
                 <div>
                     <label class="text-sm font-semibold text-gray-500 dark:text-gray-400">Source</label>
-                    <p><span class="badge bg-secondary">{{ ucfirst($lead->source) }}</span></p>
+                    <p><span class="badge bg-secondary">{{ \App\Models\Lead::sourceLabel($lead->source) }}</span></p>
                 </div>
                 <div>
                     <label class="text-sm font-semibold text-gray-500 dark:text-gray-400">Status</label>

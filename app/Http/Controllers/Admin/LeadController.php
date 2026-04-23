@@ -49,7 +49,7 @@ class LeadController extends Controller
         }
 
         $admins = Admin::where('status', 'active')->orderBy('name')->get();
-        $sources = Lead::distinct()->whereNotNull('source')->pluck('source');
+        $sources = Lead::SOURCES;
 
         return view('admin.leads.index', compact('leads', 'admins', 'sources'));
     }
@@ -71,8 +71,7 @@ class LeadController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('leads.create'), 403);
 
         $admins = Admin::where('status', 'active')->orderBy('name')->get();
-        $sources = Lead::distinct()->whereNotNull('source')->pluck('source')
-            ->map(fn($s) => ['id' => $s, 'name' => ucfirst($s)])->values();
+        $sources = Lead::sourceOptions();
 
         return view('admin.leads.create', compact('admins', 'sources'));
     }
@@ -101,7 +100,7 @@ class LeadController extends Controller
 
         $lead = Lead::findOrFail($id);
         $admins = Admin::where('status', 'active')->orderBy('name')->get();
-        $sources = Lead::distinct()->whereNotNull('source')->pluck('source');
+        $sources = Lead::sourceOptions();
 
         return view('admin.leads.edit', compact('lead', 'admins', 'sources'));
     }

@@ -447,6 +447,151 @@
                 </li>
                 @endcan
 
+                {{-- ========== HR ========== --}}
+                @canany(['employees.view','departments.view','designations.view','attendance.view','leaves.view','payroll.view','warnings.view','penalties.view','feedback.view','appraisals.view','holidays.view','leave_types.view','shifts.view'])
+                <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
+                    <span>Human Resources</span>
+                </h2>
+
+                {{-- Employees --}}
+                @can('employees.view')
+                <li class="menu nav-item">
+                    <button type="button" class="nav-link group w-full"
+                        :class="{ 'active': activeDropdown === 'hr-employees' }"
+                        @click="activeDropdown = activeDropdown === 'hr-employees' ? null : 'hr-employees'">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="9" cy="9" r="3.25" stroke="currentColor" stroke-width="1.5"/>
+                                <path opacity="0.5" d="M9 20c-3.866 0-7-1.343-7-3s3.134-3 7-3 7 1.343 7 3-3.134 3-7 3z" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M16 8h6M19 5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Employees</span>
+                        </div>
+                        <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'hr-employees' }">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                    </button>
+                    <ul x-collapse x-show="activeDropdown === 'hr-employees'" class="sub-menu text-gray-500">
+                        <li><a href="{{ route('admin.hr.employees.index') }}">All Employees</a></li>
+                        @can('employees.create')<li><a href="{{ route('admin.hr.employees.create') }}">Add Employee</a></li>@endcan
+                        @can('departments.view')<li><a href="{{ route('admin.hr.departments.index') }}">Departments</a></li>@endcan
+                        @can('designations.view')<li><a href="{{ route('admin.hr.designations.index') }}">Designations</a></li>@endcan
+                        @can('shifts.view')<li><a href="{{ route('admin.hr.shifts.index') }}">Shifts</a></li>@endcan
+                    </ul>
+                </li>
+                @endcan
+
+                {{-- Attendance --}}
+                @can('attendance.view')
+                <li class="menu nav-item">
+                    <button type="button" class="nav-link group w-full"
+                        :class="{ 'active': activeDropdown === 'hr-attendance' }"
+                        @click="activeDropdown = activeDropdown === 'hr-attendance' ? null : 'hr-attendance'">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                                <path opacity="0.5" d="M3 10h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Attendance</span>
+                        </div>
+                        <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'hr-attendance' }">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                    </button>
+                    <ul x-collapse x-show="activeDropdown === 'hr-attendance'" class="sub-menu text-gray-500">
+                        <li><a href="{{ route('admin.hr.attendance.index') }}">Daily</a></li>
+                        <li><a href="{{ route('admin.hr.attendance.monthly') }}">Monthly Summary</a></li>
+                        @can('attendance.create')<li><a href="{{ route('admin.hr.attendance.create') }}">Mark Attendance</a></li>@endcan
+                        @can('attendance.import')<li><a href="{{ route('admin.hr.attendance.import-form') }}">Import Biometric CSV</a></li>@endcan
+                        @can('holidays.view')<li><a href="{{ route('admin.hr.holidays.index') }}">Holiday Calendar</a></li>@endcan
+                    </ul>
+                </li>
+                @endcan
+
+                {{-- Leaves --}}
+                @can('leaves.view')
+                @php $pendingLeaves = \App\Models\LeaveRequest::where('status','pending')->count(); @endphp
+                <li class="menu nav-item">
+                    <button type="button" class="nav-link group w-full"
+                        :class="{ 'active': activeDropdown === 'hr-leaves' }"
+                        @click="activeDropdown = activeDropdown === 'hr-leaves' ? null : 'hr-leaves'">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 2v4M16 2v4M3 10h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                <rect opacity="0.5" x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M12 14l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Leaves</span>
+                            @if($pendingLeaves > 0)
+                            <span class="ml-auto mr-1 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-warning text-white">{{ $pendingLeaves > 99 ? '99+' : $pendingLeaves }}</span>
+                            @endif
+                        </div>
+                        <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'hr-leaves' }">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                    </button>
+                    <ul x-collapse x-show="activeDropdown === 'hr-leaves'" class="sub-menu text-gray-500">
+                        <li><a href="{{ route('admin.hr.leaves.index') }}">All Requests</a></li>
+                        <li><a href="{{ route('admin.hr.leaves.index', ['status' => 'pending']) }}">Pending @if($pendingLeaves > 0)({{ $pendingLeaves }})@endif</a></li>
+                        <li><a href="{{ route('admin.hr.leave-balances.index') }}">Leave Balances</a></li>
+                        @can('leave_types.view')<li><a href="{{ route('admin.hr.leave-types.index') }}">Leave Types</a></li>@endcan
+                    </ul>
+                </li>
+                @endcan
+
+                {{-- Payroll --}}
+                @can('payroll.view')
+                <li class="menu nav-item">
+                    <button type="button" class="nav-link group w-full"
+                        :class="{ 'active': activeDropdown === 'hr-payroll' }"
+                        @click="activeDropdown = activeDropdown === 'hr-payroll' ? null : 'hr-payroll'">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="2" y="6" width="20" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                                <circle cx="12" cy="12.5" r="2.25" stroke="currentColor" stroke-width="1.5"/>
+                                <path opacity="0.5" d="M6 12h.01M18 13h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Payroll</span>
+                        </div>
+                        <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'hr-payroll' }">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                    </button>
+                    <ul x-collapse x-show="activeDropdown === 'hr-payroll'" class="sub-menu text-gray-500">
+                        <li><a href="{{ route('admin.hr.payroll.index') }}">Payslips</a></li>
+                        @can('payroll.generate')<li><a href="{{ route('admin.hr.payroll.generate-form') }}">Generate Payroll</a></li>@endcan
+                    </ul>
+                </li>
+                @endcan
+
+                {{-- Performance / Discipline --}}
+                @canany(['warnings.view','penalties.view','appraisals.view','feedback.view'])
+                <li class="menu nav-item">
+                    <button type="button" class="nav-link group w-full"
+                        :class="{ 'active': activeDropdown === 'hr-perf' }"
+                        @click="activeDropdown = activeDropdown === 'hr-perf' ? null : 'hr-perf'">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 21l5-5M8 16l3-3 3 3 3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path opacity="0.5" d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.3L12 14.3l-4.8 2.5.9-5.3L4.2 7.7l5.4-.8L12 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Performance</span>
+                        </div>
+                        <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'hr-perf' }">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                    </button>
+                    <ul x-collapse x-show="activeDropdown === 'hr-perf'" class="sub-menu text-gray-500">
+                        @can('warnings.view')<li><a href="{{ route('admin.hr.warnings.index') }}">Warnings</a></li>@endcan
+                        @can('penalties.view')<li><a href="{{ route('admin.hr.penalties.index') }}">Penalties</a></li>@endcan
+                        @can('penalties.view')<li><a href="{{ route('admin.hr.penalty-types.index') }}">Penalty Types</a></li>@endcan
+                        @can('appraisals.view')<li><a href="{{ route('admin.hr.appraisals.index') }}">Appraisals / Increments</a></li>@endcan
+                        @can('feedback.view')<li><a href="{{ route('admin.hr.feedback.index') }}">Department Feedback</a></li>@endcan
+                    </ul>
+                </li>
+                @endcanany
+                @endcanany
+
                 {{-- ========== SERVICE ========== --}}
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Service</span>
@@ -477,6 +622,7 @@
                     <ul x-collapse x-show="activeDropdown === 'service-tickets'" class="sub-menu text-gray-500">
                         <li><a href="{{ route('admin.service-tickets.index') }}">All Tickets</a></li>
                         <li><a href="{{ route('admin.service-tickets.create') }}">Create Ticket</a></li>
+                        <li><a href="{{ route('admin.service-categories.index') }}">Service Categories</a></li>
                     </ul>
                 </li>
                 @endcan

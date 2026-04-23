@@ -1,5 +1,5 @@
 <x-layout.admin title="Edit Customer">
-    <div x-data="customerLocation({{ Js::from(['state' => old('state', $customer->state), 'city' => old('city', $customer->city)]) }})">
+    <div x-data="customerLocation({{ Js::from(['state' => old('state', $customer->state), 'city' => old('city', $customer->city), 'cities' => $cities->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'state' => $c->state])->values()]) }})">
         <x-admin.breadcrumb :items="[['label'=>'Customers','url'=>route('admin.customers.index')],['label'=>'Edit Customer']]" />
 
         <div class="flex items-center justify-between mb-5">
@@ -55,24 +55,44 @@
                         <label for="shipping_address">Shipping Address</label>
                         <textarea id="shipping_address" name="shipping_address" class="form-input" rows="2">{{ old('shipping_address', $customer->shipping_address) }}</textarea>
                     </div>
-                    <div>
-                        <label for="state">State</label>
-                        <select id="state" name="state" class="form-select" x-model="state" @change="loadCities()">
-                            <option value="">-- Select State --</option>
-                            @foreach($states as $s)
-                                <option value="{{ $s->name }}">{{ $s->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                    {{-- City first — searchable; State auto-fills on pick --}}
                     <div>
                         <label for="city">City</label>
-                        <select id="city" name="city" class="form-select" x-model="city" :disabled="!state || loading">
-                            <option value="">-- Select City --</option>
-                            <template x-for="c in cities" :key="c.id">
-                                <option :value="c.name" x-text="c.name"></option>
-                            </template>
-                        </select>
-                        <p class="text-xs text-gray-400 mt-1" x-show="state && !loading && cities.length === 0">No cities found for this state. <a href="{{ route('admin.cities.create') }}" class="text-primary">Add one</a>.</p>
+                        <div class="relative" @click.outside="cityOpen = false">
+                            <input type="hidden" name="city" :value="city" />
+                            <button type="button" @click="cityOpen = !cityOpen"
+                                class="form-input w-full text-left flex items-center justify-between cursor-pointer"
+                                :class="cityOpen ? 'border-primary ring-1 ring-primary' : ''">
+                                <span :class="city ? 'text-current' : 'text-gray-400'" x-text="city || '-- Select City --'"></span>
+                                <span class="flex items-center gap-1 ml-2 shrink-0">
+                                    <svg x-show="city" @click.stop="clearCity()" class="w-4 h-4 text-gray-400 hover:text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                </span>
+                            </button>
+                            <div x-show="cityOpen" x-cloak x-transition class="absolute z-50 mt-1 w-full bg-white dark:bg-[#1b2e4b] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-64 overflow-hidden flex flex-col">
+                                <div class="p-2 border-b border-gray-200 dark:border-gray-700">
+                                    <input type="text" x-model="citySearch" @keydown.escape="cityOpen = false"
+                                        class="form-input w-full text-sm" placeholder="Type to search cities..." />
+                                </div>
+                                <ul class="overflow-y-auto flex-1">
+                                    <template x-for="c in filteredCities" :key="c.id">
+                                        <li @click="pickCity(c)"
+                                            class="px-3 py-2 cursor-pointer hover:bg-primary/10 flex items-center justify-between"
+                                            :class="city === c.name ? 'bg-primary/5 font-semibold text-primary' : ''">
+                                            <span x-text="c.name"></span>
+                                            <span class="text-xs text-gray-400" x-text="c.state"></span>
+                                        </li>
+                                    </template>
+                                    <li x-show="filteredCities.length === 0" class="px-3 py-4 text-center text-sm text-gray-500">
+                                        No cities match "<span x-text="citySearch"></span>". <a href="{{ route('admin.cities.create') }}" class="text-primary">Add one</a>.
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="state">State</label>
+                        <input type="text" id="state" name="state" class="form-input bg-gray-50 dark:bg-dark-light/20" readonly x-model="state" placeholder="— Auto-fills after city is selected —" />
                     </div>
                     <div>
                         <label for="pincode">Pincode</label>
@@ -107,24 +127,31 @@
             Alpine.data('customerLocation', (initial) => ({
                 state: initial.state || '',
                 city: initial.city || '',
-                cities: [],
-                loading: false,
+                allCities: initial.cities || [],
+                cityOpen: false,
+                citySearch: '',
 
-                init() {
-                    if (this.state) this.loadCities(true);
+                get filteredCities() {
+                    const q = this.citySearch.trim().toLowerCase();
+                    if (!q) return this.allCities;
+                    return this.allCities.filter(c =>
+                        c.name.toLowerCase().includes(q) ||
+                        (c.state && c.state.toLowerCase().includes(q))
+                    );
                 },
 
-                loadCities(preserveCity = false) {
-                    if (!preserveCity) this.city = '';
-                    if (!this.state) { this.cities = []; return; }
-                    this.loading = true;
-                    fetch(`{{ route('admin.locations.cities') }}?state=${encodeURIComponent(this.state)}`, {
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    })
-                    .then(r => r.json())
-                    .then(data => { this.cities = data; this.loading = false; })
-                    .catch(() => { this.loading = false; });
-                }
+                pickCity(c) {
+                    this.city = c.name;
+                    this.state = c.state || '';
+                    this.cityOpen = false;
+                    this.citySearch = '';
+                },
+
+                clearCity() {
+                    this.city = '';
+                    this.state = '';
+                    this.citySearch = '';
+                },
             }));
         });
     </script>

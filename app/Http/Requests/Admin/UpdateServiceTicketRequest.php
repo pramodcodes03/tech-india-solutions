@@ -16,9 +16,14 @@ class UpdateServiceTicketRequest extends FormRequest
         return [
             'customer_id' => ['required', 'exists:customers,id'],
             'product_id' => ['nullable', 'exists:products,id'],
+            'category_id' => ['nullable', 'exists:service_categories,id'],
             'issue_description' => ['required', 'string', 'max:2000'],
+            'site_location' => ['nullable', 'string', 'max:255'],
+            'contact_name' => ['nullable', 'string', 'max:100'],
+            'contact_phone' => ['nullable', 'string', 'max:20'],
+            'scheduled_at' => ['nullable', 'date'],
             'priority' => ['required', 'in:low,medium,high,urgent'],
-            'status' => ['nullable', 'in:open,assigned,in_progress,resolved,closed'],
+            'status' => ['nullable', 'in:open,assigned,in_progress,resolved,closed,cancelled'],
             'assigned_to' => ['nullable', 'exists:admins,id'],
             'resolution_notes' => ['nullable', 'string', 'max:2000'],
         ];

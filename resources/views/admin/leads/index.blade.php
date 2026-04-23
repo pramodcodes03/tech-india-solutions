@@ -28,8 +28,8 @@
                 </select>
                 <select class="form-select py-2 w-40" x-model="filterSource" @change="fetchData(1)">
                     <option value="">-- All Sources --</option>
-                    @foreach($sources as $source)
-                        <option value="{{ $source }}">{{ ucfirst($source) }}</option>
+                    @foreach($sources as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
                 <select class="form-select py-2 w-48" x-model="filterAssignedTo" @change="fetchData(1)">
@@ -75,7 +75,7 @@
                                 <td class="px-4 py-2" x-text="item.name"></td>
                                 <td class="px-4 py-2" x-text="item.company || '-'"></td>
                                 <td class="px-4 py-2">
-                                    <span class="badge bg-secondary" x-text="item.source"></span>
+                                    <span class="badge bg-secondary" x-text="sourceLabel(item.source)"></span>
                                 </td>
                                 <td class="px-4 py-2">
                                     <div class="relative" x-data="{ open: false }">
@@ -162,6 +162,11 @@
                 filterStatus: '',
                 filterSource: '',
                 filterAssignedTo: '',
+                sourceMap: @json($sources),
+                sourceLabel(value) {
+                    if (!value) return '—';
+                    return this.sourceMap[value] || value.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                },
 
                 fetchData(page = 1) {
                     let url = `{{ route('admin.leads.index') }}?page=${page}`;

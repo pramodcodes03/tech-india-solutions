@@ -255,20 +255,23 @@
         </form>
     </div>
 
+    @php
+        $soItems = $salesOrder->items->map(fn ($i) => [
+            'product_id' => $i->product_id ?? '',
+            'description' => $i->description ?? '',
+            'hsn_code' => $i->hsn_code ?? '',
+            'quantity' => $i->quantity ?? 1,
+            'unit' => $i->unit ?? 'pcs',
+            'rate' => $i->rate ?? 0,
+            'discount_percent' => $i->discount_percent ?? 0,
+            'tax_percent' => $i->tax_percent ?? 0,
+            'line_total' => $i->line_total ?? 0,
+        ])->values();
+    @endphp
     <script>
         document.addEventListener("alpine:init", () => {
             Alpine.data('salesOrderEditForm', () => ({
-                items: @json($salesOrder->items->map(fn($i) => [
-                    'product_id' => $i->product_id ?? '',
-                    'description' => $i->description ?? '',
-                    'hsn_code' => $i->hsn_code ?? '',
-                    'quantity' => $i->quantity ?? 1,
-                    'unit' => $i->unit ?? 'pcs',
-                    'rate' => $i->rate ?? 0,
-                    'discount_percent' => $i->discount_percent ?? 0,
-                    'tax_percent' => $i->tax_percent ?? 0,
-                    'line_total' => $i->line_total ?? 0,
-                ])->values()),
+                items: @json($soItems),
                 discount_type: '{{ old('discount_type', $salesOrder->discount_type ?? 'percent') }}',
                 discount_value: {{ old('discount_value', $salesOrder->discount_value ?? 0) }},
                 tax_percent: {{ old('tax_percent', $salesOrder->tax_percent ?? 0) }},
@@ -282,7 +285,8 @@
                     if (this.items.length === 0) {
                         this.items.push({ product_id: '', description: '', hsn_code: '', quantity: 1, unit: 'pcs', rate: 0, discount_percent: 0, tax_percent: 0, line_total: 0 });
                     }
-                    this.calculate();
+                    // Recompute every line from qty × rate on load — handles stale/zero line_totals from DB.
+                    this.items.forEach((_, i) => this.calculateLine(i));
                 },
 
                 addItem() {

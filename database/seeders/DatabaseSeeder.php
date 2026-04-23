@@ -24,7 +24,9 @@ class DatabaseSeeder extends Seeder
             PaymentSeeder::class,
             PurchaseOrderSeeder::class,
             StockMovementSeeder::class,
+            ServiceCategorySeeder::class,
             ServiceTicketSeeder::class,
+            HrSeeder::class,
         ]);
     }
 }

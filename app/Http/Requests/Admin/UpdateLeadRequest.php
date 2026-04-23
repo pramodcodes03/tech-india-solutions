@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Lead;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateLeadRequest extends FormRequest
 {
@@ -18,7 +20,7 @@ class UpdateLeadRequest extends FormRequest
             'company' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
             'email' => ['nullable', 'email'],
-            'source' => ['required', 'in:website,referral,walk-in,other'],
+            'source' => ['required', Rule::in(array_keys(Lead::SOURCES))],
             'status' => ['required', 'in:new,contacted,qualified,proposal,won,lost'],
             'assigned_to' => ['nullable', 'exists:admins,id'],
             'expected_value' => ['nullable', 'numeric', 'min:0'],
@@ -32,7 +34,7 @@ class UpdateLeadRequest extends FormRequest
         return [
             'name.required' => 'Lead name is required.',
             'source.required' => 'Please select the lead source.',
-            'source.in' => 'Lead source must be one of: website, referral, walk-in, or other.',
+            'source.in' => 'Please choose a valid lead source from the list.',
             'status.required' => 'Please select the lead status.',
             'status.in' => 'Invalid lead status selected.',
             'assigned_to.exists' => 'The selected assignee does not exist.',

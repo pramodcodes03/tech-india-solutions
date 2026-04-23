@@ -2,6 +2,32 @@
 
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\Hr\AppraisalController as HrAppraisalController;
+use App\Http\Controllers\Admin\Hr\AppraisalCycleController as HrAppraisalCycleController;
+use App\Http\Controllers\Admin\Hr\AttendanceController as HrAttendanceController;
+use App\Http\Controllers\Admin\Hr\DepartmentController as HrDepartmentController;
+use App\Http\Controllers\Admin\Hr\DesignationController as HrDesignationController;
+use App\Http\Controllers\Admin\Hr\EmployeeController as HrEmployeeController;
+use App\Http\Controllers\Admin\Hr\IncrementController as HrIncrementController;
+use App\Http\Controllers\Admin\Hr\FeedbackController as HrFeedbackController;
+use App\Http\Controllers\Admin\Hr\HolidayController as HrHolidayController;
+use App\Http\Controllers\Admin\Hr\LeaveBalanceController as HrLeaveBalanceController;
+use App\Http\Controllers\Admin\Hr\LeaveController as HrLeaveController;
+use App\Http\Controllers\Admin\Hr\LeaveTypeController as HrLeaveTypeController;
+use App\Http\Controllers\Admin\Hr\PayrollController as HrPayrollController;
+use App\Http\Controllers\Admin\Hr\PenaltyController as HrPenaltyController;
+use App\Http\Controllers\Admin\Hr\ShiftController as HrShiftController;
+use App\Http\Controllers\Admin\Hr\WarningController as HrWarningController;
+use App\Http\Controllers\Employee\AttendanceController as EmpAttendanceController;
+use App\Http\Controllers\Employee\AuthController as EmpAuthController;
+use App\Http\Controllers\Employee\DashboardController as EmpDashboardController;
+use App\Http\Controllers\Employee\FeedbackController as EmpFeedbackController;
+use App\Http\Controllers\Employee\LeaveController as EmpLeaveController;
+use App\Http\Controllers\Employee\PayslipController as EmpPayslipController;
+use App\Http\Controllers\Employee\AppraisalController as EmpAppraisalController;
+use App\Http\Controllers\Employee\PerformanceController as EmpPerformanceController;
+use App\Http\Controllers\Employee\ProfileController as EmpProfileController;
+use App\Http\Controllers\Employee\WarningController as EmpWarningController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\CustomerController;
@@ -15,6 +41,7 @@ use App\Http\Controllers\Admin\QuotationController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SalesOrderController;
+use App\Http\Controllers\Admin\ServiceCategoryController;
 use App\Http\Controllers\Admin\ServiceTicketController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\StateController;
@@ -116,8 +143,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('payments', PaymentController::class)->except(['edit', 'update']);
 
         // Service Ticket Management
+        Route::resource('service-categories', ServiceCategoryController::class)->except(['show']);
         Route::resource('service-tickets', ServiceTicketController::class)->parameters(['service-tickets' => 'service_ticket']);
         Route::post('service-tickets/{service_ticket}/comments', [ServiceTicketController::class, 'addComment'])->name('service-tickets.add-comment');
+        Route::patch('service-tickets/{service_ticket}/status', [ServiceTicketController::class, 'updateStatus'])->name('service-tickets.update-status');
 
         // Reports
         Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
@@ -132,5 +161,139 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Settings
         Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
         Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
+
+        // ════════════════════════════════════════════════════════════════
+        // HR Module
+        // ════════════════════════════════════════════════════════════════
+        Route::prefix('hr')->name('hr.')->group(function () {
+            // Employees
+            Route::resource('employees', HrEmployeeController::class);
+            Route::post('employees/{employee}/reset-password', [HrEmployeeController::class, 'resetPassword'])->name('employees.reset-password');
+
+            // Departments & Designations
+            Route::resource('departments', HrDepartmentController::class)->except(['show']);
+            Route::resource('designations', HrDesignationController::class)->except(['show']);
+
+            // Shifts
+            Route::resource('shifts', HrShiftController::class)->except(['show']);
+
+            // Holidays
+            Route::resource('holidays', HrHolidayController::class)->except(['show']);
+
+            // Leave Types
+            Route::resource('leave-types', HrLeaveTypeController::class)->except(['show'])->parameters(['leave-types' => 'leaveType']);
+
+            // Attendance
+            Route::get('attendance', [HrAttendanceController::class, 'index'])->name('attendance.index');
+            Route::get('attendance/monthly', [HrAttendanceController::class, 'monthly'])->name('attendance.monthly');
+            Route::get('attendance/create', [HrAttendanceController::class, 'create'])->name('attendance.create');
+            Route::post('attendance', [HrAttendanceController::class, 'store'])->name('attendance.store');
+            Route::get('attendance/import', [HrAttendanceController::class, 'importForm'])->name('attendance.import-form');
+            Route::post('attendance/import', [HrAttendanceController::class, 'import'])->name('attendance.import');
+
+            // Leaves
+            Route::get('leaves', [HrLeaveController::class, 'index'])->name('leaves.index');
+            Route::get('leave-balances', [HrLeaveBalanceController::class, 'index'])->name('leave-balances.index');
+            Route::post('leave-balances/bulk-allocate', [HrLeaveBalanceController::class, 'bulkAllocate'])->name('leave-balances.bulk-allocate');
+            Route::get('leave-balances/{employee}', [HrLeaveBalanceController::class, 'edit'])->name('leave-balances.edit');
+            Route::put('leave-balances/{employee}', [HrLeaveBalanceController::class, 'update'])->name('leave-balances.update');
+            Route::get('leaves/{leaveRequest}', [HrLeaveController::class, 'show'])->name('leaves.show');
+            Route::post('leaves/{leaveRequest}/approve', [HrLeaveController::class, 'approve'])->name('leaves.approve');
+            Route::post('leaves/{leaveRequest}/reject', [HrLeaveController::class, 'reject'])->name('leaves.reject');
+
+            // Payroll
+            Route::get('payroll', [HrPayrollController::class, 'index'])->name('payroll.index');
+            Route::get('payroll/generate', [HrPayrollController::class, 'generateForm'])->name('payroll.generate-form');
+            Route::post('payroll/generate', [HrPayrollController::class, 'generate'])->name('payroll.generate');
+            Route::get('payroll/{payslip}', [HrPayrollController::class, 'show'])->name('payroll.show');
+            Route::get('payroll/{payslip}/pdf', [HrPayrollController::class, 'pdf'])->name('payroll.pdf');
+            Route::post('payroll/{payslip}/mark-paid', [HrPayrollController::class, 'markPaid'])->name('payroll.mark-paid');
+            Route::post('payroll/preview-structure', [HrPayrollController::class, 'previewStructure'])->name('payroll.preview-structure');
+            Route::get('employees/{employee}/salary', [HrPayrollController::class, 'salaryForm'])->name('salary.form');
+            Route::post('employees/{employee}/salary', [HrPayrollController::class, 'salaryStore'])->name('salary.store');
+
+            // Simple per-employee increment / appraisal
+            Route::get('employees/{employee}/increments/create', [HrIncrementController::class, 'create'])->name('employees.increments.create');
+            Route::post('employees/{employee}/increments', [HrIncrementController::class, 'store'])->name('employees.increments.store');
+
+            // Warnings
+            Route::get('warnings', [HrWarningController::class, 'index'])->name('warnings.index');
+            Route::get('warnings/create', [HrWarningController::class, 'create'])->name('warnings.create');
+            Route::post('warnings', [HrWarningController::class, 'store'])->name('warnings.store');
+            Route::get('warnings/{warning}', [HrWarningController::class, 'show'])->name('warnings.show');
+            Route::post('warnings/{warning}/withdraw', [HrWarningController::class, 'withdraw'])->name('warnings.withdraw');
+
+            // Penalties
+            Route::get('penalties', [HrPenaltyController::class, 'index'])->name('penalties.index');
+            Route::get('penalties/create', [HrPenaltyController::class, 'create'])->name('penalties.create');
+            Route::post('penalties', [HrPenaltyController::class, 'store'])->name('penalties.store');
+            Route::post('penalties/{penalty}/reduce', [HrPenaltyController::class, 'reduce'])->name('penalties.reduce');
+            Route::get('penalty-types', [HrPenaltyController::class, 'types'])->name('penalty-types.index');
+            Route::post('penalty-types', [HrPenaltyController::class, 'storeType'])->name('penalty-types.store');
+            Route::put('penalty-types/{type}', [HrPenaltyController::class, 'updateType'])->name('penalty-types.update');
+
+            // Feedback
+            Route::get('feedback', [HrFeedbackController::class, 'index'])->name('feedback.index');
+            Route::get('feedback/{feedback}', [HrFeedbackController::class, 'show'])->name('feedback.show');
+
+            // Appraisals (per-employee increment history)
+            Route::get('appraisals', [HrAppraisalController::class, 'index'])->name('appraisals.index');
+            Route::get('appraisals/{appraisal}', [HrAppraisalController::class, 'show'])->name('appraisals.show');
+            Route::get('appraisals/{appraisal}/edit', [HrAppraisalController::class, 'edit'])->name('appraisals.edit');
+            Route::put('appraisals/{appraisal}', [HrAppraisalController::class, 'update'])->name('appraisals.update');
+            Route::delete('appraisals/{appraisal}', [HrAppraisalController::class, 'destroy'])->name('appraisals.destroy');
+            Route::get('appraisals/{appraisal}/pdf', [HrAppraisalController::class, 'pdf'])->name('appraisals.pdf');
+        });
+    });
+});
+
+// ════════════════════════════════════════════════════════════════════════
+// Employee Portal
+// ════════════════════════════════════════════════════════════════════════
+Route::prefix('employee')->name('employee.')->group(function () {
+    Route::get('/login', [EmpAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [EmpAuthController::class, 'login'])->name('signin');
+    Route::post('/logout', [EmpAuthController::class, 'logout'])->name('logout');
+
+    Route::middleware('auth:employee')->group(function () {
+        Route::get('/dashboard', [EmpDashboardController::class, 'index'])->name('dashboard');
+        Route::post('change-password', [EmpAuthController::class, 'changePassword'])->name('change-password');
+
+        // Profile
+        Route::get('profile', [EmpProfileController::class, 'show'])->name('profile.show');
+        Route::get('profile/edit', [EmpProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('profile', [EmpProfileController::class, 'update'])->name('profile.update');
+
+        // Attendance
+        Route::get('attendance', [EmpAttendanceController::class, 'index'])->name('attendance.index');
+        Route::post('attendance/punch', [EmpAttendanceController::class, 'punch'])->name('attendance.punch');
+
+        // Leaves
+        Route::get('leaves', [EmpLeaveController::class, 'index'])->name('leaves.index');
+        Route::get('leaves/apply', [EmpLeaveController::class, 'create'])->name('leaves.create');
+        Route::post('leaves', [EmpLeaveController::class, 'store'])->name('leaves.store');
+        Route::get('leaves/{leaveRequest}', [EmpLeaveController::class, 'show'])->name('leaves.show');
+        Route::post('leaves/{leaveRequest}/cancel', [EmpLeaveController::class, 'cancel'])->name('leaves.cancel');
+
+        // Payslips
+        Route::get('payslips', [EmpPayslipController::class, 'index'])->name('payslips.index');
+        Route::get('payslips/{payslip}', [EmpPayslipController::class, 'show'])->name('payslips.show');
+        Route::get('payslips/{payslip}/pdf', [EmpPayslipController::class, 'pdf'])->name('payslips.pdf');
+
+        // Warnings
+        Route::get('warnings', [EmpWarningController::class, 'index'])->name('warnings.index');
+        Route::post('warnings/{warning}/acknowledge', [EmpWarningController::class, 'acknowledge'])->name('warnings.acknowledge');
+
+        // Feedback
+        Route::get('feedback', [EmpFeedbackController::class, 'index'])->name('feedback.index');
+        Route::post('feedback', [EmpFeedbackController::class, 'store'])->name('feedback.store');
+
+        // Performance
+        Route::get('performance', [EmpPerformanceController::class, 'index'])->name('performance.index');
+
+        // Appraisals (my increment history)
+        Route::get('appraisals', [EmpAppraisalController::class, 'index'])->name('appraisals.index');
+        Route::get('appraisals/{appraisal}', [EmpAppraisalController::class, 'show'])->name('appraisals.show');
+        Route::get('appraisals/{appraisal}/pdf', [EmpAppraisalController::class, 'pdf'])->name('appraisals.pdf');
     });
 });

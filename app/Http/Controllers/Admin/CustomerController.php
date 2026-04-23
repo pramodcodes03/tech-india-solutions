@@ -58,8 +58,9 @@ class CustomerController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('customers.create'), 403);
 
         $states = State::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $cities = \App\Models\City::where('is_active', true)->orderBy('name')->get(['id', 'name', 'state']);
 
-        return view('admin.customers.create', compact('states'));
+        return view('admin.customers.create', compact('states', 'cities'));
     }
 
     public function store(StoreCustomerRequest $request)
@@ -92,8 +93,9 @@ class CustomerController extends Controller
 
         $customer = Customer::findOrFail($id);
         $states = State::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $cities = \App\Models\City::where('is_active', true)->orderBy('name')->get(['id', 'name', 'state']);
 
-        return view('admin.customers.edit', compact('customer', 'states'));
+        return view('admin.customers.edit', compact('customer', 'states', 'cities'));
     }
 
     public function update(UpdateCustomerRequest $request, $id)

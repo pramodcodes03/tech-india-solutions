@@ -37,6 +37,22 @@ class RolePermissionSeeder extends Seeder
             'service_tickets' => ['view', 'create', 'edit', 'delete'],
             'reports' => ['view', 'export'],
             'settings' => ['view', 'edit'],
+
+            // ── HR Module ────────────────────────────────────────────────
+            'employees' => ['view', 'create', 'edit', 'delete', 'export'],
+            'departments' => ['view', 'create', 'edit', 'delete'],
+            'designations' => ['view', 'create', 'edit', 'delete'],
+            'shifts' => ['view', 'create', 'edit', 'delete'],
+            'holidays' => ['view', 'create', 'edit', 'delete'],
+            'attendance' => ['view', 'create', 'edit', 'import'],
+            'leaves' => ['view', 'create', 'approve', 'reject'],
+            'leave_types' => ['view', 'create', 'edit', 'delete'],
+            'payroll' => ['view', 'generate', 'approve', 'edit'],
+            'salary_structures' => ['view', 'create', 'edit'],
+            'warnings' => ['view', 'create', 'edit', 'delete'],
+            'penalties' => ['view', 'create', 'edit', 'delete', 'reduce'],
+            'feedback' => ['view'],
+            'appraisals' => ['view', 'create', 'edit', 'finalize', 'acknowledge'],
         ];
 
         // Create all permissions
@@ -111,6 +127,30 @@ class RolePermissionSeeder extends Seeder
             ['customers.view', 'products.view']
         );
         $serviceRole->syncPermissions($servicePermissions);
+
+        // HR Manager — full access to HR module + dashboard
+        $hrRole = Role::firstOrCreate(['name' => 'HR Manager', 'guard_name' => $guard]);
+        $hrPermissions = array_merge(
+            ['dashboard.view'],
+            $this->allActionsFor('employees', $modules),
+            $this->allActionsFor('departments', $modules),
+            $this->allActionsFor('designations', $modules),
+            $this->allActionsFor('shifts', $modules),
+            $this->allActionsFor('holidays', $modules),
+            $this->allActionsFor('attendance', $modules),
+            $this->allActionsFor('leaves', $modules),
+            $this->allActionsFor('leave_types', $modules),
+            $this->allActionsFor('payroll', $modules),
+            $this->allActionsFor('salary_structures', $modules),
+            $this->allActionsFor('warnings', $modules),
+            $this->allActionsFor('penalties', $modules),
+            $this->allActionsFor('feedback', $modules),
+            $this->allActionsFor('appraisals', $modules),
+        );
+        $hrRole->syncPermissions($hrPermissions);
+
+        // Give Admin role all HR permissions too
+        $adminRole->givePermissionTo($hrPermissions);
 
         // Viewer - dashboard.view + all *.view permissions
         $viewerRole = Role::firstOrCreate(['name' => 'Viewer', 'guard_name' => $guard]);

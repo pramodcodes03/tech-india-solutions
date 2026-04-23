@@ -32,13 +32,20 @@
                     <option value="high">High</option>
                     <option value="urgent">Urgent</option>
                 </select>
+                <select class="form-select py-2 w-44" x-model="filterCategory" @change="fetchData(1)">
+                    <option value="">-- All Categories --</option>
+                    @foreach($categories as $c)
+                        <option value="{{ $c->id }}">{!! $c->icon !!} {{ $c->name }}</option>
+                    @endforeach
+                </select>
                 <select class="form-select py-2 w-48" x-model="filterAssignedTo" @change="fetchData(1)">
                     <option value="">-- All Assigned --</option>
                     @foreach($admins as $admin)
                         <option value="{{ $admin->id }}">{{ $admin->name }}</option>
                     @endforeach
                 </select>
-                <button type="button" class="btn btn-outline-danger btn-sm" x-show="searchText || filterStatus || filterPriority || filterAssignedTo" @click="clearFilters()">Clear</button>
+                <button type="button" class="btn btn-outline-danger btn-sm" x-show="searchText || filterStatus || filterPriority || filterCategory || filterAssignedTo" @click="clearFilters()">Clear</button>
+                <a href="{{ route('admin.service-categories.index') }}" class="btn btn-outline-secondary btn-sm">Manage Categories</a>
                 <a href="{{ route('admin.service-tickets.create') }}" class="btn btn-primary gap-2 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     New Ticket
@@ -54,7 +61,7 @@
                             <th class="px-4 py-2">#</th>
                             <th class="px-4 py-2">Ticket #</th>
                             <th class="px-4 py-2">Customer</th>
-                            <th class="px-4 py-2">Product</th>
+                            <th class="px-4 py-2">Type</th>
                             <th class="px-4 py-2">Priority</th>
                             <th class="px-4 py-2">Status</th>
                             <th class="px-4 py-2">Assigned To</th>
@@ -68,7 +75,17 @@
                                 <td class="px-4 py-2" x-text="(pagination.current_page - 1) * pagination.per_page + index + 1"></td>
                                 <td class="px-4 py-2 font-semibold" x-text="item.ticket_number"></td>
                                 <td class="px-4 py-2" x-text="item.customer ? item.customer.name : '-'"></td>
-                                <td class="px-4 py-2" x-text="item.product ? item.product.name : '-'"></td>
+                                <td class="px-4 py-2">
+                                    <template x-if="item.category">
+                                        <span class="badge" :style="`background: ${item.category.color}22; color: ${item.category.color}`" x-text="(item.category.icon || '') + ' ' + item.category.name"></span>
+                                    </template>
+                                    <template x-if="!item.category && item.product">
+                                        <span class="badge bg-primary/10 text-primary" x-text="'📦 ' + item.product.name"></span>
+                                    </template>
+                                    <template x-if="!item.category && !item.product">
+                                        <span class="text-gray-400 text-xs">—</span>
+                                    </template>
+                                </td>
                                 <td class="px-4 py-2">
                                     <span class="badge"
                                         :class="{
@@ -90,7 +107,7 @@
                                         }"
                                         x-text="item.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())"></span>
                                 </td>
-                                <td class="px-4 py-2" x-text="item.assigned_to_admin ? item.assigned_to_admin.name : '-'"></td>
+                                <td class="px-4 py-2" x-text="item.assigned_admin ? item.assigned_admin.name : '—'"></td>
                                 <td class="px-4 py-2" x-text="item.created_at_formatted"></td>
                                 <td class="px-4 py-2">
                                     <div class="flex items-center justify-center gap-2">
@@ -104,6 +121,8 @@
                         <tr x-show="items.length === 0">
                             <td colspan="9" class="px-4 py-4 text-center text-gray-500">No service tickets found.</td>
                         </tr>
+
+                        <template x-for="(item, index) in []" :key="'dummy'+index"><tr></tr></template>
                     </tbody>
                 </table>
             </div>
@@ -135,7 +154,20 @@
     <script>
         document.addEventListener("alpine:init", () => {
             Alpine.data('ticketList', () => ({
-                items: @json($tickets->items()),
+                @php
+                    $ticketItems = collect($tickets->items())->map(fn ($t) => [
+                        'id' => $t->id,
+                        'ticket_number' => $t->ticket_number,
+                        'customer' => $t->customer ? ['id' => $t->customer->id, 'name' => $t->customer->name] : null,
+                        'product' => $t->product ? ['id' => $t->product->id, 'name' => $t->product->name] : null,
+                        'category' => $t->category ? ['id' => $t->category->id, 'name' => $t->category->name, 'icon' => $t->category->icon, 'color' => $t->category->color] : null,
+                        'priority' => $t->priority,
+                        'status' => $t->status,
+                        'assigned_admin' => $t->assignedTo ? ['id' => $t->assignedTo->id, 'name' => $t->assignedTo->name] : null,
+                        'created_at_formatted' => $t->created_at?->format('d M Y, h:i A'),
+                    ])->values();
+                @endphp
+                items: @json($ticketItems),
                 pagination: {
                     total: {{ $tickets->total() }},
                     per_page: {{ $tickets->perPage() }},
@@ -145,15 +177,17 @@
                     to: {{ $tickets->lastItem() ?? 0 }}
                 },
                 searchText: '',
-                filterStatus: '',
-                filterPriority: '',
-                filterAssignedTo: '',
+                filterStatus: '{{ request('status') }}',
+                filterPriority: '{{ request('priority') }}',
+                filterCategory: '{{ request('category_id') }}',
+                filterAssignedTo: '{{ request('assigned_to') }}',
 
                 fetchData(page = 1) {
                     let url = `{{ route('admin.service-tickets.index') }}?page=${page}`;
                     if (this.searchText) url += `&search=${encodeURIComponent(this.searchText)}`;
                     if (this.filterStatus) url += `&status=${this.filterStatus}`;
                     if (this.filterPriority) url += `&priority=${this.filterPriority}`;
+                    if (this.filterCategory) url += `&category_id=${this.filterCategory}`;
                     if (this.filterAssignedTo) url += `&assigned_to=${this.filterAssignedTo}`;
                     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(res => res.json())
@@ -177,6 +211,7 @@
                     this.searchText = '';
                     this.filterStatus = '';
                     this.filterPriority = '';
+                    this.filterCategory = '';
                     this.filterAssignedTo = '';
                     this.fetchData(1);
                 },

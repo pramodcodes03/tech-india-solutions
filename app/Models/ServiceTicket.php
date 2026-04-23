@@ -17,7 +17,12 @@ class ServiceTicket extends Model
         'ticket_number',
         'customer_id',
         'product_id',
+        'category_id',
         'issue_description',
+        'site_location',
+        'contact_name',
+        'contact_phone',
+        'scheduled_at',
         'priority',
         'status',
         'assigned_to',
@@ -34,6 +39,7 @@ class ServiceTicket extends Model
         return [
             'opened_at' => 'datetime',
             'closed_at' => 'datetime',
+            'scheduled_at' => 'datetime',
         ];
     }
 
@@ -53,6 +59,11 @@ class ServiceTicket extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(ServiceCategory::class, 'category_id');
     }
 
     public function assignedTo(): BelongsTo

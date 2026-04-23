@@ -11,7 +11,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->redirectGuestsTo(fn () => route('admin.login'));
+        // Send unauthenticated guests to the right login page based on the URL they tried to access.
+        // Anything under /employee goes to the employee login; everything else goes to the admin login.
+        $middleware->redirectGuestsTo(function ($request) {
+            if ($request->is('employee*')) {
+                return route('employee.login');
+            }
+
+            return route('admin.login');
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

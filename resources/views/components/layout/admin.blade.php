@@ -147,6 +147,47 @@
             <x-admin.header />
 
             <div class="p-6 dvanimation animate__animated" :class="[$store.app.animation]">
+                {{-- ── Global flash + validation messages ─────────────────── --}}
+                @if(session('success'))
+                    <div x-data="{ show: true }" x-show="show" x-transition
+                         class="mb-4 px-4 py-3 rounded-lg bg-success/10 text-success border border-success/30 flex items-start gap-2">
+                        <svg class="w-5 h-5 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.7-9.3a1 1 0 00-1.4-1.4L9 10.6 7.7 9.3a1 1 0 00-1.4 1.4l2 2a1 1 0 001.4 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="flex-1">{{ session('success') }}</span>
+                        <button type="button" @click="show = false" class="text-success/70 hover:text-success">&times;</button>
+                    </div>
+                @endif
+                @if(session('error'))
+                    <div x-data="{ show: true }" x-show="show" x-transition
+                         class="mb-4 px-4 py-3 rounded-lg bg-danger/10 text-danger border border-danger/30 flex items-start gap-2">
+                        <svg class="w-5 h-5 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9 5a1 1 0 112 0v5a1 1 0 11-2 0V5zm1 9a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="flex-1">{{ session('error') }}</span>
+                        <button type="button" @click="show = false" class="text-danger/70 hover:text-danger">&times;</button>
+                    </div>
+                @endif
+                @if($errors->any())
+                    <div x-data="{ show: true }" x-show="show" x-transition
+                         class="mb-4 px-4 py-3 rounded-lg bg-danger/10 text-danger border border-danger/30">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-5 h-5 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            <div class="flex-1">
+                                <div class="font-semibold mb-1">Please fix the following {{ $errors->count() === 1 ? 'error' : $errors->count().' errors' }}:</div>
+                                <ul class="list-disc pl-5 text-sm space-y-0.5">
+                                    @foreach($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                            <button type="button" @click="show = false" class="text-danger/70 hover:text-danger">&times;</button>
+                        </div>
+                    </div>
+                @endif
+
                 {{ $slot }}
             </div>
 

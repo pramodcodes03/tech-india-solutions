@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\UpdateServiceTicketRequest;
 use App\Models\Admin;
 use App\Models\Customer;
 use App\Models\Product;
+use App\Models\ServiceCategory;
 use App\Models\ServiceTicket;
 use App\Services\ServiceTicketService;
 use Illuminate\Http\Request;
@@ -23,21 +24,40 @@ class ServiceTicketController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('service_tickets.view'), 403);
 
-        $tickets = ServiceTicket::with(['customer', 'product', 'assignedTo'])
+        $tickets = ServiceTicket::with(['customer', 'product', 'category', 'assignedTo'])
             ->when($request->search, fn ($q, $s) => $q->where(function ($q) use ($s) {
                 $q->where('ticket_number', 'like', "%{$s}%")
                     ->orWhere('issue_description', 'like', "%{$s}%")
+                    ->orWhere('site_location', 'like', "%{$s}%")
                     ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'like', "%{$s}%"));
             }))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->priority, fn ($q, $p) => $q->where('priority', $p))
+            ->when($request->category_id, fn ($q, $c) => $q->where('category_id', $c))
             ->when($request->assigned_to, fn ($q, $a) => $q->where('assigned_to', $a))
             ->latest()
             ->paginate(10);
 
         if ($request->ajax()) {
+            $items = collect($tickets->items())->map(fn ($t) => [
+                'id' => $t->id,
+                'ticket_number' => $t->ticket_number,
+                'customer' => $t->customer ? ['id' => $t->customer->id, 'name' => $t->customer->name] : null,
+                'product' => $t->product ? ['id' => $t->product->id, 'name' => $t->product->name] : null,
+                'category' => $t->category ? [
+                    'id' => $t->category->id,
+                    'name' => $t->category->name,
+                    'icon' => $t->category->icon,
+                    'color' => $t->category->color,
+                ] : null,
+                'priority' => $t->priority,
+                'status' => $t->status,
+                'assigned_admin' => $t->assignedTo ? ['id' => $t->assignedTo->id, 'name' => $t->assignedTo->name] : null,
+                'created_at_formatted' => $t->created_at?->format('d M Y, h:i A'),
+            ])->values();
+
             return response()->json([
-                'data' => $tickets->items(),
+                'data' => $items,
                 'pagination' => [
                     'total' => $tickets->total(),
                     'per_page' => $tickets->perPage(),
@@ -50,8 +70,9 @@ class ServiceTicketController extends Controller
         }
 
         $admins = Admin::where('status', 'active')->orderBy('name')->get();
+        $categories = ServiceCategory::where('status', 'active')->orderBy('sort_order')->orderBy('name')->get();
 
-        return view('admin.service-tickets.index', compact('tickets', 'admins'));
+        return view('admin.service-tickets.index', compact('tickets', 'admins', 'categories'));
     }
 
     public function create()
@@ -61,8 +82,9 @@ class ServiceTicketController extends Controller
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
         $products = Product::where('status', 'active')->orderBy('name')->get();
         $admins = Admin::where('status', 'active')->orderBy('name')->get();
+        $categories = ServiceCategory::where('status', 'active')->orderBy('sort_order')->orderBy('name')->get();
 
-        return view('admin.service-tickets.create', compact('customers', 'products', 'admins'));
+        return view('admin.service-tickets.create', compact('customers', 'products', 'admins', 'categories'));
     }
 
     public function store(StoreServiceTicketRequest $request)
@@ -81,6 +103,7 @@ class ServiceTicketController extends Controller
         $ticket = ServiceTicket::with([
             'customer',
             'product',
+            'category',
             'assignedTo',
             'comments.creator',
             'creator',
@@ -97,8 +120,31 @@ class ServiceTicketController extends Controller
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
         $products = Product::where('status', 'active')->orderBy('name')->get();
         $admins = Admin::where('status', 'active')->orderBy('name')->get();
+        $categories = ServiceCategory::where('status', 'active')->orderBy('sort_order')->orderBy('name')->get();
 
-        return view('admin.service-tickets.edit', compact('ticket', 'customers', 'products', 'admins'));
+        return view('admin.service-tickets.edit', compact('ticket', 'customers', 'products', 'admins', 'categories'));
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('service_tickets.edit'), 403);
+
+        $data = $request->validate([
+            'status' => ['required', 'in:open,in_progress,resolved,closed,cancelled'],
+            'resolution_notes' => ['nullable', 'string'],
+        ]);
+
+        $ticket = ServiceTicket::findOrFail($id);
+        $data['updated_by'] = Auth::guard('admin')->id();
+        if (in_array($data['status'], ['resolved', 'closed']) && ! $ticket->closed_at) {
+            $data['closed_at'] = now();
+        }
+        if ($data['status'] === 'open' || $data['status'] === 'in_progress') {
+            $data['closed_at'] = null;
+        }
+        $ticket->update($data);
+
+        return back()->with('success', 'Ticket status updated to '.str_replace('_', ' ', $data['status']).'.');
     }
 
     public function update(UpdateServiceTicketRequest $request, $id)
