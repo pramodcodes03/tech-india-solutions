@@ -32,6 +32,22 @@ class DashboardController extends Controller
         $pendingLeaves = $employee->leaveRequests()->where('status', 'pending')->count();
         $recentPayslips = $employee->payslips()->latest()->limit(3)->get();
         $openWarnings = $employee->warnings()->where('status', 'active')->count();
+
+        // Latest disciplinary actions (last 60 days, surface on dashboard)
+        $recentWindow = Carbon::today()->subDays(60);
+        $latestWarnings = $employee->warnings()
+            ->with('issuer')
+            ->where('issued_on', '>=', $recentWindow)
+            ->orderByDesc('issued_on')
+            ->limit(3)
+            ->get();
+        $latestPenalties = \App\Models\Penalty::with(['penaltyType', 'issuer'])
+            ->where('employee_id', $employee->id)
+            ->where('incident_date', '>=', $recentWindow)
+            ->orderByDesc('incident_date')
+            ->limit(3)
+            ->get();
+        $hasDisciplinary = $latestWarnings->isNotEmpty() || $latestPenalties->isNotEmpty();
         $birthdaysThisMonth = \App\Models\Employee::whereMonth('date_of_birth', now()->month)
             ->where('status', 'active')
             ->orderByRaw('DAY(date_of_birth)')
@@ -105,7 +121,8 @@ class DashboardController extends Controller
             'employee', 'summary', 'todayRecord', 'upcomingHolidays',
             'pendingLeaves', 'recentPayslips', 'openWarnings', 'birthdaysThisMonth',
             'month', 'year',
-            'attendanceTrend', 'currentMonthDonut', 'leaveUsage', 'checkInTrend'
+            'attendanceTrend', 'currentMonthDonut', 'leaveUsage', 'checkInTrend',
+            'latestWarnings', 'latestPenalties', 'hasDisciplinary'
         ));
     }
 }

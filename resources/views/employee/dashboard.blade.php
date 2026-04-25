@@ -21,6 +21,86 @@
         </div>
     </div>
 
+    {{-- ──────── Disciplinary alerts (last 60 days) ──────── --}}
+    @if($hasDisciplinary)
+    <div class="mb-6 p-5 rounded-2xl bg-gradient-to-br from-danger/10 via-warning/10 to-warning/5 dark:from-danger/20 dark:via-warning/20 dark:to-warning/10 border-l-4 border-danger relative overflow-hidden">
+        <div class="absolute -top-6 -right-6 w-32 h-32 bg-danger/10 rounded-full blur-2xl"></div>
+        <div class="relative">
+            <div class="flex items-center gap-2 mb-3">
+                <div class="w-9 h-9 rounded-full bg-danger/15 text-danger grid place-items-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h2 class="font-bold text-base text-danger">Action Required</h2>
+                    <p class="text-xs text-gray-600 dark:text-gray-300">You have new disciplinary entries from the last 60 days. Please review.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                @if($latestWarnings->isNotEmpty())
+                <div class="rounded-xl bg-white/70 dark:bg-[#1b2e4b]/70 p-4 border border-danger/15">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-bold text-sm flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-danger" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2 2 21h20L12 2z"/><path stroke-linecap="round" d="M12 10v5M12 17.5v.5"/></svg>
+                            Recent Warnings ({{ $latestWarnings->count() }})
+                        </h3>
+                        <a href="{{ route('employee.warnings.index') }}" class="text-xs text-primary hover:underline">View all →</a>
+                    </div>
+                    <ul class="space-y-2">
+                        @foreach($latestWarnings as $w)
+                            <li class="flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-light/50 transition">
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0
+                                    @if($w->level == 3) bg-danger/15 text-danger
+                                    @elseif($w->level == 2) bg-warning/15 text-warning
+                                    @else bg-info/15 text-info
+                                    @endif">L{{ $w->level }}</span>
+                                <div class="flex-1 min-w-0">
+                                    <a href="{{ route('employee.warnings.index') }}" class="text-sm font-semibold hover:text-primary line-clamp-1">{{ $w->title }}</a>
+                                    <div class="text-[11px] text-gray-500">{{ $w->issued_on->diffForHumans() }} · {{ $w->issuer?->name ?? 'HR' }}</div>
+                                </div>
+                                @if($w->status === 'active')
+                                    <span class="text-[10px] font-bold text-warning whitespace-nowrap">Acknowledge</span>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endif
+
+                @if($latestPenalties->isNotEmpty())
+                <div class="rounded-xl bg-white/70 dark:bg-[#1b2e4b]/70 p-4 border border-warning/20">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-bold text-sm flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-warning" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path stroke-linecap="round" d="M7 6V4a2 2 0 012-2h6a2 2 0 012 2v2M3 12h18"/></svg>
+                            Recent Penalties ({{ $latestPenalties->count() }})
+                        </h3>
+                        <a href="{{ route('employee.penalties.index') }}" class="text-xs text-primary hover:underline">View all →</a>
+                    </div>
+                    <ul class="space-y-2">
+                        @foreach($latestPenalties as $p)
+                            <li class="flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-light/50 transition">
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0
+                                    @switch($p->status)
+                                        @case('pending') bg-warning/15 text-warning @break
+                                        @case('deducted') bg-danger/15 text-danger @break
+                                        @case('reduced') bg-info/15 text-info @break
+                                        @case('waived') bg-success/15 text-success @break
+                                    @endswitch">{{ $p->status }}</span>
+                                <div class="flex-1 min-w-0">
+                                    <a href="{{ route('employee.penalties.show', $p) }}" class="text-sm font-semibold hover:text-primary line-clamp-1">{{ $p->penaltyType?->name ?? 'Penalty' }}</a>
+                                    <div class="text-[11px] text-gray-500">{{ $p->incident_date?->diffForHumans() }} · {{ $p->issuer?->name ?? 'HR' }}</div>
+                                </div>
+                                <div class="text-sm font-bold text-danger whitespace-nowrap">₹{{ number_format($p->amount, 0) }}</div>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Today card + stats --}}
     <div class="grid grid-cols-12 gap-4 mb-6">
         <div class="col-span-12 lg:col-span-4 p-5 rounded-xl bg-white dark:bg-[#1b2e4b] shadow">
