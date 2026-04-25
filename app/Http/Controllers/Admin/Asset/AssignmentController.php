@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Asset;
 
+use App\Exports\AssetAssignmentsExport;
 use App\Http\Controllers\Controller;
 use App\Models\Asset;
 use App\Models\AssetAssignment;
@@ -10,6 +11,8 @@ use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Excel as ExcelType;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AssignmentController extends Controller
 {
@@ -31,6 +34,27 @@ class AssignmentController extends Controller
         $employees = Employee::whereIn('status', ['active', 'probation'])->orderBy('first_name')->get();
 
         return view('admin.assets.assignments.index', compact('assignments', 'employees'));
+    }
+
+    public function export(Request $request)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('assets.view'), 403);
+
+        $assignments = AssetAssignment::with(['asset.category', 'employee', 'fromLocation', 'toLocation'])
+            ->when($request->action_type, fn ($q, $a) => $q->where('action_type', $a))
+            ->when($request->employee_id, fn ($q, $id) => $q->where('employee_id', $id))
+            ->when($request->status, function ($q, $s) {
+                if ($s === 'open') $q->whereNull('returned_at');
+                if ($s === 'returned') $q->whereNotNull('returned_at');
+            })
+            ->latest('assigned_at')
+            ->get();
+
+        $format = strtolower($request->input('format', 'xlsx'));
+        $writer = $format === 'csv' ? ExcelType::CSV : ExcelType::XLSX;
+        $filename = 'asset-assignments-'.now()->format('Y-m-d').'.'.($format === 'csv' ? 'csv' : 'xlsx');
+
+        return Excel::download(new AssetAssignmentsExport($assignments), $filename, $writer);
     }
 
     public function create(Request $request)

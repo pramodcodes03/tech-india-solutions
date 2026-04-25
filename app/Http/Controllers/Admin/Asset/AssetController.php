@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Asset;
 
+use App\Exports\AssetRegisterExport;
 use App\Http\Controllers\Controller;
 use App\Models\Asset;
 use App\Models\AssetCategory;
@@ -15,6 +16,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Excel as ExcelType;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AssetController extends Controller
 {
@@ -55,6 +58,31 @@ class AssetController extends Controller
         $employees = Employee::whereIn('status', ['active', 'probation'])->orderBy('first_name')->get();
 
         return view('admin.assets.assets.index', compact('assets', 'kpi', 'categories', 'models', 'locations', 'employees'));
+    }
+
+    public function export(Request $request)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('assets.view'), 403);
+
+        $assets = Asset::with(['category', 'model', 'location', 'custodian', 'vendor', 'purchaseOrder'])
+            ->when($request->search, fn ($q, $s) => $q->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%{$s}%")
+                    ->orWhere('asset_code', 'like', "%{$s}%")
+                    ->orWhere('serial_number', 'like', "%{$s}%");
+            }))
+            ->when($request->category_id, fn ($q, $id) => $q->where('category_id', $id))
+            ->when($request->asset_model_id, fn ($q, $id) => $q->where('asset_model_id', $id))
+            ->when($request->location_id, fn ($q, $id) => $q->where('location_id', $id))
+            ->when($request->status, fn ($q, $s) => $q->where('status', $s))
+            ->when($request->custodian_id, fn ($q, $id) => $q->where('current_custodian_id', $id))
+            ->latest()
+            ->get();
+
+        $format = strtolower($request->input('format', 'xlsx'));
+        $writer = $format === 'csv' ? ExcelType::CSV : ExcelType::XLSX;
+        $filename = 'asset-register-'.now()->format('Y-m-d').'.'.($format === 'csv' ? 'csv' : 'xlsx');
+
+        return Excel::download(new AssetRegisterExport($assets), $filename, $writer);
     }
 
     public function create(Request $request)

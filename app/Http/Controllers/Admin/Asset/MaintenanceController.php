@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Asset;
 
+use App\Exports\AssetMaintenanceExport;
 use App\Http\Controllers\Controller;
 use App\Models\Asset;
 use App\Models\AssetMaintenanceLog;
@@ -9,6 +10,8 @@ use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Excel as ExcelType;
+use Maatwebsite\Excel\Facades\Excel;
 
 class MaintenanceController extends Controller
 {
@@ -25,6 +28,24 @@ class MaintenanceController extends Controller
             ->withQueryString();
 
         return view('admin.assets.maintenance.index', compact('logs'));
+    }
+
+    public function export(Request $request)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('assets.view'), 403);
+
+        $logs = AssetMaintenanceLog::with(['asset.category', 'technician'])
+            ->when($request->search, fn ($q, $s) => $q->whereHas('asset', fn ($q) => $q->where('name', 'like', "%{$s}%")->orWhere('asset_code', 'like', "%{$s}%")))
+            ->when($request->type, fn ($q, $t) => $q->where('type', $t))
+            ->when($request->status, fn ($q, $s) => $q->where('status', $s))
+            ->latest('performed_date')
+            ->get();
+
+        $format = strtolower($request->input('format', 'xlsx'));
+        $writer = $format === 'csv' ? ExcelType::CSV : ExcelType::XLSX;
+        $filename = 'asset-maintenance-'.now()->format('Y-m-d').'.'.($format === 'csv' ? 'csv' : 'xlsx');
+
+        return Excel::download(new AssetMaintenanceExport($logs), $filename, $writer);
     }
 
     public function create(Request $request)
