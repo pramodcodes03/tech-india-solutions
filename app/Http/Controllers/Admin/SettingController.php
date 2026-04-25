@@ -27,9 +27,13 @@ class SettingController extends Controller
         $groupMap = [
             'company_name' => 'company', 'company_address' => 'company',
             'company_phone' => 'company', 'company_email' => 'company',
-            'company_gst' => 'company', 'invoice_prefix' => 'document',
-            'quotation_prefix' => 'document', 'currency_symbol' => 'document',
-            'terms_and_conditions' => 'document',
+            'company_gst' => 'company', 'company_pan' => 'company',
+            'company_logo' => 'company',
+            'bank_name' => 'bank', 'bank_account' => 'bank',
+            'bank_ifsc' => 'bank', 'bank_account_type' => 'bank',
+            'bank_account_holder' => 'bank', 'bank_branch' => 'bank',
+            'invoice_prefix' => 'document', 'quotation_prefix' => 'document',
+            'currency_symbol' => 'document', 'terms_and_conditions' => 'document',
         ];
 
         foreach ($settingsData as $key => $value) {

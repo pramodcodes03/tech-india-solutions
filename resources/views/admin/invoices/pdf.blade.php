@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Invoice - {{ $invoice->invoice_number }}</title>
     <style>
-        @page { margin: 18mm 14mm; }
+        @page { margin: 3mm; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 10.5px; color: #2b2b2b; line-height: 1.45; }
 
@@ -91,6 +91,8 @@
     $bankAccount    = $settings['bank_account']    ?? '';
     $bankIfsc       = $settings['bank_ifsc']       ?? '';
     $bankAccType    = $settings['bank_account_type'] ?? '';
+    $bankHolder     = $settings['bank_account_holder'] ?? $companyName;
+    $bankBranch     = $settings['bank_branch']     ?? '';
     $currencySymbol = $settings['currency_symbol'] ?? '₹';
 
     $logoPath = public_path($companyLogo);
@@ -274,7 +276,9 @@
             <div class="bank-box">
                 <div class="bank-title">Bank Details</div>
                 <div class="bank-line">
+                    @if($bankHolder)<span class="l">Account Holder</span><span class="r">{{ $bankHolder }}</span><br>@endif
                     @if($bankName)<span class="l">Bank</span><span class="r">{{ $bankName }}</span><br>@endif
+                    @if($bankBranch)<span class="l">Branch</span><span class="r">{{ $bankBranch }}</span><br>@endif
                     @if($bankAccount)<span class="l">Account No.</span><span class="r">{{ $bankAccount }}</span><br>@endif
                     @if($bankIfsc)<span class="l">IFSC</span><span class="r">{{ $bankIfsc }}</span><br>@endif
                     @if($bankAccType)<span class="l">Account Type</span><span class="r">{{ $bankAccType }}</span>@endif
