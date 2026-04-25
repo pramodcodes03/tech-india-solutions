@@ -13,7 +13,7 @@
         table.layout > tbody > tr > td { vertical-align: top; }
         .gap-cell { width: 10px; padding: 0; }
 
-        .doc-title { font-size: 24px; font-weight: bold; color: #6b46c1; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .doc-title { font-size: 24px; font-weight: bold; color: #122e6d; letter-spacing: 0.5px; margin-bottom: 6px; }
         .doc-meta { font-size: 10.5px; color: #444; }
         .doc-meta .row { margin-top: 2px; }
         .doc-meta .label { color: #666; display: inline-block; min-width: 78px; }
@@ -21,15 +21,15 @@
         .logo-img { max-height: 56px; max-width: 180px; }
 
         /* Billed By / Billed To boxes (cells of layout table) */
-        .party-box { background-color: #f3eefb; padding: 11px 13px; }
-        .party-title { font-size: 12px; font-weight: bold; color: #6b46c1; margin-bottom: 5px; }
+        .party-box { background-color: #e8edf7; padding: 11px 13px; }
+        .party-title { font-size: 12px; font-weight: bold; color: #122e6d; margin-bottom: 5px; }
         .party-name { font-weight: bold; font-size: 12px; color: #1a1a2e; margin-bottom: 3px; }
         .party-line { font-size: 10.5px; color: #444; line-height: 1.5; }
         .party-line strong { color: #1a1a2e; }
 
         /* Items table */
         .items { width: 100%; border-collapse: collapse; }
-        .items thead th { background-color: #6b46c1; color: #fff; padding: 8px 9px; text-align: left; font-size: 10px; font-weight: bold; }
+        .items thead th { background-color: #122e6d; color: #fff; padding: 8px 9px; text-align: left; font-size: 10px; font-weight: bold; }
         .items thead th.tr { text-align: right; }
         .items thead th.tc { text-align: center; }
         .items tbody td { padding: 7px 9px; border-bottom: 1px solid #ececec; font-size: 10.5px; vertical-align: top; }
@@ -46,12 +46,12 @@
         .totals tr.due td { background-color: #1a1a2e; color: #fff; padding: 8px 10px; font-size: 12px; }
         .totals tr.due td.label { color: #fff; }
 
-        .amount-words { background-color: #f7f5fb; border-left: 3px solid #6b46c1; padding: 7px 11px; font-size: 10.5px; color: #444; }
+        .amount-words { background-color: #f0f3fa; border-left: 3px solid #122e6d; padding: 7px 11px; font-size: 10.5px; color: #444; }
         .amount-words strong { color: #1a1a2e; }
 
         /* Bank box */
-        .bank-box { background-color: #f3eefb; padding: 11px 13px; }
-        .bank-title { font-size: 11px; font-weight: bold; color: #6b46c1; margin-bottom: 5px; }
+        .bank-box { background-color: #e8edf7; padding: 11px 13px; }
+        .bank-title { font-size: 11px; font-weight: bold; color: #122e6d; margin-bottom: 5px; }
         .bank-line { font-size: 10.5px; line-height: 1.6; }
         .bank-line .l { display: inline-block; width: 95px; color: #666; }
         .bank-line .r { font-weight: bold; color: #1a1a2e; }
@@ -65,7 +65,7 @@
 
         /* Terms */
         .terms-box { padding: 9px 11px; background-color: #fafafa; }
-        .terms-title { font-size: 11px; font-weight: bold; color: #6b46c1; margin-bottom: 4px; }
+        .terms-title { font-size: 11px; font-weight: bold; color: #122e6d; margin-bottom: 4px; }
         .terms-text { font-size: 10px; color: #555; line-height: 1.5; white-space: pre-line; }
         .footer { margin-top: 14px; text-align: center; font-size: 9px; color: #999; padding-top: 8px; border-top: 1px solid #eee; }
 
@@ -145,7 +145,7 @@
             @if($logoExists)
                 <img src="{{ $logoPath }}" class="logo-img" alt="{{ $companyName }}" />
             @else
-                <div style="font-size: 16px; font-weight: bold; color: #6b46c1;">{{ $companyName }}</div>
+                <div style="font-size: 16px; font-weight: bold; color: #122e6d;">{{ $companyName }}</div>
             @endif
         </td>
     </tr>
