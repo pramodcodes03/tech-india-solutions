@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Asset;
 
 use App\Exports\AssetRegisterExport;
 use App\Http\Controllers\Controller;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Asset;
 use App\Models\AssetCategory;
 use App\Models\AssetLocation;
@@ -79,10 +80,16 @@ class AssetController extends Controller
             ->get();
 
         $format = strtolower($request->input('format', 'xlsx'));
-        $writer = $format === 'csv' ? ExcelType::CSV : ExcelType::XLSX;
-        $filename = 'asset-register-'.now()->format('Y-m-d').'.'.($format === 'csv' ? 'csv' : 'xlsx');
+        $stamp = now()->format('Y-m-d');
 
-        return Excel::download(new AssetRegisterExport($assets), $filename, $writer);
+        if ($format === 'pdf') {
+            $filters = $request->only(['search', 'category_id', 'location_id', 'status', 'custodian_id']);
+            return Pdf::loadView('admin.assets.pdf.register', compact('assets', 'filters'))
+                ->setPaper('a4', 'landscape')
+                ->stream("asset-register-{$stamp}.pdf");
+        }
+
+        return Excel::download(new AssetRegisterExport($assets), "asset-register-{$stamp}.xlsx", ExcelType::XLSX);
     }
 
     public function create(Request $request)

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Asset;
 
 use App\Exports\AssetMaintenanceExport;
 use App\Http\Controllers\Controller;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Asset;
 use App\Models\AssetMaintenanceLog;
 use App\Models\Employee;
@@ -42,10 +43,16 @@ class MaintenanceController extends Controller
             ->get();
 
         $format = strtolower($request->input('format', 'xlsx'));
-        $writer = $format === 'csv' ? ExcelType::CSV : ExcelType::XLSX;
-        $filename = 'asset-maintenance-'.now()->format('Y-m-d').'.'.($format === 'csv' ? 'csv' : 'xlsx');
+        $stamp = now()->format('Y-m-d');
 
-        return Excel::download(new AssetMaintenanceExport($logs), $filename, $writer);
+        if ($format === 'pdf') {
+            $filters = $request->only(['search', 'type', 'status']);
+            return Pdf::loadView('admin.assets.pdf.maintenance', compact('logs', 'filters'))
+                ->setPaper('a4', 'landscape')
+                ->stream("asset-maintenance-{$stamp}.pdf");
+        }
+
+        return Excel::download(new AssetMaintenanceExport($logs), "asset-maintenance-{$stamp}.xlsx", ExcelType::XLSX);
     }
 
     public function create(Request $request)

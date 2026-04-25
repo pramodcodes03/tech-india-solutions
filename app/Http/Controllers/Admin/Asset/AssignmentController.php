@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Asset;
 
 use App\Exports\AssetAssignmentsExport;
 use App\Http\Controllers\Controller;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Asset;
 use App\Models\AssetAssignment;
 use App\Models\AssetLocation;
@@ -51,10 +52,16 @@ class AssignmentController extends Controller
             ->get();
 
         $format = strtolower($request->input('format', 'xlsx'));
-        $writer = $format === 'csv' ? ExcelType::CSV : ExcelType::XLSX;
-        $filename = 'asset-assignments-'.now()->format('Y-m-d').'.'.($format === 'csv' ? 'csv' : 'xlsx');
+        $stamp = now()->format('Y-m-d');
 
-        return Excel::download(new AssetAssignmentsExport($assignments), $filename, $writer);
+        if ($format === 'pdf') {
+            $filters = $request->only(['action_type', 'employee_id', 'status']);
+            return Pdf::loadView('admin.assets.pdf.assignments', compact('assignments', 'filters'))
+                ->setPaper('a4', 'landscape')
+                ->stream("asset-assignments-{$stamp}.pdf");
+        }
+
+        return Excel::download(new AssetAssignmentsExport($assignments), "asset-assignments-{$stamp}.xlsx", ExcelType::XLSX);
     }
 
     public function create(Request $request)
