@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\Hr\AppraisalController as HrAppraisalController;
+use App\Http\Controllers\Admin\Hr\DashboardController as HrDashboardController;
 use App\Http\Controllers\Admin\Hr\AppraisalCycleController as HrAppraisalCycleController;
 use App\Http\Controllers\Admin\Hr\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\Admin\Hr\DepartmentController as HrDepartmentController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\Employee\PerformanceController as EmpPerformanceControl
 use App\Http\Controllers\Employee\ProfileController as EmpProfileController;
 use App\Http\Controllers\Employee\WarningController as EmpWarningController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\DashboardsController;
 use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\InventoryController;
@@ -36,6 +38,7 @@ use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LeadController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\ProformaInvoiceController;
 use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\QuotationController;
 use App\Http\Controllers\Admin\ReportController;
@@ -71,6 +74,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware('auth:admin')->group(function () {
         Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
 
+        // Specialised dashboards
+        Route::prefix('dashboards')->name('dashboards.')->group(function () {
+            Route::get('sales',      [DashboardsController::class, 'sales'])->name('sales');
+            Route::get('service',    [DashboardsController::class, 'service'])->name('service');
+            Route::get('inventory',  [DashboardsController::class, 'inventory'])->name('inventory');
+            Route::get('purchase',   [DashboardsController::class, 'purchase'])->name('purchase');
+            Route::get('customers',  [DashboardsController::class, 'customers'])->name('customers');
+            Route::get('executive',  [DashboardsController::class, 'executive'])->name('executive');
+        });
+
         // Admin User Management
         Route::resource('admin-users', AdminUserController::class)->parameters(['admin-users' => 'admin_user']);
         Route::patch('admin-users/{admin_user}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('admin-users.toggle-status');
@@ -102,6 +115,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('quotations/{quotation}/clone', [QuotationController::class, 'clone'])->name('quotations.clone');
         Route::post('quotations/{quotation}/convert-to-order', [QuotationController::class, 'convertToOrder'])->name('quotations.convert-to-order');
         Route::patch('quotations/{quotation}/status', [QuotationController::class, 'updateStatus'])->name('quotations.update-status');
+
+        // Proforma Invoice Management
+        Route::resource('proforma-invoices', ProformaInvoiceController::class)->parameters(['proforma-invoices' => 'proforma_invoice']);
+        Route::get('proforma-invoices/{proforma_invoice}/pdf', [ProformaInvoiceController::class, 'pdf'])->name('proforma-invoices.pdf');
+        Route::post('proforma-invoices/{proforma_invoice}/clone', [ProformaInvoiceController::class, 'clone'])->name('proforma-invoices.clone');
+        Route::post('proforma-invoices/{proforma_invoice}/convert-to-invoice', [ProformaInvoiceController::class, 'convertToInvoice'])->name('proforma-invoices.convert-to-invoice');
+        Route::patch('proforma-invoices/{proforma_invoice}/status', [ProformaInvoiceController::class, 'updateStatus'])->name('proforma-invoices.update-status');
 
         // Sales Order Management
         Route::resource('sales-orders', SalesOrderController::class)->parameters(['sales-orders' => 'sales_order']);
@@ -166,6 +186,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // HR Module
         // ════════════════════════════════════════════════════════════════
         Route::prefix('hr')->name('hr.')->group(function () {
+            // HR Dashboard
+            Route::get('dashboard', [HrDashboardController::class, 'index'])->name('dashboard');
+
             // Employees
             Route::resource('employees', HrEmployeeController::class);
             Route::post('employees/{employee}/reset-password', [HrEmployeeController::class, 'resetPassword'])->name('employees.reset-password');

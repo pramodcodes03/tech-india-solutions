@@ -16,15 +16,33 @@
                 <input type="text" name="last_name" value="{{ old('last_name', $emp?->last_name) }}" class="form-input mt-1" />
             </div>
             <div>
-                <label class="text-xs font-semibold text-gray-500 uppercase">Email *</label>
+                <label class="text-xs font-semibold text-gray-500 uppercase">Official Email *</label>
                 <input type="email" name="email" value="{{ old('email', $emp?->email) }}" required class="form-input mt-1" />
             </div>
             <div>
-                <label class="text-xs font-semibold text-gray-500 uppercase">Phone</label>
-                <input type="text" name="phone" value="{{ old('phone', $emp?->phone) }}" class="form-input mt-1" />
+                <label class="text-xs font-semibold text-gray-500 uppercase">Personal Email</label>
+                <input type="email" name="personal_email" value="{{ old('personal_email', $emp?->personal_email) }}" class="form-input mt-1" />
+            </div>
+            @php
+                $mobileVal = old('phone', $emp?->phone);
+                $waVal = old('whatsapp_number', $emp?->whatsapp_number);
+                $waSame = old('whatsapp_same_as_mobile', $emp ? ($waVal !== null && $waVal === $mobileVal ? '1' : '0') : '1');
+            @endphp
+            <div x-data="{ same: {{ $waSame ? 'true' : 'false' }} }">
+                <label class="text-xs font-semibold text-gray-500 uppercase">Mobile</label>
+                <input type="text" name="phone" value="{{ $mobileVal }}" class="form-input mt-1" />
+                <label class="inline-flex items-center gap-2 mt-2 text-xs text-gray-600 dark:text-gray-300">
+                    <input type="checkbox" class="form-checkbox" x-model="same" />
+                    WhatsApp number is same as Mobile
+                </label>
+                <input type="hidden" name="whatsapp_same_as_mobile" :value="same ? 1 : 0" />
+                <div x-show="!same" x-cloak class="mt-2">
+                    <label class="text-xs font-semibold text-gray-500 uppercase">WhatsApp Number</label>
+                    <input type="text" name="whatsapp_number" value="{{ $waVal }}" :disabled="same" class="form-input mt-1" />
+                </div>
             </div>
             <div>
-                <label class="text-xs font-semibold text-gray-500 uppercase">Alt Phone</label>
+                <label class="text-xs font-semibold text-gray-500 uppercase">Alt Mobile</label>
                 <input type="text" name="alt_phone" value="{{ old('alt_phone', $emp?->alt_phone) }}" class="form-input mt-1" />
             </div>
             <div>

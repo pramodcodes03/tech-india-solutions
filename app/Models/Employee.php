@@ -18,8 +18,8 @@ class Employee extends Authenticatable
     protected $guard_name = 'employee';
 
     protected $fillable = [
-        'employee_code', 'email', 'password', 'last_login_at',
-        'first_name', 'last_name', 'phone', 'alt_phone',
+        'employee_code', 'email', 'personal_email', 'password', 'last_login_at',
+        'first_name', 'last_name', 'phone', 'alt_phone', 'whatsapp_number',
         'date_of_birth', 'gender', 'marital_status', 'blood_group', 'profile_photo',
         'current_address', 'permanent_address', 'city', 'state', 'pincode', 'country',
         'department_id', 'designation_id', 'shift_id', 'reporting_manager_id',

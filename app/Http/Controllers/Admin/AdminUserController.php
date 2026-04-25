@@ -65,6 +65,7 @@ class AdminUserController extends Controller
 
         $admin = Admin::create([
             'name' => $request->name,
+            'business_name' => $request->business_name,
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => $request->password,
@@ -101,7 +102,7 @@ class AdminUserController extends Controller
 
         $admin = Admin::findOrFail($id);
 
-        $data = $request->only('name', 'email', 'phone', 'status');
+        $data = $request->only('name', 'business_name', 'email', 'phone', 'status');
         if ($request->filled('password')) {
             $data['password'] = $request->password;
         }

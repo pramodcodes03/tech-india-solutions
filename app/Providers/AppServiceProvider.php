@@ -23,11 +23,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Relation::morphMap([
-            'sales_order'      => \App\Models\SalesOrder::class,
-            'purchase_order'   => \App\Models\PurchaseOrder::class,
-            'invoice'          => \App\Models\Invoice::class,
-            'quotation'        => \App\Models\Quotation::class,
-            'goods_receipt'    => \App\Models\GoodsReceipt::class,
+            'sales_order'       => \App\Models\SalesOrder::class,
+            'purchase_order'    => \App\Models\PurchaseOrder::class,
+            'invoice'           => \App\Models\Invoice::class,
+            'quotation'         => \App\Models\Quotation::class,
+            'proforma_invoice'  => \App\Models\ProformaInvoice::class,
+            'goods_receipt'     => \App\Models\GoodsReceipt::class,
         ]);
 
         Gate::before(function ($user, $ability) {

@@ -12,6 +12,13 @@ class UpdateEmployeeRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->boolean('whatsapp_same_as_mobile')) {
+            $this->merge(['whatsapp_number' => $this->input('phone')]);
+        }
+    }
+
     public function rules(): array
     {
         $id = $this->route('employee');
@@ -20,9 +27,11 @@ class UpdateEmployeeRequest extends FormRequest
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
             'email' => ['required', 'email', Rule::unique('employees', 'email')->ignore($id)],
+            'personal_email' => ['nullable', 'email', 'max:191'],
             'password' => ['nullable', 'string', 'min:6'],
             'phone' => ['nullable', 'string', 'max:20'],
             'alt_phone' => ['nullable', 'string', 'max:20'],
+            'whatsapp_number' => ['nullable', 'string', 'max:20'],
             'date_of_birth' => ['nullable', 'date', 'before:today'],
             'gender' => ['nullable', Rule::in(['male', 'female', 'other'])],
             'marital_status' => ['nullable', Rule::in(['single', 'married', 'divorced', 'widowed'])],

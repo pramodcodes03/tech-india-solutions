@@ -4,7 +4,9 @@
       "Read(//var/www/school.digitalnexstep.com/html/**)",
       "Bash(wc -l /var/www/center.digitalnexstep.com/html/database/migrations/tenant/*)",
       "Read(//var/www/fnd.letsfind.in/html/**)",
-      "Bash(composer create-project:*)"
+      "Bash(composer create-project:*)",
+      "Write(/var/www/healthcare/**)",
+      "Edit(/var/www/healthcare/**)"
     ]
   }
 }

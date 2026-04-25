@@ -65,6 +65,32 @@
                     </a>
                 </li>
 
+                {{-- Specialised Dashboards --}}
+                <li class="menu nav-item">
+                    <button type="button" class="nav-link group w-full"
+                        :class="{ 'active': activeDropdown === 'dashboards' }"
+                        @click="activeDropdown = activeDropdown === 'dashboards' ? null : 'dashboards'">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 4h6v8H4V4zm10 0h6v4h-6V4zM4 14h6v6H4v-6zm10-4h6v10h-6V10z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Analytics</span>
+                        </div>
+                        <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'dashboards' }">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                    </button>
+                    <ul x-collapse x-show="activeDropdown === 'dashboards'" class="sub-menu text-gray-500">
+                        @can('reports.view')<li><a href="{{ route('admin.dashboards.executive') }}">Executive / Finance</a></li>@endcan
+                        @can('leads.view')<li><a href="{{ route('admin.dashboards.sales') }}">Sales</a></li>@endcan
+                        @can('customers.view')<li><a href="{{ route('admin.dashboards.customers') }}">Customer Analytics</a></li>@endcan
+                        @can('products.view')<li><a href="{{ route('admin.dashboards.inventory') }}">Inventory</a></li>@endcan
+                        @can('purchase_orders.view')<li><a href="{{ route('admin.dashboards.purchase') }}">Purchase / Vendor</a></li>@endcan
+                        @can('service_tickets.view')<li><a href="{{ route('admin.dashboards.service') }}">Service / Support</a></li>@endcan
+                        @can('employees.view')<li><a href="{{ route('admin.hr.dashboard') }}">HR</a></li>@endcan
+                    </ul>
+                </li>
+
                 {{-- ========== MANAGEMENT ========== --}}
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Management</span>
@@ -222,6 +248,33 @@
                     <ul x-collapse x-show="activeDropdown === 'quotations'" class="sub-menu text-gray-500">
                         <li><a href="{{ route('admin.quotations.index') }}">All Quotations</a></li>
                         <li><a href="{{ route('admin.quotations.create') }}">Create Quotation</a></li>
+                    </ul>
+                </li>
+                @endcan
+
+                {{-- Proforma Invoices --}}
+                @can('proforma_invoices.view')
+                <li class="menu nav-item">
+                    <button type="button" class="nav-link group w-full"
+                        :class="{ 'active': activeDropdown === 'proforma-invoices' }"
+                        @click="activeDropdown = activeDropdown === 'proforma-invoices' ? null : 'proforma-invoices'">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 4C4 2.89543 4.89543 2 6 2H14L20 8V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V4Z" stroke="currentColor" stroke-width="1.5"/>
+                                <path opacity="0.5" d="M14 2V8H20" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                                <path opacity="0.5" d="M8 13H16M8 17H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Proforma Invoices</span>
+                        </div>
+                        <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'proforma-invoices' }">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </button>
+                    <ul x-collapse x-show="activeDropdown === 'proforma-invoices'" class="sub-menu text-gray-500">
+                        <li><a href="{{ route('admin.proforma-invoices.index') }}">All Proformas</a></li>
+                        <li><a href="{{ route('admin.proforma-invoices.create') }}">Create Proforma</a></li>
                     </ul>
                 </li>
                 @endcan
@@ -452,6 +505,21 @@
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Human Resources</span>
                 </h2>
+
+                {{-- HR Dashboard --}}
+                @can('employees.view')
+                <li class="nav-item">
+                    <a href="{{ route('admin.hr.dashboard') }}" class="group">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 13V7a2 2 0 012-2h4v16H5a2 2 0 01-2-2v-6zM15 5h4a2 2 0 012 2v4h-6V5zM15 13h6v6a2 2 0 01-2 2h-4v-8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                                <path opacity="0.5" d="M9 5h6v6H9z" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">HR Dashboard</span>
+                        </div>
+                    </a>
+                </li>
+                @endcan
 
                 {{-- Employees --}}
                 @can('employees.view')
@@ -711,6 +779,7 @@
         'customers':       'customers',
         'leads':           'leads',
         'quotations':      'quotations',
+        'proforma-invoices': 'proforma-invoices',
         'sales-orders':    'sales-orders',
         'invoices':        'invoices',
         'payments':        'payments',

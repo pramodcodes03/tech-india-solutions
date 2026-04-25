@@ -16,6 +16,7 @@ class UpdateAdminRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'business_name' => ['nullable', 'string', 'max:255'],
             'email' => [
                 'required',
                 'email',

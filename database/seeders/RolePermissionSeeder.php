@@ -24,6 +24,7 @@ class RolePermissionSeeder extends Seeder
             'customers' => ['view', 'create', 'edit', 'delete'],
             'leads' => ['view', 'create', 'edit', 'delete', 'convert'],
             'quotations' => ['view', 'create', 'edit', 'delete', 'export_pdf'],
+            'proforma_invoices' => ['view', 'create', 'edit', 'delete', 'export_pdf'],
             'sales_orders' => ['view', 'create', 'edit', 'delete'],
             'products' => ['view', 'create', 'edit', 'delete'],
             'categories' => ['view', 'create', 'edit', 'delete'],
@@ -87,6 +88,7 @@ class RolePermissionSeeder extends Seeder
             $this->allActionsFor('customers', $modules),
             $this->allActionsFor('leads', $modules),
             $this->allActionsFor('quotations', $modules),
+            $this->allActionsFor('proforma_invoices', $modules),
             $this->allActionsFor('sales_orders', $modules),
             ['invoices.view', 'payments.view', 'reports.view']
         );
