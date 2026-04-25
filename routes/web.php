@@ -28,6 +28,7 @@ use App\Http\Controllers\Employee\PayslipController as EmpPayslipController;
 use App\Http\Controllers\Employee\AppraisalController as EmpAppraisalController;
 use App\Http\Controllers\Employee\PerformanceController as EmpPerformanceController;
 use App\Http\Controllers\Employee\ProfileController as EmpProfileController;
+use App\Http\Controllers\Employee\PenaltyController as EmpPenaltyController;
 use App\Http\Controllers\Employee\WarningController as EmpWarningController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardsController;
@@ -337,6 +338,9 @@ Route::prefix('employee')->name('employee.')->group(function () {
         // Warnings
         Route::get('warnings', [EmpWarningController::class, 'index'])->name('warnings.index');
         Route::post('warnings/{warning}/acknowledge', [EmpWarningController::class, 'acknowledge'])->name('warnings.acknowledge');
+
+        Route::get('penalties', [EmpPenaltyController::class, 'index'])->name('penalties.index');
+        Route::get('penalties/{penalty}', [EmpPenaltyController::class, 'show'])->name('penalties.show');
 
         // Feedback
         Route::get('feedback', [EmpFeedbackController::class, 'index'])->name('feedback.index');
