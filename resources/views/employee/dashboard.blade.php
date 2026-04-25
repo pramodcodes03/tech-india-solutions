@@ -92,6 +92,58 @@
         </div>
     </div>
 
+    {{-- ──────── Charts row 1: Attendance trend + this-month donut ──────── --}}
+    <div class="grid grid-cols-12 gap-4 mb-6">
+        <div class="col-span-12 lg:col-span-8 p-5 rounded-xl bg-white dark:bg-[#1b2e4b] shadow">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="font-bold text-lg">Attendance — Last 6 Months</h2>
+                <span class="text-xs text-gray-400">Daily count by status</span>
+            </div>
+            <div id="chart-attendance-trend" style="min-height: 280px;"></div>
+        </div>
+
+        <div class="col-span-12 lg:col-span-4 p-5 rounded-xl bg-white dark:bg-[#1b2e4b] shadow">
+            <h2 class="font-bold text-lg mb-3">This Month — {{ now()->format('F') }}</h2>
+            <div id="chart-month-donut" style="min-height: 280px;"></div>
+        </div>
+    </div>
+
+    {{-- ──────── Charts row 2: Leave usage + Check-in time trend ──────── --}}
+    <div class="grid grid-cols-12 gap-4 mb-6">
+        <div class="col-span-12 lg:col-span-5 p-5 rounded-xl bg-white dark:bg-[#1b2e4b] shadow">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="font-bold text-lg">Leave Usage ({{ now()->year }})</h2>
+                <span class="text-xs text-gray-400">% used of total entitled</span>
+            </div>
+            @if(count($leaveUsage) > 0)
+                <div id="chart-leave-radial" style="min-height: 280px;"></div>
+                <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
+                    @foreach($leaveUsage as $l)
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full" style="background: {{ $l['color'] }}"></span>
+                            <span class="font-semibold">{{ $l['name'] }}</span>
+                            <span class="text-gray-400 ml-auto">{{ $l['used'] }}/{{ $l['allocated'] }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="flex items-center justify-center h-[280px] text-sm text-gray-400">No leave allocations.</div>
+            @endif
+        </div>
+
+        <div class="col-span-12 lg:col-span-7 p-5 rounded-xl bg-white dark:bg-[#1b2e4b] shadow">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="font-bold text-lg">Check-in Time — Last 30 Days</h2>
+                <span class="text-xs text-gray-400">Lower = earlier</span>
+            </div>
+            @if(count($checkInTrend) > 0)
+                <div id="chart-checkin" style="min-height: 280px;"></div>
+            @else
+                <div class="flex items-center justify-center h-[280px] text-sm text-gray-400">No check-ins recorded yet.</div>
+            @endif
+        </div>
+    </div>
+
     {{-- Leave balances --}}
     <div class="grid grid-cols-12 gap-4 mb-6">
         <div class="col-span-12 lg:col-span-8 p-5 rounded-xl bg-white dark:bg-[#1b2e4b] shadow">
@@ -175,5 +227,137 @@
             @endforelse
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const isDark = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark');
+        const C = { primary:'#4361ee', info:'#2196f3', success:'#00ab55', warning:'#e2a03f', danger:'#e7515a' };
+        const anim = { enabled:true, easing:'easeinout', speed:900,
+            animateGradually:{ enabled:true, delay:120 }, dynamicAnimation:{ enabled:true, speed:400 } };
+        const tooltipTheme = isDark ? 'dark' : 'light';
+
+        // ── 1. Attendance trend stacked column ─────────────────────────
+        const at = @json($attendanceTrend);
+        new ApexCharts(document.querySelector('#chart-attendance-trend'), {
+            chart: { type:'bar', stacked:true, height:280, toolbar:{show:false}, animations:anim, fontFamily:'inherit' },
+            series: [
+                { name:'Present', data: at.map(r => r.present) },
+                { name:'Late',    data: at.map(r => r.late) },
+                { name:'Half Day',data: at.map(r => r.half_day) },
+                { name:'On Leave',data: at.map(r => r.on_leave) },
+                { name:'Absent',  data: at.map(r => r.absent) },
+            ],
+            xaxis: { categories: at.map(r => r.label), labels: { style: { colors: '#8a8a8a' } } },
+            yaxis: { labels: { style: { colors: '#8a8a8a' } } },
+            plotOptions: { bar: { borderRadius:4, columnWidth:'55%' } },
+            colors: [C.success, C.warning, C.info, '#805dca', C.danger],
+            dataLabels: { enabled:false },
+            legend: { position:'top', horizontalAlign:'right' },
+            grid: { borderColor:'rgba(128,128,128,.1)', strokeDashArray:3 },
+            tooltip: { theme: tooltipTheme }
+        }).render();
+
+        // ── 2. Current month donut ─────────────────────────────────────
+        const md = @json((object) $currentMonthDonut);
+        const labels = ['Present','Late','Half Day','On Leave','Absent'];
+        const values = ['present','late','half_day','on_leave','absent'].map(k => Number(md[k] || 0));
+        const hasAnyData = values.some(v => v > 0);
+        new ApexCharts(document.querySelector('#chart-month-donut'), {
+            chart: { type:'donut', height:280, animations:anim, fontFamily:'inherit' },
+            series: hasAnyData ? values : [1],
+            labels: hasAnyData ? labels : ['No data'],
+            colors: hasAnyData ? [C.success, C.warning, C.info, '#805dca', C.danger] : ['#e5e7eb'],
+            stroke: { width:2, colors:[isDark ? '#1b2e4b' : '#fff'] },
+            plotOptions: { pie: { donut: {
+                size:'68%',
+                labels: {
+                    show:true,
+                    name: { color:'#8a8a8a', fontSize:'12px' },
+                    value: { color: isDark ? '#fff' : '#1f2937', fontSize:'22px', fontWeight:800 },
+                    total: {
+                        show: hasAnyData, label:'Total Days', color:'#8a8a8a',
+                        formatter: w => w.globals.seriesTotals.reduce((a,b) => a+b, 0)
+                    }
+                }
+            } } },
+            dataLabels: { enabled:hasAnyData, formatter: v => Math.round(v) + '%' },
+            legend: { position:'bottom', labels: { colors: '#8a8a8a' } },
+            tooltip: { theme: tooltipTheme }
+        }).render();
+
+        // ── 3. Leave usage radial ──────────────────────────────────────
+        @if(count($leaveUsage) > 0)
+        const lu = @json($leaveUsage);
+        new ApexCharts(document.querySelector('#chart-leave-radial'), {
+            chart: { type:'radialBar', height:280, animations:anim, fontFamily:'inherit' },
+            series: lu.map(l => l.used_pct),
+            labels: lu.map(l => l.name),
+            colors: lu.map(l => l.color),
+            plotOptions: { radialBar: {
+                hollow: { size:'30%' },
+                track: { background: 'rgba(128,128,128,.08)', strokeWidth:'97%' },
+                dataLabels: {
+                    name: { fontSize:'13px' },
+                    value: { fontSize:'15px', formatter: v => v + '%', color: isDark ? '#fff' : '#1f2937' },
+                    total: {
+                        show:true, label:'Avg Used', color:'#8a8a8a',
+                        formatter: w => Math.round(w.globals.seriesTotals.reduce((a,b)=>a+b,0) / w.globals.series.length) + '%'
+                    }
+                }
+            } },
+            stroke: { lineCap:'round' },
+            legend: { show:false }
+        }).render();
+        @endif
+
+        // ── 4. Check-in time trend ─────────────────────────────────────
+        @if(count($checkInTrend) > 0)
+        const ct = @json($checkInTrend);
+        new ApexCharts(document.querySelector('#chart-checkin'), {
+            chart: { type:'line', height:280, toolbar:{show:false}, animations:anim, fontFamily:'inherit', zoom:{enabled:false} },
+            series: [{ name:'Check-in', data: ct.map(r => r.time) }],
+            xaxis: { categories: ct.map(r => r.label),
+                labels: { rotate:-45, style:{ fontSize:'10px', colors:'#8a8a8a' } } },
+            yaxis: {
+                title: { text: 'Time of day', style: { color: '#8a8a8a' } },
+                min: 6, max: 12,
+                tickAmount: 6,
+                labels: { formatter: v => {
+                    const h = Math.floor(v); const m = Math.round((v - h) * 60);
+                    const period = h < 12 ? 'AM' : 'PM';
+                    const dh = h % 12 === 0 ? 12 : h % 12;
+                    return dh + ':' + m.toString().padStart(2,'0') + ' ' + period;
+                }, style: { colors: '#8a8a8a' } }
+            },
+            stroke: { curve:'smooth', width:3 },
+            colors: [C.primary],
+            fill: { type:'gradient', gradient:{ shade:'light', gradientToColors:[C.info], stops:[0,100] } },
+            markers: {
+                size: 4,
+                strokeWidth: 2,
+                strokeColors: isDark ? '#1b2e4b' : '#fff',
+                colors: [C.primary],
+                hover: { size: 7 }
+            },
+            dataLabels: { enabled:false },
+            grid: { borderColor:'rgba(128,128,128,.1)', strokeDashArray:3 },
+            tooltip: {
+                theme: tooltipTheme,
+                custom: ({ dataPointIndex }) => {
+                    const r = ct[dataPointIndex];
+                    return '<div class="px-3 py-2"><b>' + r.label + '</b><br/>Check-in: <b>' + r.display + '</b></div>';
+                }
+            },
+            annotations: {
+                yaxis: [{
+                    y: 9.5, borderColor: '#e7515a', strokeDashArray: 4,
+                    label: { text: 'Late after 9:30 AM', style: { color:'#fff', background:'#e7515a', fontSize:'10px' } }
+                }]
+            }
+        }).render();
+        @endif
+    });
+    </script>
 
 </x-layout.employee>
