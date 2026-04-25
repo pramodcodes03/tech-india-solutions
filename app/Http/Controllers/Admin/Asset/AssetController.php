@@ -51,6 +51,8 @@ class AssetController extends Controller
             'lost'      => Asset::where('is_lost', true)->count(),
             'warranty_soon' => Asset::whereNotNull('warranty_expiry_date')
                 ->whereBetween('warranty_expiry_date', [now(), now()->addDays(60)])->count(),
+            'eol_soon' => Asset::whereNotNull('end_of_life_date')
+                ->whereBetween('end_of_life_date', [now(), now()->addDays(180)])->count(),
         ];
 
         $categories = AssetCategory::orderBy('name')->get();
@@ -267,6 +269,7 @@ class AssetController extends Controller
             'salvage_value' => ['required', 'numeric', 'min:0'],
             'warranty_expiry_date' => ['nullable', 'date'],
             'insurance_expiry_date' => ['nullable', 'date'],
+            'end_of_life_date' => ['nullable', 'date'],
             'depreciation_method' => ['required', 'in:straight_line,declining_balance,sum_of_years_digits,units_of_production,none'],
             'useful_life_years' => ['required', 'integer', 'min:0', 'max:60'],
             'depreciation_start_date' => ['nullable', 'date'],

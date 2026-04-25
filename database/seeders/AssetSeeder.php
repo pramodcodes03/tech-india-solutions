@@ -167,6 +167,7 @@ class AssetSeeder extends Seeder
                     'salvage_value'    => $salvageValue,
                     'warranty_expiry_date'  => (clone $purchaseDate)->addMonths($model->manufacturer_warranty_months),
                     'insurance_expiry_date' => $catCode === 'VEH' ? (clone $purchaseDate)->addYear() : null,
+                    'end_of_life_date'      => (clone $purchaseDate)->addYears($model->default_useful_life_years),
                     'depreciation_method'   => 'straight_line',
                     'useful_life_years'     => $model->default_useful_life_years,
                     'depreciation_start_date' => $purchaseDate,

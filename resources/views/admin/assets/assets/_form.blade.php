@@ -137,6 +137,32 @@
                         <input type="date" name="insurance_expiry_date" value="{{ old('insurance_expiry_date', $a?->insurance_expiry_date?->toDateString()) }}" class="form-input" />
                     </div>
                 </div>
+
+                {{-- End of Life --}}
+                <div class="rounded-lg p-3 bg-gradient-to-br from-primary/5 to-info/5 border border-primary/20">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="form-label !mb-0 flex items-center gap-1.5 text-primary font-semibold">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3M16 7V3M3 11h18M5 7h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2zM12 14v3M10.5 17h3"/></svg>
+                            End of Life
+                        </label>
+                        <span id="eol-badge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">No EOL set</span>
+                    </div>
+                    <div class="relative">
+                        <input type="date" id="eol-input" name="end_of_life_date"
+                               value="{{ old('end_of_life_date', $a?->end_of_life_date?->toDateString()) }}"
+                               class="form-input pl-9" />
+                        <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3M16 7V3M3 11h18M5 7h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2z"/></svg>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 mt-2 text-[10px]">
+                        <button type="button" data-eol-add="3" class="px-2 py-0.5 rounded border border-primary/30 text-primary hover:bg-primary hover:text-white transition">+3 yrs</button>
+                        <button type="button" data-eol-add="5" class="px-2 py-0.5 rounded border border-primary/30 text-primary hover:bg-primary hover:text-white transition">+5 yrs</button>
+                        <button type="button" data-eol-add="7" class="px-2 py-0.5 rounded border border-primary/30 text-primary hover:bg-primary hover:text-white transition">+7 yrs</button>
+                        <button type="button" data-eol-add="10" class="px-2 py-0.5 rounded border border-primary/30 text-primary hover:bg-primary hover:text-white transition">+10 yrs</button>
+                        <button type="button" data-eol-useful-life class="px-2 py-0.5 rounded border border-success/40 text-success hover:bg-success hover:text-white transition">Use Useful Life</button>
+                        <button type="button" data-eol-clear class="px-2 py-0.5 rounded border border-gray-300 text-gray-500 hover:bg-gray-100 transition">Clear</button>
+                    </div>
+                    <div class="text-[10px] text-gray-500 mt-1">Based on purchase date. Affects retirement & disposal alerts.</div>
+                </div>
             </div>
         </div>
 
@@ -203,6 +229,67 @@ document.addEventListener('DOMContentLoaded', () => {
                 d.setMonth(d.getMonth() + parseInt(opt.dataset.warrantyMonths));
                 warrantyDate.value = d.toISOString().slice(0, 10);
             }
+        });
+    }
+
+    // ── End of Life logic ────────────────────────────────────────────
+    const eolInput = document.querySelector('#eol-input');
+    const eolBadge = document.querySelector('#eol-badge');
+    if (eolInput) {
+        const updateBadge = () => {
+            if (!eolInput.value) {
+                eolBadge.textContent = 'No EOL set';
+                eolBadge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500';
+                return;
+            }
+            const eol = new Date(eolInput.value);
+            const today = new Date(); today.setHours(0,0,0,0);
+            const diffDays = Math.ceil((eol - today) / 86400000);
+            const diffYears = (diffDays / 365.25).toFixed(1);
+            let label, cls;
+            if (diffDays < 0) {
+                label = 'Past EOL by ' + Math.abs(diffDays) + 'd';
+                cls = 'bg-danger/15 text-danger';
+            } else if (diffDays < 90) {
+                label = diffDays + 'd remaining';
+                cls = 'bg-danger/15 text-danger';
+            } else if (diffDays < 365) {
+                label = diffDays + 'd remaining';
+                cls = 'bg-warning/15 text-warning';
+            } else {
+                label = diffYears + ' yrs remaining';
+                cls = 'bg-success/15 text-success';
+            }
+            eolBadge.textContent = label;
+            eolBadge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-full ' + cls;
+        };
+        eolInput.addEventListener('input', updateBadge);
+        eolInput.addEventListener('change', updateBadge);
+        updateBadge();
+
+        const baseDate = () => {
+            return purchaseDate?.value ? new Date(purchaseDate.value) : new Date();
+        };
+
+        document.querySelectorAll('[data-eol-add]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const yrs = parseInt(btn.dataset.eolAdd);
+                const d = baseDate();
+                d.setFullYear(d.getFullYear() + yrs);
+                eolInput.value = d.toISOString().slice(0, 10);
+                updateBadge();
+            });
+        });
+        document.querySelector('[data-eol-useful-life]')?.addEventListener('click', () => {
+            const yrs = parseInt(life?.value || 5);
+            const d = baseDate();
+            d.setFullYear(d.getFullYear() + yrs);
+            eolInput.value = d.toISOString().slice(0, 10);
+            updateBadge();
+        });
+        document.querySelector('[data-eol-clear]')?.addEventListener('click', () => {
+            eolInput.value = '';
+            updateBadge();
         });
     }
 });

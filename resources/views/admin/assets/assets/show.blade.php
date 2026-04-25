@@ -75,6 +75,20 @@
                         </dd>
                     </div>
                     <div class="flex justify-between"><dt class="text-gray-500">Insurance</dt><dd>{{ $asset->insurance_expiry_date?->format('d M Y') ?? '—' }}</dd></div>
+                    @php
+                        $eol = $asset->end_of_life_date;
+                        $eolDays = $eol ? (int) now()->startOfDay()->diffInDays($eol, false) : null;
+                        $eolPast = $eol && $eolDays < 0;
+                        $eolSoon = $eol && $eolDays >= 0 && $eolDays < 180;
+                    @endphp
+                    <div class="flex justify-between"><dt class="text-gray-500">End of Life</dt>
+                        <dd @class(['font-semibold', 'text-danger' => $eolPast || $eolSoon])>
+                            {{ $eol?->format('d M Y') ?? '—' }}
+                            @if($eolPast) <span class="text-[10px]">(past)</span>
+                            @elseif($eolSoon) <span class="text-[10px]">in {{ $eolDays }}d</span>
+                            @endif
+                        </dd>
+                    </div>
                 </dl>
             </div>
             <div>

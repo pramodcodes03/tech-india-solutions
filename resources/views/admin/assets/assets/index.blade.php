@@ -22,10 +22,10 @@
         <div class="panel py-3"><div class="text-[10px] uppercase text-gray-500">Cost</div><div class="text-base font-bold text-primary">&#8377;{{ number_format($kpi['value']) }}</div></div>
         <div class="panel py-3"><div class="text-[10px] uppercase text-gray-500">Book</div><div class="text-base font-bold text-success">&#8377;{{ number_format($kpi['book']) }}</div></div>
         <div class="panel py-3"><div class="text-[10px] uppercase text-gray-500">Assigned</div><div class="text-xl font-extrabold text-info">{{ $kpi['assigned'] }}</div></div>
-        <div class="panel py-3"><div class="text-[10px] uppercase text-gray-500">Storage</div><div class="text-xl font-extrabold">{{ $kpi['storage'] }}</div></div>
         <div class="panel py-3"><div class="text-[10px] uppercase text-gray-500">Maintenance</div><div class="text-xl font-extrabold text-warning">{{ $kpi['maint'] }}</div></div>
         <div class="panel py-3"><div class="text-[10px] uppercase text-gray-500">Lost</div><div class="text-xl font-extrabold text-danger">{{ $kpi['lost'] }}</div></div>
         <div class="panel py-3"><div class="text-[10px] uppercase text-gray-500">Warranty 60d</div><div class="text-xl font-extrabold text-warning">{{ $kpi['warranty_soon'] }}</div></div>
+        <div class="panel py-3"><div class="text-[10px] uppercase text-gray-500">EOL 6mo</div><div class="text-xl font-extrabold text-danger">{{ $kpi['eol_soon'] }}</div></div>
     </div>
 
     <form method="GET" class="grid grid-cols-1 md:grid-cols-6 gap-2 mb-4">
@@ -38,7 +38,7 @@
 
     <div class="panel p-0 overflow-x-auto">
         <table class="table-striped">
-            <thead><tr><th>Code</th><th>Asset</th><th>Category / Model</th><th>Location</th><th>Custodian</th><th class="text-right">Cost</th><th class="text-right">Book Value</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Code</th><th>Asset</th><th>Category / Model</th><th>Location</th><th>Custodian</th><th class="text-right">Cost</th><th class="text-right">Book Value</th><th>Status</th><th>End of Life</th><th></th></tr></thead>
             <tbody>
                 @forelse($assets as $a)
                     <tr @class(['!bg-danger/5' => $a->is_lost])>
@@ -75,13 +75,37 @@
                             ])>{{ $a->status_label }}</span>
                             @if($a->is_lost)<span class="ml-1 text-[10px] text-danger font-bold">⚠ LOST</span>@endif
                         </td>
+                        <td class="whitespace-nowrap">
+                            @if($a->end_of_life_date)
+                                @php
+                                    $daysToEol = (int) now()->startOfDay()->diffInDays($a->end_of_life_date, false);
+                                @endphp
+                                <div class="text-xs">{{ $a->end_of_life_date->format('d M Y') }}</div>
+                                <span @class([
+                                    'text-[10px] font-semibold',
+                                    'text-danger' => $daysToEol < 90,
+                                    'text-warning' => $daysToEol >= 90 && $daysToEol < 365,
+                                    'text-success' => $daysToEol >= 365,
+                                ])>
+                                    @if($daysToEol < 0)
+                                        Past EOL
+                                    @elseif($daysToEol < 365)
+                                        in {{ $daysToEol }}d
+                                    @else
+                                        in {{ number_format($daysToEol / 365.25, 1) }} yrs
+                                    @endif
+                                </span>
+                            @else
+                                <span class="text-xs text-gray-400">—</span>
+                            @endif
+                        </td>
                         <td class="text-right whitespace-nowrap">
                             <a href="{{ route('admin.assets.assets.show', $a) }}" class="text-primary text-xs">View</a>
                             @can('assets.edit')<a href="{{ route('admin.assets.assets.edit', $a) }}" class="text-info text-xs ml-2">Edit</a>@endcan
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="9" class="text-center text-gray-500 py-8">No assets found.</td></tr>
+                    <tr><td colspan="10" class="text-center text-gray-500 py-8">No assets found.</td></tr>
                 @endforelse
             </tbody>
         </table>
