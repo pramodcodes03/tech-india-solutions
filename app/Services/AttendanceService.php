@@ -138,6 +138,10 @@ class AttendanceService
         $start = Carbon::createFromDate($year, $month, 1)->startOfDay();
         $end = $start->copy()->endOfMonth();
 
+        // For the current month, don't count future days — they're not "absent" yet.
+        $today = Carbon::today();
+        $loopEnd = $end->isFuture() ? $today : $end;
+
         $records = Attendance::where('employee_id', $employeeId)
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->get()
@@ -156,7 +160,7 @@ class AttendanceService
         $holidayCount = 0;
         $workingDays = 0;
 
-        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+        for ($d = $start->copy(); $d->lte($loopEnd); $d->addDay()) {
             $key = $d->toDateString();
             $isWeekend = $d->isSunday(); // simplest assumption: Sunday weekly off
             $isHoliday = $holidays->has($key);
