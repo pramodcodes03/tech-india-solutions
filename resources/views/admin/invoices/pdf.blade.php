@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <title>Invoice - {{ $invoice->invoice_number }}</title>
     <style>
-        @page { margin: 12mm 10mm; }
+        @page { margin: 0; size: A4; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 10.5px; color: #2b2b2b; line-height: 1.45; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10.5px; color: #2b2b2b; line-height: 1.45; padding: 12mm 12mm; }
 
         /* Layout helpers — using real <table> not display:table for DOMPDF */
         table.layout { width: 100%; border-collapse: collapse; }
