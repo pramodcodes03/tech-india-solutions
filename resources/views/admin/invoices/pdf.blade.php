@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Invoice - {{ $invoice->invoice_number }}</title>
     <style>
-        @page { margin: 3mm; }
+        @page { margin: 12mm 10mm; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 10.5px; color: #2b2b2b; line-height: 1.45; }
 
