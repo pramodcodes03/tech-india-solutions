@@ -88,6 +88,7 @@
                         @can('purchase_orders.view')<li><a href="{{ route('admin.dashboards.purchase') }}">Purchase / Vendor</a></li>@endcan
                         @can('service_tickets.view')<li><a href="{{ route('admin.dashboards.service') }}">Service / Support</a></li>@endcan
                         @can('employees.view')<li><a href="{{ route('admin.hr.dashboard') }}">HR</a></li>@endcan
+                        @can('assets.view')<li><a href="{{ route('admin.assets.dashboard') }}">Asset</a></li>@endcan
                     </ul>
                 </li>
 
@@ -658,6 +659,96 @@
                     </ul>
                 </li>
                 @endcanany
+                @endcanany
+
+                {{-- ========== ASSETS ========== --}}
+                @canany(['assets.view','asset_categories.view','asset_models.view','asset_locations.view'])
+                <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
+                    <span>Asset Management</span>
+                </h2>
+
+                @can('assets.view')
+                <li class="nav-item">
+                    <a href="{{ route('admin.assets.dashboard') }}" class="group">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 7l8-4 8 4-8 4-8-4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                                <path opacity="0.5" d="M4 12l8 4 8-4M4 17l8 4 8-4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Asset Dashboard</span>
+                        </div>
+                    </a>
+                </li>
+                @endcan
+
+                @can('assets.view')
+                <li class="menu nav-item">
+                    <button type="button" class="nav-link group w-full"
+                        :class="{ 'active': activeDropdown === 'asset-register' }"
+                        @click="activeDropdown = activeDropdown === 'asset-register' ? null : 'asset-register'">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                                <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                                <rect opacity="0.5" x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                                <rect opacity="0.5" x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Register</span>
+                        </div>
+                        <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'asset-register' }">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                    </button>
+                    <ul x-collapse x-show="activeDropdown === 'asset-register'" class="sub-menu text-gray-500">
+                        <li><a href="{{ route('admin.assets.assets.index') }}">All Assets</a></li>
+                        @can('assets.create')<li><a href="{{ route('admin.assets.assets.create') }}">Add Asset</a></li>@endcan
+                        @can('asset_categories.view')<li><a href="{{ route('admin.assets.categories.index') }}">Categories</a></li>@endcan
+                        @can('asset_models.view')<li><a href="{{ route('admin.assets.models.index') }}">Models</a></li>@endcan
+                        @can('asset_locations.view')<li><a href="{{ route('admin.assets.locations.index') }}">Locations</a></li>@endcan
+                    </ul>
+                </li>
+                @endcan
+
+                @can('assets.assign')
+                <li class="nav-item">
+                    <a href="{{ route('admin.assets.assignments.index') }}" class="group">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" stroke-width="1.5"/>
+                                <path opacity="0.5" d="M3 21a9 9 0 0118 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Assignments</span>
+                        </div>
+                    </a>
+                </li>
+                @endcan
+
+                @can('assets.maintenance')
+                <li class="nav-item">
+                    <a href="{{ route('admin.assets.maintenance.index') }}" class="group">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M14.7 6.3a4 4 0 00-5.66 5.66L4 17l3 3 5.04-5.04a4 4 0 005.66-5.66l-2.83 2.83-2.83-2.83 2.83-2.83z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Maintenance</span>
+                        </div>
+                    </a>
+                </li>
+                @endcan
+
+                @can('assets.depreciate')
+                <li class="nav-item">
+                    <a href="{{ route('admin.assets.depreciation.index') }}" class="group">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 17l6-6 4 4 8-8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path opacity="0.5" d="M17 7h4v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Depreciation Run</span>
+                        </div>
+                    </a>
+                </li>
+                @endcan
                 @endcanany
 
                 {{-- ========== SERVICE ========== --}}

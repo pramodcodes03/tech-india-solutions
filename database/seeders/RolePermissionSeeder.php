@@ -54,6 +54,11 @@ class RolePermissionSeeder extends Seeder
             'penalties' => ['view', 'create', 'edit', 'delete', 'reduce'],
             'feedback' => ['view'],
             'appraisals' => ['view', 'create', 'edit', 'finalize', 'acknowledge'],
+            // Asset Management
+            'asset_categories' => ['view', 'create', 'edit', 'delete'],
+            'asset_locations' => ['view', 'create', 'edit', 'delete'],
+            'asset_models' => ['view', 'create', 'edit', 'delete'],
+            'assets' => ['view', 'create', 'edit', 'delete', 'assign', 'depreciate', 'maintenance', 'dispose', 'audit'],
         ];
 
         // Create all permissions

@@ -267,6 +267,34 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('appraisals/{appraisal}', [HrAppraisalController::class, 'destroy'])->name('appraisals.destroy');
             Route::get('appraisals/{appraisal}/pdf', [HrAppraisalController::class, 'pdf'])->name('appraisals.pdf');
         });
+
+        // ════════════════════════════════════════════════════════════════
+        // Asset Management
+        // ════════════════════════════════════════════════════════════════
+        Route::prefix('assets')->name('assets.')->group(function () {
+            Route::get('dashboard', [\App\Http\Controllers\Admin\Asset\DashboardController::class, 'index'])->name('dashboard');
+
+            Route::resource('categories', \App\Http\Controllers\Admin\Asset\CategoryController::class)->except(['show']);
+            Route::resource('locations', \App\Http\Controllers\Admin\Asset\LocationController::class)->except(['show']);
+
+            Route::resource('models', \App\Http\Controllers\Admin\Asset\ModelController::class)->parameters(['models' => 'model']);
+            Route::post('models/{model}/discontinue', [\App\Http\Controllers\Admin\Asset\ModelController::class, 'discontinue'])->name('models.discontinue');
+
+            Route::resource('assets', \App\Http\Controllers\Admin\Asset\AssetController::class);
+            Route::post('assets/{asset}/dispose', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'dispose'])->name('assets.dispose');
+            Route::post('assets/{asset}/mark-lost', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'markLost'])->name('assets.mark-lost');
+
+            Route::get('assignments', [\App\Http\Controllers\Admin\Asset\AssignmentController::class, 'index'])->name('assignments.index');
+            Route::get('assignments/create', [\App\Http\Controllers\Admin\Asset\AssignmentController::class, 'create'])->name('assignments.create');
+            Route::post('assignments', [\App\Http\Controllers\Admin\Asset\AssignmentController::class, 'store'])->name('assignments.store');
+            Route::post('assignments/{assignment}/return', [\App\Http\Controllers\Admin\Asset\AssignmentController::class, 'returnAsset'])->name('assignments.return');
+            Route::post('assignments/transfer', [\App\Http\Controllers\Admin\Asset\AssignmentController::class, 'transfer'])->name('assignments.transfer');
+
+            Route::resource('maintenance', \App\Http\Controllers\Admin\Asset\MaintenanceController::class);
+
+            Route::get('depreciation', [\App\Http\Controllers\Admin\Asset\DepreciationController::class, 'index'])->name('depreciation.index');
+            Route::post('depreciation/post', [\App\Http\Controllers\Admin\Asset\DepreciationController::class, 'post'])->name('depreciation.post');
+        });
     });
 });
 

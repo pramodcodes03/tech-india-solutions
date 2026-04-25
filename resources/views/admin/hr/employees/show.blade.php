@@ -260,6 +260,64 @@
                     </table>
                 </div>
             </div>
+
+            @can('assets.view')
+            @php
+                $assignedAssets = \App\Models\Asset::with(['category', 'location'])
+                    ->where('current_custodian_id', $employee->id)
+                    ->whereNotIn('status', ['disposed', 'retired'])
+                    ->orderBy('asset_code')->get();
+                $assetHistory = \App\Models\AssetAssignment::with(['asset.category'])
+                    ->where('employee_id', $employee->id)
+                    ->latest('assigned_at')->limit(10)->get();
+            @endphp
+            <div class="panel mt-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h5 class="font-semibold">Assets in Custody ({{ $assignedAssets->count() }})</h5>
+                    @can('assets.assign')<a href="{{ route('admin.assets.assignments.create') }}" class="text-primary text-xs hover:underline">+ Assign Asset</a>@endcan
+                </div>
+                @if($assignedAssets->count() > 0)
+                    <div class="overflow-x-auto">
+                        <table class="table-hover">
+                            <thead><tr><th>Code</th><th>Asset</th><th>Category</th><th>Location</th><th class="text-right">Cost</th><th>Status</th></tr></thead>
+                            <tbody>
+                                @foreach($assignedAssets as $a)
+                                    <tr>
+                                        <td class="font-mono"><a href="{{ route('admin.assets.assets.show', $a) }}" class="text-primary hover:underline">{{ $a->asset_code }}</a></td>
+                                        <td>{{ $a->name }}</td>
+                                        <td>{{ $a->category?->name ?? '—' }}</td>
+                                        <td>{{ $a->location?->name ?? '—' }}</td>
+                                        <td class="text-right">&#8377;{{ number_format($a->purchase_cost, 2) }}</td>
+                                        <td><span class="px-2 py-0.5 rounded text-xs">{{ $a->status_label }}</span></td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <p class="text-sm text-gray-400">No assets currently in custody.</p>
+                @endif
+
+                @if($assetHistory->count() > 0)
+                    <details class="mt-3">
+                        <summary class="text-xs text-primary cursor-pointer hover:underline">Show custody history ({{ $assetHistory->count() }})</summary>
+                        <div class="mt-2 space-y-1 text-xs">
+                            @foreach($assetHistory as $h)
+                                <div class="flex items-center justify-between p-2 rounded {{ $h->returned_at ? 'bg-gray-50 dark:bg-[#1b2e4b]/40' : 'bg-success/5' }}">
+                                    <div>
+                                        <span class="font-mono text-primary">{{ $h->asset->asset_code }}</span> · {{ $h->asset->name }}
+                                        <span class="text-gray-400">[{{ $h->action_type }}]</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <div>{{ $h->assigned_at?->format('d M Y') }}@if($h->returned_at) → {{ $h->returned_at->format('d M Y') }}@endif</div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </details>
+                @endif
+            </div>
+            @endcan
         </div>
     </div>
 </x-layout.admin>

@@ -8,6 +8,9 @@
                 @if(!in_array($purchaseOrder->status, ['received', 'cancelled']))
                     <a href="{{ route('admin.purchase-orders.edit', $purchaseOrder->id) }}" class="btn btn-outline-primary btn-sm">Edit</a>
                 @endif
+                @can('assets.create')
+                    <a href="{{ route('admin.assets.assets.create', ['purchase_order_id' => $purchaseOrder->id, 'vendor_id' => $purchaseOrder->vendor_id]) }}" class="btn btn-outline-success btn-sm">+ Create Asset</a>
+                @endcan
                 <form action="{{ route('admin.purchase-orders.destroy', $purchaseOrder->id) }}" method="POST" class="inline" x-data @submit.prevent="confirmDelete($el)">
                     @csrf
                     @method('DELETE')
