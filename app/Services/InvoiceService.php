@@ -35,9 +35,10 @@ class InvoiceService
             $data['invoice_number'] = $this->generateNumber();
             $data['created_by'] = Auth::guard('admin')->id();
 
+            $items = $this->normalizeItems($items);
             $totals = $this->calculateTotals(
                 $items,
-                $data['discount_type'] ?? 'fixed',
+                $data['discount_type'] ?? 'percent',
                 (float) ($data['discount_value'] ?? 0),
                 (float) ($data['tax_percent'] ?? 0),
             );
@@ -67,9 +68,10 @@ class InvoiceService
         return DB::transaction(function () use ($invoice, $data, $items) {
             $data['updated_by'] = Auth::guard('admin')->id();
 
+            $items = $this->normalizeItems($items);
             $totals = $this->calculateTotals(
                 $items,
-                $data['discount_type'] ?? $invoice->discount_type ?? 'fixed',
+                $data['discount_type'] ?? $invoice->discount_type ?? 'percent',
                 (float) ($data['discount_value'] ?? $invoice->discount_value ?? 0),
                 (float) ($data['tax_percent'] ?? $invoice->tax_percent ?? 0),
             );
@@ -130,25 +132,64 @@ class InvoiceService
     }
 
     /**
+     * Compute line_total per item: qty × rate − line discount %.
+     * Mutates and returns the items array so callers store correct totals.
+     */
+    private function normalizeItems(array $items): array
+    {
+        foreach ($items as $i => $item) {
+            $qty = (float) ($item['quantity'] ?? 0);
+            $rate = (float) ($item['rate'] ?? 0);
+            $lineDiscPct = (float) ($item['discount_percent'] ?? 0);
+            $gross = $qty * $rate;
+            $lineDisc = $gross * ($lineDiscPct / 100);
+            $items[$i]['line_total'] = round($gross - $lineDisc, 2);
+        }
+
+        return $items;
+    }
+
+    /**
      * Calculate subtotal, tax_amount, and grand_total from line items.
+     *
+     * subtotal     = sum of (qty × rate − line discount %) per item
+     * discount     = invoice-level discount on subtotal (percent or fixed)
+     * tax_amount   = sum of per-line tax%, computed on each line's
+     *                share after invoice-level discount distributed pro-rata
+     * grand_total  = subtotal − discount + tax
      */
     private function calculateTotals(array $items, string $discountType, float $discountValue, float $taxPercent): array
     {
         $subtotal = 0;
         foreach ($items as $item) {
-            $lineTotal = (float) ($item['line_total'] ?? ((float) ($item['quantity'] ?? 0) * (float) ($item['rate'] ?? 0)));
-            $subtotal += $lineTotal;
+            $subtotal += (float) ($item['line_total'] ?? 0);
         }
 
-        $discountAmount = 0;
-        if ($discountType === 'percentage') {
-            $discountAmount = $subtotal * ($discountValue / 100);
-        } else {
-            $discountAmount = $discountValue;
-        }
+        $discountAmount = $discountType === 'percent'
+            ? $subtotal * ($discountValue / 100)
+            : $discountValue;
+        $discountAmount = min($discountAmount, $subtotal);
 
         $afterDiscount = $subtotal - $discountAmount;
-        $taxAmount = $afterDiscount * ($taxPercent / 100);
+
+        // Tax: prefer per-line tax% (more accurate when lines have different rates).
+        // Fall back to invoice-level tax_percent if no line-level tax is set.
+        $taxAmount = 0;
+        $hasLineTax = false;
+        if ($subtotal > 0) {
+            foreach ($items as $item) {
+                $lineTax = (float) ($item['tax_percent'] ?? 0);
+                if ($lineTax > 0) {
+                    $hasLineTax = true;
+                    $linePortion = ((float) $item['line_total'] / $subtotal) * $afterDiscount;
+                    $taxAmount += $linePortion * ($lineTax / 100);
+                }
+            }
+        }
+        if (! $hasLineTax) {
+            $taxAmount = $afterDiscount * ($taxPercent / 100);
+        }
+
         $grandTotal = $afterDiscount + $taxAmount;
 
         return [

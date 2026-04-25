@@ -135,9 +135,10 @@ class InvoiceController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('invoices.view'), 403);
 
-        $invoice = Invoice::with(['customer', 'items.product', 'creator'])->findOrFail($id);
+        $invoice = Invoice::with(['customer', 'items.product', 'creator', 'payments'])->findOrFail($id);
+        $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
 
-        $pdf = Pdf::loadView('admin.invoices.pdf', compact('invoice'));
+        $pdf = Pdf::loadView('admin.invoices.pdf', compact('invoice', 'settings'));
 
         return $pdf->stream("Invoice-{$invoice->invoice_number}.pdf");
     }
