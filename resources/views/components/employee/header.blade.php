@@ -30,7 +30,9 @@
                 </span>
             @endif
 
-            <button type="button" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-dark-light" @click="$store.app.toggleTheme()" title="Toggle theme">
+            <button type="button" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-dark-light"
+                    @click="$store.app.toggleTheme($store.app.theme === 'dark' ? 'light' : 'dark')"
+                    title="Toggle theme">
                 <svg x-show="$store.app.theme !== 'dark'" class="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
                 <svg x-show="$store.app.theme === 'dark'" class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
             </button>
