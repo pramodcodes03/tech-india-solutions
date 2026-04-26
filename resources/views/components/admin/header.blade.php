@@ -1,7 +1,9 @@
 <header class="z-40" :class="{ 'dark': $store.app.semidark && $store.app.menu === 'horizontal' }">
     <div class="shadow-sm">
         <div class="relative bg-white flex w-full items-center px-5 py-2.5 dark:bg-[#0e1726]">
-            <div class="flex items-center justify-between horizontal-logo lg:hidden ltr:mr-2 rtl:ml-2">
+            {{-- Horizontal logo: shown on mobile always, OR on desktop when sidebar is closed --}}
+            <div class="items-center justify-between horizontal-logo flex lg:hidden ltr:mr-2 rtl:ml-2"
+                :class="$store.app.sidebar ? 'lg:!flex' : ''">
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center main-logo shrink-0">
                     <img x-show="$store.app.theme !== 'dark'" x-transition.opacity class="inline w-8"
                         src="/assets/images/logo.png" alt="light" />
@@ -10,8 +12,8 @@
                 </a>
 
                 <a href="javascript:;"
-                    class="collapse-icon flex-none dark:text-[#d0d2d6] hover:text-primary dark:hover:text-primary flex lg:hidden ltr:ml-2 rtl:mr-2 p-2 rounded-full bg-white-light/40 dark:bg-dark/40 hover:bg-white-light/90 dark:hover:bg-dark/60"
-                    @click="$store.app.toggleSidebar()">
+                    class="collapse-icon flex-none dark:text-[#d0d2d6] hover:text-primary dark:hover:text-primary flex ltr:ml-2 rtl:mr-2 p-2 rounded-full bg-white-light/40 dark:bg-dark/40 hover:bg-white-light/90 dark:hover:bg-dark/60"
+                    @click="$store.app.menu = 'vertical'; $store.app.toggleSidebar();">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                         xmlns="http://www.w3.org/2000/svg">
                         <path d="M20 7L4 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
