@@ -30,20 +30,6 @@
                 </span>
             @endif
 
-            {{-- Sidebar Compact Toggle (desktop): full sidebar ↔ icon-only rail --}}
-            <a href="javascript:;" class="hidden lg:flex items-center p-2 rounded-full bg-white-light/40 dark:bg-dark/40 hover:text-primary hover:bg-white-light/90 dark:hover:bg-dark/60"
-                @click="$store.app.sidebar = false; $store.app.toggleMenu($store.app.menu === 'collapsible-vertical' ? 'vertical' : 'collapsible-vertical');"
-                :title="$store.app.menu === 'collapsible-vertical' ? 'Expand sidebar' : 'Collapse to icons'">
-                <svg x-show="$store.app.menu !== 'collapsible-vertical'" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M21 7H10M21 12H10M21 17H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                    <path d="M6 5l-3 7 3 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <svg x-show="$store.app.menu === 'collapsible-vertical'" x-cloak width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M3 7h11M3 12h11M3 17h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                    <path d="M18 5l3 7-3 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </a>
-
             {{-- Theme toggle (matches admin: light → dark → system) --}}
             <div>
                 <a href="javascript:;" x-cloak x-show="$store.app.theme === 'light'"

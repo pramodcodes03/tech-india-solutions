@@ -13,7 +13,10 @@
                     <img x-show="$store.app.theme !== 'dark'" class="flex-none object-contain w-auto h-16" src="/assets/images/logo.png" alt="Logo" />
                     <img x-show="$store.app.theme === 'dark'" class="flex-none object-contain w-auto h-16" src="/assets/images/logo-dark.png" alt="Logo" />
                 </a>
-                <a href="javascript:;" class="flex items-center w-8 h-8 rounded-full collapse-icon hover:bg-gray-500/10 dark:hover:bg-dark-light/10 dark:text-white-light" @click="$store.app.toggleSidebar()">
+                <a href="javascript:;" class="flex items-center w-8 h-8 rounded-full collapse-icon hover:bg-gray-500/10 dark:hover:bg-dark-light/10 dark:text-white-light transition-transform"
+                    :class="$store.app.menu === 'collapsible-vertical' ? 'rotate-180' : ''"
+                    @click="$store.app.sidebar = false; $store.app.toggleMenu($store.app.menu === 'collapsible-vertical' ? 'vertical' : 'collapsible-vertical');"
+                    :title="$store.app.menu === 'collapsible-vertical' ? 'Expand sidebar' : 'Collapse to icons'">
                     <svg class="w-5 h-5 m-auto" viewBox="0 0 24 24" fill="none"><path d="M13 19L7 12L13 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path opacity="0.5" d="M17 19L11 12L17 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </a>
             </div>

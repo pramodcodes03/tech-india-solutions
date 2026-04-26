@@ -16,8 +16,10 @@
                 </a>
 
                 <a href="javascript:;"
-                    class="flex items-center w-8 h-8 transition duration-300 rounded-full collapse-icon hover:bg-gray-500/10 dark:hover:bg-dark-light/10 dark:text-white-light rtl:rotate-180"
-                    @click="$store.app.toggleSidebar()">
+                    class="flex items-center w-8 h-8 transition duration-300 rounded-full collapse-icon hover:bg-gray-500/10 dark:hover:bg-dark-light/10 dark:text-white-light"
+                    :class="$store.app.menu === 'collapsible-vertical' ? 'rtl:rotate-0 rotate-180' : 'rtl:rotate-180 rotate-0'"
+                    @click="$store.app.sidebar = false; $store.app.toggleMenu($store.app.menu === 'collapsible-vertical' ? 'vertical' : 'collapsible-vertical');"
+                    :title="$store.app.menu === 'collapsible-vertical' ? 'Expand sidebar' : 'Collapse to icons'">
                     <svg class="w-5 h-5 m-auto" width="20" height="20" viewBox="0 0 24 24" fill="none"
                         xmlns="http://www.w3.org/2000/svg">
                         <path d="M13 19L7 12L13 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
