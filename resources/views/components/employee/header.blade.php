@@ -32,7 +32,7 @@
 
             {{-- Sidebar Open / Close Toggle (desktop only) --}}
             <a href="javascript:;" class="hidden lg:flex items-center p-2 rounded-full bg-white-light/40 dark:bg-dark/40 hover:text-primary hover:bg-white-light/90 dark:hover:bg-dark/60"
-                @click="$store.app.toggleSidebar()"
+                @click="$store.app.menu = 'vertical'; $store.app.toggleSidebar();"
                 :title="$store.app.sidebar ? 'Show sidebar' : 'Hide sidebar'">
                 <svg x-show="!$store.app.sidebar" width="20" height="20" viewBox="0 0 24 24" fill="none">
                     <path d="M21 7H10M21 12H10M21 17H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>

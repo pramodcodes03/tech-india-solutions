@@ -1,7 +1,7 @@
 <header class="z-40" :class="{ 'dark': $store.app.semidark && $store.app.menu === 'horizontal' }">
     <div class="shadow-sm">
         <div class="relative bg-white flex w-full items-center px-5 py-2.5 dark:bg-[#0e1726]">
-            <div class="flex items-center justify-between horizontal-logo lg:hidden ltr:mr-2 rtl:ml-2">
+            <div class="flex items-center justify-between horizontal-logo lg:!hidden ltr:mr-2 rtl:ml-2">
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center main-logo shrink-0">
                     <img x-show="$store.app.theme !== 'dark'" x-transition.opacity class="inline w-8"
                         src="/assets/images/logo.png" alt="light" />
@@ -32,7 +32,7 @@
                 <div class="hidden lg:block">
                     <a href="javascript:;"
                         class="flex items-center p-2 rounded-full bg-white-light/40 dark:bg-dark/40 hover:text-primary hover:bg-white-light/90 dark:hover:bg-dark/60"
-                        @click="$store.app.toggleSidebar()"
+                        @click="$store.app.menu = 'vertical'; $store.app.toggleSidebar();"
                         :title="$store.app.sidebar ? 'Show sidebar' : 'Hide sidebar'">
                         <svg x-show="!$store.app.sidebar" width="20" height="20" viewBox="0 0 24 24" fill="none">
                             <path d="M21 7H10M21 12H10M21 17H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
