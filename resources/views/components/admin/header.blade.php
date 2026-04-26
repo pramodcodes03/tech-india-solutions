@@ -28,6 +28,23 @@
                 class="sm:flex-1 ltr:sm:ml-0 ltr:ml-auto sm:rtl:mr-0 rtl:mr-auto flex items-center space-x-1.5 lg:space-x-2 rtl:space-x-reverse dark:text-[#d0d2d6]">
                 <div class="sm:ltr:mr-auto sm:rtl:ml-auto"></div>
 
+                <!-- Compact / Full Sidebar Toggle (desktop) -->
+                <div class="hidden lg:block">
+                    <a href="javascript:;"
+                        class="flex items-center p-2 rounded-full bg-white-light/40 dark:bg-dark/40 hover:text-primary hover:bg-white-light/90 dark:hover:bg-dark/60"
+                        @click="$store.app.toggleMenu($store.app.menu === 'collapsible-vertical' ? 'vertical' : 'collapsible-vertical')"
+                        :title="$store.app.menu === 'collapsible-vertical' ? 'Expand sidebar' : 'Collapse sidebar'">
+                        <svg x-show="$store.app.menu !== 'collapsible-vertical'" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M21 7H10M21 12H10M21 17H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <path d="M6 5l-3 7 3 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <svg x-show="$store.app.menu === 'collapsible-vertical'" x-cloak width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M21 7H14M21 12H14M21 17H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <path d="M3 5l3 7-3 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                </div>
+
                 <!-- Theme Toggle -->
                 <div>
                     <a href="javascript:;" x-cloak x-show="$store.app.theme === 'light'"
