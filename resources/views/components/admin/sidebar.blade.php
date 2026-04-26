@@ -6,7 +6,7 @@
 <div :class="{ 'dark text-white-dark': $store.app.semidark }">
     <nav x-data="sidebar"
         class="sidebar fixed min-h-screen h-full top-0 bottom-0 shadow-[5px_0_25px_0_rgba(94,92,154,0.1)] z-50 transition-all duration-300"
-        :class="$store.app.menu === 'collapsible-vertical' ? 'w-[260px] lg:!w-[70px] hover:lg:!w-[260px]' : 'w-[260px]'">
+        :class="$store.app.menu === 'collapsible-vertical' ? 'w-[260px] lg:!w-[70px] sidebar-locked-rail' : 'w-[260px]'">
         <div class="bg-white dark:bg-[#0e1726] h-full">
             <div class="flex items-center justify-between px-4 py-3">
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center main-logo shrink-0">

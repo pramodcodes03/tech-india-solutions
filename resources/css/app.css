@@ -402,6 +402,27 @@ hover:text-primary hover:before:!bg-primary ltr:before:mr-2 rtl:before:ml-2 dark
     pre {
         direction: ltr;
     }
+
+    /* Locked icon-rail: no hover-expand, no hover sub-menus.
+       Collapse-icon stays visible always so the user can click '>'
+       to expand back. */
+    @media (min-width: 1024px) {
+        .sidebar-locked-rail.sidebar:hover {
+            width: 70px !important;
+        }
+        .sidebar-locked-rail.sidebar .sub-menu,
+        .sidebar-locked-rail.sidebar:hover .sub-menu {
+            display: none !important;
+        }
+        .sidebar-locked-rail.sidebar .collapse-icon,
+        .sidebar-locked-rail.sidebar:hover .collapse-icon {
+            opacity: 1 !important;
+        }
+        .sidebar-locked-rail.sidebar .main-logo > span,
+        .sidebar-locked-rail.sidebar:hover .main-logo > span {
+            opacity: 0 !important;
+        }
+    }
 }
 
 /* perfect scrollbar */
