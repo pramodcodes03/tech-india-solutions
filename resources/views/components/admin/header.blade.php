@@ -1,7 +1,7 @@
 <header class="z-40" :class="{ 'dark': $store.app.semidark && $store.app.menu === 'horizontal' }">
     <div class="shadow-sm">
         <div class="relative bg-white flex w-full items-center px-5 py-2.5 dark:bg-[#0e1726]">
-            <div class="flex items-center justify-between horizontal-logo lg:!hidden ltr:mr-2 rtl:ml-2">
+            <div class="flex items-center justify-between horizontal-logo lg:hidden ltr:mr-2 rtl:ml-2">
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center main-logo shrink-0">
                     <img x-show="$store.app.theme !== 'dark'" x-transition.opacity class="inline w-8"
                         src="/assets/images/logo.png" alt="light" />
