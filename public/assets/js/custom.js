@@ -146,8 +146,9 @@
                 }
             },
 
-            // navigation menu
-            menu: Alpine.$persist($themeConfig.menu),
+            // navigation menu — intentionally NOT persisted so the sidebar
+            // resets to its full-width default on every page load
+            menu: $themeConfig.menu,
             toggleMenu(val) {
                 if (!val) {
                     val = this.menu || $themeConfig.menu; // vertical, collapsible-vertical, horizontal

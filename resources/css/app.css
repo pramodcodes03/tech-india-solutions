@@ -422,6 +422,32 @@ hover:text-primary hover:before:!bg-primary ltr:before:mr-2 rtl:before:ml-2 dark
         .sidebar-locked-rail.sidebar:hover .main-logo > span {
             opacity: 0 !important;
         }
+        /* Hide the full-text logo image in the rail and shrink the header padding */
+        .sidebar-locked-rail.sidebar .main-logo {
+            display: none !important;
+        }
+        .sidebar-locked-rail.sidebar > div > div:first-child {
+            justify-content: center !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        /* Hide section labels in the rail (those uppercase headings) */
+        .sidebar-locked-rail.sidebar h2 {
+            display: none !important;
+        }
+        /* Center the menu item icons in the narrow column */
+        .sidebar-locked-rail.sidebar .nav-link,
+        .sidebar-locked-rail.sidebar li.nav-item > a {
+            justify-content: center !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        /* Hide the dropdown chevron + label text inside menu items */
+        .sidebar-locked-rail.sidebar .nav-item > a > div > span,
+        .sidebar-locked-rail.sidebar .nav-item > button > div > span,
+        .sidebar-locked-rail.sidebar .nav-item > button > div + div {
+            display: none !important;
+        }
     }
 }
 
