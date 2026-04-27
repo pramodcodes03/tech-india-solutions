@@ -84,7 +84,7 @@
                             <strong x-text="unpaid"></strong> day(s) will be approved as <strong>Unpaid (LOP)</strong>. This will be deducted from the next payslip.
                         </div>
                         <div class="mt-2 p-2 rounded bg-danger/10 text-danger text-xs" x-show="paid > maxPaid">
-                            Warning: paid days ({{ /* */ }}<strong x-text="paid"></strong>) exceed available balance (<strong x-text="available.toFixed(1)"></strong>). Reduce paid days or approve extra as unpaid.
+                            Warning: paid days (<strong x-text="paid"></strong>) exceed available balance (<strong x-text="available.toFixed(1)"></strong>). Reduce paid days or approve extra as unpaid.
                         </div>
                         <div class="flex gap-2 mt-3">
                             <button type="button" @click="paid = maxPaid" class="btn btn-sm btn-outline-primary flex-1">Max paid</button>
