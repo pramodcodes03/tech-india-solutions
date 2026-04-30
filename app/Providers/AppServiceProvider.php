@@ -2,10 +2,13 @@
 
 namespace App\Providers;
 
+use App\Auth\TenantAwareUserProvider;
+use App\Support\Tenancy\CurrentBusiness;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(CurrentBusiness::class);
     }
 
     /**
@@ -22,6 +25,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Auth::provider('tenant-aware-eloquent', function ($app, array $config) {
+            return new TenantAwareUserProvider($app['hash'], $config['model']);
+        });
+
         Relation::morphMap([
             'sales_order'       => \App\Models\SalesOrder::class,
             'purchase_order'    => \App\Models\PurchaseOrder::class,

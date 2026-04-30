@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('holidays', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->date('date');
             $table->enum('type', ['public', 'optional', 'restricted'])->default('public');

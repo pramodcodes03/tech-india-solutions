@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,7 +12,7 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class Lead extends Model
 {
-    use LogsActivity, SoftDeletes;
+    use BelongsToBusiness, LogsActivity, SoftDeletes;
 
     /**
      * Canonical lead source list. Keys are stored in DB (lowercase snake_case);
@@ -48,6 +49,7 @@ class Lead extends Model
     }
 
     protected $fillable = [
+        'business_id',
         'code',
         'name',
         'company',

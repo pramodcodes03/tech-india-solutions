@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('asset_models', function (Blueprint $table) {
             $table->id();
-            $table->string('code')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('code');
             $table->string('name');
             $table->foreignId('category_id')->constrained('asset_categories')->restrictOnDelete();
             $table->string('manufacturer')->nullable();
@@ -31,6 +32,7 @@ return new class extends Migration
             $table->index('status');
             $table->index('category_id');
             $table->index('manufacturer');
+            $table->unique(['business_id', 'code']);
         });
     }
 

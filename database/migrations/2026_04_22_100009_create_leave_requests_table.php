@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('leave_requests', function (Blueprint $table) {
             $table->id();
-            $table->string('request_code')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('request_code');
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
             $table->foreignId('leave_type_id')->constrained('leave_types')->restrictOnDelete();
             $table->date('from_date');
@@ -26,6 +27,7 @@ return new class extends Migration
 
             $table->index(['employee_id', 'status']);
             $table->index(['from_date', 'to_date']);
+            $table->unique(['business_id', 'request_code']);
         });
     }
 

@@ -70,17 +70,18 @@ class DummyDataSeeder extends Seeder
 
     public function run(): void
     {
+        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
         $now = Carbon::now();
 
         $this->command->info('🌱 Seeding 12 months of Indian business data...');
 
-        $this->seedQuotations($now);
-        $this->seedSalesAndInvoices($now);
-        $this->seedPayments($now);
-        $this->seedPurchaseOrders($now);
-        $this->seedLeads($now);
-        $this->seedServiceTickets($now);
-        $this->seedStockMovements($now);
+        $this->seedQuotations($now, $businessId);
+        $this->seedSalesAndInvoices($now, $businessId);
+        $this->seedPayments($now, $businessId);
+        $this->seedPurchaseOrders($now, $businessId);
+        $this->seedLeads($now, $businessId);
+        $this->seedServiceTickets($now, $businessId);
+        $this->seedStockMovements($now, $businessId);
 
         $this->command->info('✅ DummyDataSeeder complete.');
     }
@@ -88,7 +89,7 @@ class DummyDataSeeder extends Seeder
     // ─────────────────────────────────────────────────────────────────────
     // QUOTATIONS  (30 new — spread across 12 months)
     // ─────────────────────────────────────────────────────────────────────
-    private function seedQuotations(Carbon $now): void
+    private function seedQuotations(Carbon $now, int $businessId): void
     {
         $definitions = [
             // Month, customer, status, items count, discount%
@@ -148,6 +149,7 @@ class DummyDataSeeder extends Seeder
             $grandTotal= round($taxable + $taxAmt, 2);
 
             $quoId = DB::table('quotations')->insertGetId([
+                'business_id'      => $businessId,
                 'quotation_number' => $num,
                 'customer_id'      => $customerId,
                 'quotation_date'   => $date,
@@ -168,6 +170,7 @@ class DummyDataSeeder extends Seeder
 
             foreach ($items as $sort => $item) {
                 DB::table('quotation_items')->insert(array_merge($item, [
+                    'business_id'  => $businessId,
                     'quotation_id' => $quoId,
                     'sort_order'   => $sort + 1,
                     'created_at'   => $date,
@@ -184,7 +187,7 @@ class DummyDataSeeder extends Seeder
     // ─────────────────────────────────────────────────────────────────────
     // SALES ORDERS + INVOICES  (50 orders across 12 months)
     // ─────────────────────────────────────────────────────────────────────
-    private function seedSalesAndInvoices(Carbon $now): void
+    private function seedSalesAndInvoices(Carbon $now, int $businessId): void
     {
         // [daysAgo, customerId, invoiceStatus, itemCount, discPct]
         $orders = [
@@ -273,6 +276,7 @@ class DummyDataSeeder extends Seeder
 
             // Sales Order
             $soId = DB::table('sales_orders')->insertGetId([
+                'business_id'    => $businessId,
                 'order_number'   => $soNum,
                 'customer_id'    => $customerId,
                 'quotation_id'   => null,
@@ -293,6 +297,7 @@ class DummyDataSeeder extends Seeder
 
             foreach ($items as $sort => $item) {
                 DB::table('sales_order_items')->insert(array_merge($item, [
+                    'business_id'    => $businessId,
                     'sales_order_id' => $soId,
                     'sort_order'     => $sort + 1,
                     'created_at'     => $orderDate,
@@ -310,6 +315,7 @@ class DummyDataSeeder extends Seeder
             $balanceDue = round($grandTotal - $amtPaid, 2);
 
             $invId = DB::table('invoices')->insertGetId([
+                'business_id'    => $businessId,
                 'invoice_number' => $invNum,
                 'customer_id'    => $customerId,
                 'sales_order_id' => $soId,
@@ -333,10 +339,11 @@ class DummyDataSeeder extends Seeder
 
             foreach ($items as $sort => $item) {
                 DB::table('invoice_items')->insert(array_merge($item, [
-                    'invoice_id' => $invId,
-                    'sort_order' => $sort + 1,
-                    'created_at' => $invoiceDate,
-                    'updated_at' => $invoiceDate,
+                    'business_id' => $businessId,
+                    'invoice_id'  => $invId,
+                    'sort_order'  => $sort + 1,
+                    'created_at'  => $invoiceDate,
+                    'updated_at'  => $invoiceDate,
                 ]));
             }
 
@@ -352,9 +359,10 @@ class DummyDataSeeder extends Seeder
     // ─────────────────────────────────────────────────────────────────────
     // PAYMENTS  (for all paid/partial/overdue invoices added above)
     // ─────────────────────────────────────────────────────────────────────
-    private function seedPayments(Carbon $now): void
+    private function seedPayments(Carbon $now, int $businessId): void
     {
         $invoices = DB::table('invoices')
+            ->where('business_id', $businessId)
             ->where('id', '>', 8)  // skip original 8
             ->whereIn('status', ['paid', 'partial', 'overdue'])
             ->get();
@@ -372,16 +380,16 @@ class DummyDataSeeder extends Seeder
                 if ($split && $inv->grand_total > 2000) {
                     $first  = round($inv->grand_total * (rand(40, 60) / 100), 2);
                     $second = round($inv->grand_total - $first, 2);
-                    $this->insertPayment($inv->id, $inv->customer_id, $first, $invDate->copy()->addDays(5));
-                    $this->insertPayment($inv->id, $inv->customer_id, $second, $invDate->copy()->addDays(20));
+                    $this->insertPayment($inv->id, $inv->customer_id, $first, $invDate->copy()->addDays(5), $businessId);
+                    $this->insertPayment($inv->id, $inv->customer_id, $second, $invDate->copy()->addDays(20), $businessId);
                     $count += 2;
                 } else {
-                    $this->insertPayment($inv->id, $inv->customer_id, $inv->grand_total, $invDate->copy()->addDays(rand(5, 25)));
+                    $this->insertPayment($inv->id, $inv->customer_id, $inv->grand_total, $invDate->copy()->addDays(rand(5, 25)), $businessId);
                     $count++;
                 }
             } else {
                 // partial or overdue: 1 payment
-                $this->insertPayment($inv->id, $inv->customer_id, $inv->amount_paid, $invDate->copy()->addDays(rand(5, 15)));
+                $this->insertPayment($inv->id, $inv->customer_id, $inv->amount_paid, $invDate->copy()->addDays(rand(5, 15)), $businessId);
                 $count++;
             }
         }
@@ -389,10 +397,11 @@ class DummyDataSeeder extends Seeder
         $this->command->info("  Payments: {$count} added");
     }
 
-    private function insertPayment(int $invId, int $custId, float $amount, Carbon $date): void
+    private function insertPayment(int $invId, int $custId, float $amount, Carbon $date, int $businessId): void
     {
         $num = 'PAY-2026-' . str_pad($this->payCounter, 4, '0', STR_PAD_LEFT);
         DB::table('payments')->insert([
+            'business_id'    => $businessId,
             'payment_number' => $num,
             'invoice_id'     => $invId,
             'customer_id'    => $custId,
@@ -411,7 +420,7 @@ class DummyDataSeeder extends Seeder
     // ─────────────────────────────────────────────────────────────────────
     // PURCHASE ORDERS  (25 POs spread across 12 months)
     // ─────────────────────────────────────────────────────────────────────
-    private function seedPurchaseOrders(Carbon $now): void
+    private function seedPurchaseOrders(Carbon $now, int $businessId): void
     {
         $pos = [
             [-360, 1,  'received', 3],
@@ -485,6 +494,7 @@ class DummyDataSeeder extends Seeder
             $grandTotal= round($subtotal + $taxAmt, 2);
 
             $poId = DB::table('purchase_orders')->insertGetId([
+                'business_id'    => $businessId,
                 'po_number'      => $poNum,
                 'vendor_id'      => $vendorId,
                 'po_date'        => $poDate,
@@ -505,6 +515,7 @@ class DummyDataSeeder extends Seeder
 
             foreach ($items as $sort => $item) {
                 DB::table('purchase_order_items')->insert(array_merge($item, [
+                    'business_id'       => $businessId,
                     'purchase_order_id' => $poId,
                     'sort_order'        => $sort + 1,
                     'created_at'        => $poDate,
@@ -522,7 +533,7 @@ class DummyDataSeeder extends Seeder
     // ─────────────────────────────────────────────────────────────────────
     // LEADS  (40 leads across 12 months, Indian sources)
     // ─────────────────────────────────────────────────────────────────────
-    private function seedLeads(Carbon $now): void
+    private function seedLeads(Carbon $now, int $businessId): void
     {
         $indianNames = [
             'Arjun Sharma','Priya Mehta','Rahul Singh','Sunita Verma','Vikram Nair',
@@ -567,6 +578,7 @@ class DummyDataSeeder extends Seeder
                 : null;
 
             DB::table('leads')->insert([
+                'business_id'     => $businessId,
                 'code'            => $code,
                 'name'            => $name,
                 'company'         => $companies[array_rand($companies)],
@@ -593,7 +605,7 @@ class DummyDataSeeder extends Seeder
     // ─────────────────────────────────────────────────────────────────────
     // SERVICE TICKETS  (30 tickets)
     // ─────────────────────────────────────────────────────────────────────
-    private function seedServiceTickets(Carbon $now): void
+    private function seedServiceTickets(Carbon $now, int $businessId): void
     {
         $issues = [
             'Zipper on bag not working properly',
@@ -651,6 +663,7 @@ class DummyDataSeeder extends Seeder
             $prodId    = $this->productIds[array_rand(array_slice($this->productIds, 0, 20))]; // only finished goods
 
             DB::table('service_tickets')->insert([
+                'business_id'      => $businessId,
                 'ticket_number'    => $ticketNum,
                 'customer_id'      => $custId,
                 'product_id'       => $prodId,
@@ -676,7 +689,7 @@ class DummyDataSeeder extends Seeder
     // ─────────────────────────────────────────────────────────────────────
     // STOCK MOVEMENTS  (additional movements for inventory report depth)
     // ─────────────────────────────────────────────────────────────────────
-    private function seedStockMovements(Carbon $now): void
+    private function seedStockMovements(Carbon $now, int $businessId): void
     {
         $types = ['in','out','adjustment'];
         $count = 0;
@@ -694,6 +707,7 @@ class DummyDataSeeder extends Seeder
                     $date = $baseDate->copy()->addDays(rand(1, 28))->toDateString();
 
                     DB::table('stock_movements')->insert([
+                        'business_id'    => $businessId,
                         'product_id'     => $pid,
                         'warehouse_id'   => $wid,
                         'type'           => $type,

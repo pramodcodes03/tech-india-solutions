@@ -20,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return route('admin.login');
         });
+
+        $middleware->alias([
+            'business' => \App\Http\Middleware\EnsureBusinessContext::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -81,7 +81,7 @@ return [
             'model' => Admin::class,
         ],
         'employees' => [
-            'driver' => 'eloquent',
+            'driver' => 'tenant-aware-eloquent',
             'model' => Employee::class,
         ],
     ],

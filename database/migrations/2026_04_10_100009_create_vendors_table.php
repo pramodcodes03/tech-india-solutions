@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('vendors', function (Blueprint $table) {
             $table->id();
-            $table->string('code')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('code');
             $table->string('name');
             $table->string('company')->nullable();
             $table->string('gst_number')->nullable();
@@ -28,6 +29,8 @@ return new class extends Migration
             $table->foreignId('deleted_by')->nullable()->constrained('admins')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique(['business_id', 'code']);
 
             $table->index('status');
         });

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,9 +13,10 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class Quotation extends Model
 {
-    use LogsActivity, SoftDeletes;
+    use BelongsToBusiness, LogsActivity, SoftDeletes;
 
     protected $fillable = [
+        'business_id',
         'quotation_number',
         'customer_id',
         'quotation_date',

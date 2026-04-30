@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('warnings', function (Blueprint $table) {
             $table->id();
-            $table->string('warning_code')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('warning_code');
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
             $table->unsignedTinyInteger('level'); // 1 = HR, 2 = Manager, 3 = Director (termination)
             $table->string('title');
@@ -25,6 +26,7 @@ return new class extends Migration
 
             $table->index(['employee_id', 'level']);
             $table->index('status');
+            $table->unique(['business_id', 'warning_code']);
         });
     }
 

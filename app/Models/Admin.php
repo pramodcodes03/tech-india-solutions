@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -16,8 +17,8 @@ class Admin extends Authenticatable
     protected string $guard_name = 'admin';
 
     protected $fillable = [
+        'business_id',
         'name',
-        'business_name',
         'email',
         'password',
         'phone',
@@ -41,5 +42,15 @@ class Admin extends Authenticatable
             ->logFillable()
             ->logOnlyDirty()
             ->setDescriptionForEvent(fn (string $eventName) => "Admin was {$eventName}");
+    }
+
+    public function business(): BelongsTo
+    {
+        return $this->belongsTo(Business::class);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('Super Admin');
     }
 }

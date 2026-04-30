@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -9,9 +10,10 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class LeaveRequest extends Model
 {
-    use LogsActivity;
+    use BelongsToBusiness, LogsActivity;
 
     protected $fillable = [
+        'business_id',
         'request_code', 'employee_id', 'leave_type_id',
         'from_date', 'to_date', 'days', 'paid_days', 'unpaid_days', 'day_portion',
         'reason', 'status', 'approver_id', 'actioned_at', 'approver_remarks',

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -13,11 +14,12 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class Employee extends Authenticatable
 {
-    use LogsActivity, Notifiable, SoftDeletes;
+    use BelongsToBusiness, LogsActivity, Notifiable, SoftDeletes;
 
     protected $guard_name = 'employee';
 
     protected $fillable = [
+        'business_id',
         'employee_code', 'email', 'personal_email', 'password', 'last_login_at',
         'first_name', 'last_name', 'phone', 'alt_phone', 'whatsapp_number',
         'date_of_birth', 'gender', 'marital_status', 'blood_group', 'profile_photo',

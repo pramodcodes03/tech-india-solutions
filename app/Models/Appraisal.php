@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -9,13 +10,14 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class Appraisal extends Model
 {
-    use LogsActivity;
+    use BelongsToBusiness, LogsActivity;
 
     public const STATUSES = [
         'finalized' => 'Finalized',
     ];
 
     protected $fillable = [
+        'business_id',
         'appraisal_code', 'employee_id', 'cycle',
         'period_start', 'period_end',
         'performance_score',

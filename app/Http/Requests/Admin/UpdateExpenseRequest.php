@@ -1,0 +1,40 @@
+<?php
+
+namespace App\Http\Requests\Admin;
+
+use App\Models\Expense;
+use App\Support\Tenancy\CurrentBusiness;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class UpdateExpenseRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user('admin')?->can('expenses.edit') ?? false;
+    }
+
+    public function rules(): array
+    {
+        $businessId = app(CurrentBusiness::class)->id();
+
+        return [
+            'expense_category_id' => ['required', 'integer',
+                Rule::exists('expense_categories', 'id')->where('business_id', $businessId)],
+            'expense_subcategory_id' => ['nullable', 'integer',
+                Rule::exists('expense_subcategories', 'id')
+                    ->where('business_id', $businessId)
+                    ->where('expense_category_id', $this->input('expense_category_id'))],
+            'type' => ['required', Rule::in([Expense::TYPE_RECURRING, Expense::TYPE_ONE_OFF])],
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:2000'],
+            'amount' => ['required', 'numeric', 'min:0'],
+            'expense_date' => ['required', 'date'],
+            'due_date' => ['nullable', 'date'],
+            'due_day_of_month' => ['nullable', 'required_if:type,recurring', 'integer', 'between:1,28'],
+            'payment_method' => ['nullable', 'string', 'max:50'],
+            'payment_reference' => ['nullable', 'string', 'max:120'],
+            'attachment' => ['nullable', 'file', 'max:5120'],
+        ];
+    }
+}

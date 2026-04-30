@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LeaveBalance extends Model
 {
+    use BelongsToBusiness;
+
     protected $fillable = [
+        'business_id',
         'employee_id', 'leave_type_id', 'year',
         'allocated', 'used', 'pending', 'carried_forward',
     ];

@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('goods_receipts', function (Blueprint $table) {
             $table->id();
-            $table->string('grn_number')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('grn_number');
             $table->foreignId('purchase_order_id')->constrained('purchase_orders')->restrictOnDelete();
             $table->date('received_date');
             $table->text('notes')->nullable();
@@ -19,6 +20,8 @@ return new class extends Migration
             $table->foreignId('deleted_by')->nullable()->constrained('admins')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique(['business_id', 'grn_number']);
         });
     }
 

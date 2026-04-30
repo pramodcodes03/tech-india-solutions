@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('service_tickets', function (Blueprint $table) {
             $table->id();
-            $table->string('ticket_number')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('ticket_number');
             $table->foreignId('customer_id')->constrained('customers')->restrictOnDelete();
             $table->foreignId('product_id')->nullable()->constrained('products')->nullOnDelete();
             $table->text('issue_description');
@@ -25,6 +26,8 @@ return new class extends Migration
             $table->foreignId('deleted_by')->nullable()->constrained('admins')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique(['business_id', 'ticket_number']);
 
             $table->index('customer_id');
             $table->index('status');

@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('department_feedback', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
             $table->foreignId('department_id')->constrained('departments')->cascadeOnDelete();
             $table->unsignedTinyInteger('rating'); // 1-5

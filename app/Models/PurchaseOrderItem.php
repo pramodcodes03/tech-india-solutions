@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PurchaseOrderItem extends Model
 {
+    use BelongsToBusiness;
+
     protected $fillable = [
+        'business_id',
         'purchase_order_id',
         'product_id',
         'description',

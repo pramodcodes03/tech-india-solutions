@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Payslip extends Model
 {
+    use BelongsToBusiness;
+
     protected $fillable = [
+        'business_id',
         'payslip_code', 'employee_id', 'month', 'year',
         'period_start', 'period_end',
         'working_days', 'paid_days', 'lop_days',

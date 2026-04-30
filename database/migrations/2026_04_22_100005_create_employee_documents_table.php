@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('employee_documents', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
             $table->string('doc_type'); // aadhar / pan / offer_letter / resume / degree / experience / other
             $table->string('title');

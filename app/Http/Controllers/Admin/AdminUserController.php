@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\ChangePasswordRequest;
 use App\Http\Requests\Admin\StoreAdminRequest;
 use App\Http\Requests\Admin\UpdateAdminRequest;
 use App\Models\Admin;
+use App\Support\Tenancy\CurrentBusiness;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
@@ -17,7 +18,9 @@ class AdminUserController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('users.view'), 403);
 
+        $businessId = app(CurrentBusiness::class)->id();
         $admins = Admin::with('roles')
+            ->where('business_id', $businessId)
             ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'Super Admin'))
             ->when($request->search, fn ($q, $s) => $q->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
@@ -64,8 +67,8 @@ class AdminUserController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('users.create'), 403);
 
         $admin = Admin::create([
+            'business_id' => app(CurrentBusiness::class)->id(),
             'name' => $request->name,
-            'business_name' => $request->business_name,
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => $request->password,
@@ -102,7 +105,7 @@ class AdminUserController extends Controller
 
         $admin = Admin::findOrFail($id);
 
-        $data = $request->only('name', 'business_name', 'email', 'phone', 'status');
+        $data = $request->only('name', 'email', 'phone', 'status');
         if ($request->filled('password')) {
             $data['password'] = $request->password;
         }

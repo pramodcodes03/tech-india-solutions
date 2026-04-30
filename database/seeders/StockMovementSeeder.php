@@ -10,22 +10,42 @@ class StockMovementSeeder extends Seeder
 {
     public function run(): void
     {
+        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
         $now = Carbon::now();
         $inventoryAdminId = 4; // Suresh - Inventory
-        $mainWarehouseId = 1; // WH-001
-        $ambatturId = 2; // WH-002
-        $bangaloreId = 3; // WH-003
+
+        // Position-based ID maps (translate hardcoded 1-based ids to per-business ids)
+        $warehouseIdByPosition = DB::table('warehouses')
+            ->where('business_id', $businessId)
+            ->orderBy('id')
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        $productIdByPosition = DB::table('products')
+            ->where('business_id', $businessId)
+            ->orderBy('id')
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        // Fall back to first warehouse if a position is out of range
+        $mainWarehouseId = $warehouseIdByPosition[0] ?? null; // WH-001
+        $ambatturId = $warehouseIdByPosition[1] ?? $mainWarehouseId; // WH-002
+        $bangaloreId = $warehouseIdByPosition[2] ?? $mainWarehouseId; // WH-003
 
         $movements = [];
 
         // ── Stock-In from GRN receipts (purchase order receipts) ──────────
         $grnItems = DB::table('goods_receipt_items as gri')
             ->join('goods_receipts as gr', 'gri.goods_receipt_id', '=', 'gr.id')
+            ->where('gr.business_id', $businessId)
             ->select('gri.product_id', 'gri.quantity_received', 'gr.received_date', 'gr.id as grn_id')
             ->get();
 
         foreach ($grnItems as $gri) {
             $movements[] = [
+                'business_id' => $businessId,
                 'product_id' => $gri->product_id,
                 'warehouse_id' => $mainWarehouseId,
                 'type' => 'in',
@@ -41,6 +61,7 @@ class StockMovementSeeder extends Seeder
         // ── Stock-Out from confirmed/shipped/delivered sales orders ───────
         $soStatuses = ['confirmed', 'processing', 'shipped', 'delivered'];
         $salesOrders = DB::table('sales_orders')
+            ->where('business_id', $businessId)
             ->whereIn('status', $soStatuses)
             ->get();
 
@@ -51,6 +72,7 @@ class StockMovementSeeder extends Seeder
 
             foreach ($soItems as $si) {
                 $movements[] = [
+                    'business_id' => $businessId,
                     'product_id' => $si->product_id,
                     'warehouse_id' => $mainWarehouseId,
                     'type' => 'out',
@@ -69,9 +91,12 @@ class StockMovementSeeder extends Seeder
         $openingDate = $now->copy()->subMonths(6)->startOfMonth();
 
         foreach ($openingStockProducts as $pid) {
+            // Translate hardcoded product id via position map; fall back to first product if out of range
+            $resolvedProductId = $productIdByPosition[$pid - 1] ?? $productIdByPosition[0];
             $qty = rand(50, 200);
             $movements[] = [
-                'product_id' => $pid,
+                'business_id' => $businessId,
+                'product_id' => $resolvedProductId,
                 'warehouse_id' => $mainWarehouseId,
                 'type' => 'in',
                 'quantity' => $qty,
@@ -85,8 +110,11 @@ class StockMovementSeeder extends Seeder
 
         // Some stock at other warehouses
         foreach ([1, 3, 6, 7, 16, 17, 21, 22] as $pid) {
+            // Translate hardcoded product id via position map; fall back to first product if out of range
+            $resolvedProductId = $productIdByPosition[$pid - 1] ?? $productIdByPosition[0];
             $movements[] = [
-                'product_id' => $pid,
+                'business_id' => $businessId,
+                'product_id' => $resolvedProductId,
                 'warehouse_id' => $ambatturId,
                 'type' => 'in',
                 'quantity' => rand(20, 60),
@@ -99,8 +127,11 @@ class StockMovementSeeder extends Seeder
         }
 
         foreach ([1, 8, 16, 22, 24] as $pid) {
+            // Translate hardcoded product id via position map; fall back to first product if out of range
+            $resolvedProductId = $productIdByPosition[$pid - 1] ?? $productIdByPosition[0];
             $movements[] = [
-                'product_id' => $pid,
+                'business_id' => $businessId,
+                'product_id' => $resolvedProductId,
                 'warehouse_id' => $bangaloreId,
                 'type' => 'in',
                 'quantity' => rand(15, 40),
@@ -124,8 +155,11 @@ class StockMovementSeeder extends Seeder
 
         foreach ($adjustments as $adj) {
             $adjDate = $now->copy()->subDays($adj['days_ago']);
+            // Translate hardcoded product id via position map; fall back to first product if out of range
+            $resolvedProductId = $productIdByPosition[$adj['product_id'] - 1] ?? $productIdByPosition[0];
             $movements[] = [
-                'product_id' => $adj['product_id'],
+                'business_id' => $businessId,
+                'product_id' => $resolvedProductId,
                 'warehouse_id' => $adj['warehouse_id'],
                 'type' => 'adjustment',
                 'quantity' => $adj['quantity'],

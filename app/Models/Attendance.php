@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Attendance extends Model
 {
+    use BelongsToBusiness;
+
     protected $table = 'attendance';
 
     protected $fillable = [
+        'business_id',
         'employee_id', 'date', 'check_in', 'check_out',
         'hours_worked', 'status', 'source', 'biometric_ref',
         'remarks', 'created_by',

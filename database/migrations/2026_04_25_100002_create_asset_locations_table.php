@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('asset_locations', function (Blueprint $table) {
             $table->id();
-            $table->string('code')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('code');
             $table->string('name');
             $table->string('type')->default('office');
             $table->text('address')->nullable();
@@ -22,6 +23,8 @@ return new class extends Migration
             $table->foreignId('updated_by')->nullable()->constrained('admins')->nullOnDelete();
             $table->softDeletes();
             $table->timestamps();
+
+            $table->unique(['business_id', 'code']);
 
             $table->index('status');
             $table->index('type');

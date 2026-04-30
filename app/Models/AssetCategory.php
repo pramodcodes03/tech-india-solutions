@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -10,9 +11,10 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class AssetCategory extends Model
 {
-    use LogsActivity, SoftDeletes;
+    use BelongsToBusiness, LogsActivity, SoftDeletes;
 
     protected $fillable = [
+        'business_id',
         'code', 'name', 'default_depreciation_method',
         'default_useful_life_years', 'default_salvage_percent',
         'description', 'status',

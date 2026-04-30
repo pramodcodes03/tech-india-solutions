@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('proforma_invoices', function (Blueprint $table) {
             $table->id();
-            $table->string('proforma_number')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('proforma_number');
             $table->foreignId('customer_id')->constrained('customers')->restrictOnDelete();
             $table->foreignId('quotation_id')->nullable()->constrained('quotations')->nullOnDelete();
             $table->date('proforma_date');
@@ -31,6 +32,8 @@ return new class extends Migration
             $table->foreignId('deleted_by')->nullable()->constrained('admins')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique(['business_id', 'proforma_number']);
 
             $table->index('customer_id');
             $table->index('status');

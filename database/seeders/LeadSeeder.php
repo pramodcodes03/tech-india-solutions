@@ -11,6 +11,7 @@ class LeadSeeder extends Seeder
 {
     public function run(): void
     {
+        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
         $now = Carbon::now();
 
         // Admin IDs: 1=Super Admin, 2=Rajesh(Admin), 3=Priya(Sales), 4=Suresh(Inventory), 5=Lakshmi(Accounts), 6=Mohammed(Service), 7=Anita(Viewer)
@@ -41,6 +42,7 @@ class LeadSeeder extends Seeder
         foreach ($leads as $lead) {
             $createdAt = $lead['created_at'];
             unset($lead['created_at']);
+            $lead['business_id'] = $businessId;
             $lead['notes'] = null;
             $lead['created_by'] = $superAdminId;
             $lead['updated_by'] = null;
@@ -52,18 +54,19 @@ class LeadSeeder extends Seeder
             $leadId = DB::table('leads')->insertGetId($lead);
 
             // Create 2-3 LeadActivity records per lead
-            $activities = $this->getActivities($lead['status'], $leadId, $createdAt, $salesAdminId);
+            $activities = $this->getActivities($lead['status'], $leadId, $createdAt, $salesAdminId, $businessId);
             DB::table('lead_activities')->insert($activities);
         }
     }
 
-    private function getActivities(string $status, int $leadId, $createdAt, int $salesAdminId): array
+    private function getActivities(string $status, int $leadId, $createdAt, int $salesAdminId, int $businessId): array
     {
         $base = Carbon::parse($createdAt);
         $activities = [];
 
         // All leads get a "created" activity
         $activities[] = [
+            'business_id' => $businessId,
             'lead_id' => $leadId,
             'type' => 'note',
             'description' => 'Lead created and assigned to sales team.',
@@ -74,6 +77,7 @@ class LeadSeeder extends Seeder
 
         if (in_array($status, ['contacted', 'qualified', 'proposal', 'won', 'lost'])) {
             $activities[] = [
+                'business_id' => $businessId,
                 'lead_id' => $leadId,
                 'type' => 'call',
                 'description' => 'Initial call made. Customer showed interest in leather goods catalog.',
@@ -85,6 +89,7 @@ class LeadSeeder extends Seeder
 
         if (in_array($status, ['qualified', 'proposal', 'won', 'lost'])) {
             $activities[] = [
+                'business_id' => $businessId,
                 'lead_id' => $leadId,
                 'type' => 'meeting',
                 'description' => 'Meeting conducted. Discussed product requirements and pricing.',
@@ -96,6 +101,7 @@ class LeadSeeder extends Seeder
 
         if (in_array($status, ['proposal', 'won'])) {
             $activities[] = [
+                'business_id' => $businessId,
                 'lead_id' => $leadId,
                 'type' => 'email',
                 'description' => 'Quotation sent via email for review.',
@@ -107,6 +113,7 @@ class LeadSeeder extends Seeder
 
         if ($status === 'won') {
             $activities[] = [
+                'business_id' => $businessId,
                 'lead_id' => $leadId,
                 'type' => 'note',
                 'description' => 'Deal closed. Customer converted. First order placed.',
@@ -118,6 +125,7 @@ class LeadSeeder extends Seeder
 
         if ($status === 'lost') {
             $activities[] = [
+                'business_id' => $businessId,
                 'lead_id' => $leadId,
                 'type' => 'note',
                 'description' => 'Lead lost. Customer went with a competitor offering lower prices.',

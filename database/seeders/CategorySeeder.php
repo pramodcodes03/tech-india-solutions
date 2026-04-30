@@ -10,7 +10,8 @@ class CategorySeeder extends Seeder
 {
     public function run(): void
     {
-        $adminId = Admin::first()->id;
+        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
+        $adminId = Admin::where('business_id', $businessId)->first()?->id ?? Admin::first()->id;
         $now = now();
 
         $categories = [
@@ -25,6 +26,7 @@ class CategorySeeder extends Seeder
         ];
 
         foreach ($categories as $i => $cat) {
+            $cat['business_id'] = $businessId;
             $cat['parent_id'] = null;
             $cat['is_active'] = true;
             $cat['sort_order'] = $i + 1;

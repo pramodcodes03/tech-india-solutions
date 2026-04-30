@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,9 +12,10 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class Invoice extends Model
 {
-    use LogsActivity, SoftDeletes;
+    use BelongsToBusiness, LogsActivity, SoftDeletes;
 
     protected $fillable = [
+        'business_id',
         'invoice_number',
         'customer_id',
         'sales_order_id',

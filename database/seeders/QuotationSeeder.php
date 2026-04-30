@@ -10,6 +10,7 @@ class QuotationSeeder extends Seeder
 {
     public function run(): void
     {
+        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
         $now = Carbon::now();
         $salesAdminId = 3; // Priya - Sales
 
@@ -58,18 +59,39 @@ class QuotationSeeder extends Seeder
 
         // Pre-fetch product data
         $products = DB::table('products')
+            ->where('business_id', $businessId)
             ->select('id', 'name', 'hsn_code', 'unit', 'selling_price', 'tax_percent')
             ->get()
             ->keyBy('id');
+
+        // Position-based ID maps (translate hardcoded 1-based ids to per-business ids)
+        $customerIdByPosition = DB::table('customers')
+            ->where('business_id', $businessId)
+            ->orderBy('id')
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        $productIdByPosition = DB::table('products')
+            ->where('business_id', $businessId)
+            ->orderBy('id')
+            ->pluck('id')
+            ->values()
+            ->all();
 
         foreach ($quotations as $i => $q) {
             $quoDate = $now->copy()->subDays($q['days_ago']);
             $validTil = $quoDate->copy()->addDays($q['valid_days']);
 
+            // Translate hardcoded customer id; fall back to first customer if out of range
+            $customerIdx = $q['customer_id'] - 1;
+            $resolvedCustomerId = $customerIdByPosition[$customerIdx] ?? $customerIdByPosition[0];
+
             // Insert quotation header (totals will be updated after items)
             $quotationId = DB::table('quotations')->insertGetId([
+                'business_id' => $businessId,
                 'quotation_number' => $q['num'],
-                'customer_id' => $q['customer_id'],
+                'customer_id' => $resolvedCustomerId,
                 'quotation_date' => $quoDate->toDateString(),
                 'valid_until' => $validTil->toDateString(),
                 'status' => $q['status'],
@@ -95,7 +117,9 @@ class QuotationSeeder extends Seeder
             $totalTax = 0;
 
             foreach ($productIds as $sortOrder => $pid) {
-                $p = $products[$pid];
+                // Translate hardcoded product id via position map; fall back to first product if out of range
+                $resolvedProductId = $productIdByPosition[$pid - 1] ?? $productIdByPosition[0];
+                $p = $products[$resolvedProductId];
                 $qty = rand(2, 20);
                 $rate = $p->selling_price;
                 $discPct = (rand(0, 3) === 0) ? 5 : 0; // occasional 5% discount
@@ -108,8 +132,9 @@ class QuotationSeeder extends Seeder
                 $totalTax += $lineTax;
 
                 DB::table('quotation_items')->insert([
+                    'business_id' => $businessId,
                     'quotation_id' => $quotationId,
-                    'product_id' => $pid,
+                    'product_id' => $resolvedProductId,
                     'description' => $p->name,
                     'hsn_code' => $p->hsn_code,
                     'quantity' => $qty,

@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('appraisals', function (Blueprint $table) {
             $table->id();
-            $table->string('appraisal_code')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('appraisal_code');
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
             $table->string('cycle'); // e.g. "H1-2026" or "Annual-2026"
             $table->date('period_start');
@@ -45,6 +46,8 @@ return new class extends Migration
             $table->enum('status', ['draft', 'finalized', 'shared'])->default('draft');
             $table->foreignId('conducted_by')->nullable()->constrained('admins')->nullOnDelete();
             $table->timestamps();
+
+            $table->unique(['business_id', 'appraisal_code']);
 
             $table->index(['employee_id', 'cycle']);
         });

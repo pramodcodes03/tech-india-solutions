@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('asset_maintenance_logs', function (Blueprint $table) {
             $table->id();
-            $table->string('log_code')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('log_code');
             $table->foreignId('asset_id')->constrained('assets')->cascadeOnDelete();
             $table->string('type')->default('corrective');
             $table->date('scheduled_date')->nullable();
@@ -34,6 +35,7 @@ return new class extends Migration
             $table->index('type');
             $table->index('status');
             $table->index('performed_date');
+            $table->unique(['business_id', 'log_code']);
         });
     }
 

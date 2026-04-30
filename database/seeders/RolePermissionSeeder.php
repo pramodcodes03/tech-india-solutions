@@ -19,6 +19,7 @@ class RolePermissionSeeder extends Seeder
         // ── Define all permissions ──────────────────────────────────────
         $modules = [
             'dashboard' => ['view'],
+            'businesses' => ['view', 'create', 'edit', 'delete'],
             'users' => ['view', 'create', 'edit', 'delete'],
             'roles' => ['view', 'create', 'edit', 'delete'],
             'customers' => ['view', 'create', 'edit', 'delete'],
@@ -38,6 +39,8 @@ class RolePermissionSeeder extends Seeder
             'service_tickets' => ['view', 'create', 'edit', 'delete'],
             'reports' => ['view', 'export'],
             'settings' => ['view', 'edit'],
+            'expense_categories' => ['view', 'create', 'edit', 'delete'],
+            'expenses' => ['view', 'create', 'edit', 'delete', 'mark_paid'],
 
             // ── HR Module ────────────────────────────────────────────────
             'employees' => ['view', 'create', 'edit', 'delete', 'export'],
@@ -79,12 +82,20 @@ class RolePermissionSeeder extends Seeder
         // Super Admin - gets all permissions via Gate::before, no explicit assignment
         Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => $guard]);
 
-        // Admin - all permissions except users.delete, roles.delete
+        // Admin (per-business) - all permissions except users.delete, roles.delete,
+        // and businesses.* which are Super-Admin-only.
         $adminRole = Role::firstOrCreate(['name' => 'Admin', 'guard_name' => $guard]);
         $adminPermissions = array_filter($allPermissions, function ($perm) {
-            return ! in_array($perm, ['users.delete', 'roles.delete']);
+            return ! in_array($perm, ['users.delete', 'roles.delete'])
+                && ! str_starts_with($perm, 'businesses.');
         });
         $adminRole->syncPermissions($adminPermissions);
+
+        // Business Admin — alias for Admin, used when seeding initial admins
+        // for each business. Same permission set; separate name keeps audit logs
+        // and admin lists clear.
+        $businessAdminRole = Role::firstOrCreate(['name' => 'Business Admin', 'guard_name' => $guard]);
+        $businessAdminRole->syncPermissions($adminPermissions);
 
         // Sales
         $salesRole = Role::firstOrCreate(['name' => 'Sales', 'guard_name' => $guard]);
@@ -120,6 +131,8 @@ class RolePermissionSeeder extends Seeder
             ['dashboard.view'],
             $this->allActionsFor('invoices', $modules),
             $this->allActionsFor('payments', $modules),
+            $this->allActionsFor('expenses', $modules),
+            $this->allActionsFor('expense_categories', $modules),
             ['customers.view'],
             $this->allActionsFor('reports', $modules),
             ['settings.view']

@@ -10,7 +10,8 @@ class CustomerSeeder extends Seeder
 {
     public function run(): void
     {
-        $adminId = Admin::first()->id;
+        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
+        $adminId = Admin::where('business_id', $businessId)->first()?->id ?? Admin::first()->id;
         $now = now();
 
         $customers = [
@@ -43,6 +44,7 @@ class CustomerSeeder extends Seeder
 
         $rows = [];
         foreach ($customers as $c) {
+            $c['business_id'] = $businessId;
             $c['country'] = 'India';
             $c['notes'] = null;
             $c['status'] = 'active';

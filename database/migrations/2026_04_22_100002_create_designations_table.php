@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('designations', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->foreignId('department_id')->nullable()->constrained('departments')->nullOnDelete();
             $table->string('level')->nullable(); // Junior / Mid / Senior / Lead

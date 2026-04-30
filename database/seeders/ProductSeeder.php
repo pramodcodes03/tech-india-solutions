@@ -10,7 +10,8 @@ class ProductSeeder extends Seeder
 {
     public function run(): void
     {
-        $adminId = Admin::first()->id;
+        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
+        $adminId = Admin::where('business_id', $businessId)->first()?->id ?? Admin::first()->id;
         $now = now();
 
         // Category IDs will be 1-8 based on insertion order in CategorySeeder
@@ -76,6 +77,7 @@ class ProductSeeder extends Seeder
 
         $rows = [];
         foreach ($products as $p) {
+            $p['business_id'] = $businessId;
             $p['status'] = 'active';
             $p['image'] = null;
             $p['created_by'] = $adminId;

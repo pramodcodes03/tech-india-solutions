@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -10,13 +11,14 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class StockMovement extends Model
 {
-    use LogsActivity;
+    use BelongsToBusiness, LogsActivity;
 
     const UPDATED_AT = null;
 
     protected $table = 'stock_movements';
 
     protected $fillable = [
+        'business_id',
         'product_id',
         'warehouse_id',
         'type',

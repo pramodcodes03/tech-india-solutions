@@ -22,7 +22,8 @@ class SalesOrderService
     public function generateNumber(): string
     {
         $year = date('Y');
-        $prefix = "SO-{$year}-";
+        $base = app(\App\Support\Tenancy\CurrentBusiness::class)->get()?->sales_order_prefix ?? 'SO-';
+        $prefix = $base.$year.'-';
         $last = SalesOrder::withTrashed()
             ->where('order_number', 'like', $prefix.'%')
             ->orderByDesc('order_number')

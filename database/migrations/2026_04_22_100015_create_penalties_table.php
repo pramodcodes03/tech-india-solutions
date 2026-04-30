@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('penalties', function (Blueprint $table) {
             $table->id();
-            $table->string('penalty_code')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('penalty_code');
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
             $table->foreignId('penalty_type_id')->constrained('penalty_types')->restrictOnDelete();
             $table->decimal('amount', 10, 2);
@@ -34,6 +35,7 @@ return new class extends Migration
 
             $table->index(['employee_id', 'status']);
             $table->index('incident_date');
+            $table->unique(['business_id', 'penalty_code']);
         });
     }
 

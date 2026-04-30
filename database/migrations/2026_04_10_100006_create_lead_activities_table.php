@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('lead_activities', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->foreignId('lead_id')->constrained('leads')->cascadeOnDelete();
             $table->string('type');
             $table->text('description');

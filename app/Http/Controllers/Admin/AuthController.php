@@ -35,9 +35,16 @@ class AuthController extends Controller
         if (Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            Auth::guard('admin')->user()->update([
-                'last_login_at' => now(),
-            ]);
+            $admin = Auth::guard('admin')->user();
+            $admin->update(['last_login_at' => now()]);
+
+            // Pin non-super admins to their business; super admins start with no
+            // selection and are routed to the business selector by middleware.
+            if ($admin->business_id) {
+                session(['business_id' => $admin->business_id]);
+            } else {
+                session()->forget('business_id');
+            }
 
             return redirect()->route('admin.dashboard')->with('success', 'Login successful');
         }
@@ -55,10 +62,12 @@ class AuthController extends Controller
         $recentQuotations = \App\Models\Quotation::with('customer')->latest()->take(5)->get();
         $recentInvoices = \App\Models\Invoice::with('customer')->latest()->take(5)->get();
         $overdueInvoices = Invoice::with('customer')
-            ->where('status', 'overdue')
-            ->orWhere(function ($q) {
-                $q->whereIn('status', ['unpaid', 'partial'])
-                  ->where('due_date', '<', now()->toDateString());
+            ->where(function ($q) {
+                $q->where('status', 'overdue')
+                  ->orWhere(function ($q2) {
+                      $q2->whereIn('status', ['unpaid', 'partial'])
+                         ->where('due_date', '<', now()->toDateString());
+                  });
             })
             ->latest()
             ->take(5)

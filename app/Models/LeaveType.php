@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LeaveType extends Model
 {
+    use BelongsToBusiness;
+
     protected $fillable = [
+        'business_id',
         'code', 'name', 'annual_quota',
         'is_paid', 'carry_forward', 'max_carry_forward',
         'encashable', 'color', 'description', 'status',

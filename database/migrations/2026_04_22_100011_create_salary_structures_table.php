@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('salary_structures', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
             $table->date('effective_from');
             $table->date('effective_to')->nullable();

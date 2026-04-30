@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -9,9 +10,10 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class ServiceTicketComment extends Model
 {
-    use LogsActivity;
+    use BelongsToBusiness, LogsActivity;
 
     protected $fillable = [
+        'business_id',
         'service_ticket_id',
         'comment',
         'created_by',

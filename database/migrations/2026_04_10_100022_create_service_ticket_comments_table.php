@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('service_ticket_comments', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->foreignId('service_ticket_id')->constrained('service_tickets')->cascadeOnDelete();
             $table->text('comment');
             $table->foreignId('created_by')->nullable()->constrained('admins')->nullOnDelete();

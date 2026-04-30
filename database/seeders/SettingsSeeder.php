@@ -23,11 +23,11 @@ class SettingsSeeder extends Seeder
             ['key' => 'terms_and_conditions', 'value' => '1. Payment is due within 30 days from the date of invoice. 2. Goods once sold will not be taken back. 3. Interest at 18% p.a. will be charged on overdue payments. 4. All disputes subject to Chennai jurisdiction.', 'group' => 'document'],
         ];
 
-        foreach ($settings as &$setting) {
-            $setting['created_at'] = $now;
-            $setting['updated_at'] = $now;
+        foreach ($settings as $setting) {
+            DB::table('settings')->updateOrInsert(
+                ['key' => $setting['key']],
+                $setting + ['created_at' => $now, 'updated_at' => $now],
+            );
         }
-
-        DB::table('settings')->insert($settings);
     }
 }

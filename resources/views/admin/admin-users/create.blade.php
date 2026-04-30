@@ -27,10 +27,6 @@
                         <input id="name" name="name" type="text" class="form-input" value="{{ old('name') }}" required />
                     </div>
                     <div>
-                        <label for="business_name">Business Name</label>
-                        <input id="business_name" name="business_name" type="text" class="form-input" value="{{ old('business_name') }}" />
-                    </div>
-                    <div>
                         <label for="email">Email <span class="text-danger">*</span></label>
                         <input id="email" name="email" type="email" class="form-input" value="{{ old('email') }}" required />
                     </div>

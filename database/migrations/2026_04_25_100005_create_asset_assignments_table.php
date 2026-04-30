@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('asset_assignments', function (Blueprint $table) {
             $table->id();
-            $table->string('assignment_code')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('assignment_code');
             $table->foreignId('asset_id')->constrained('assets')->cascadeOnDelete();
             $table->foreignId('employee_id')->constrained('employees')->restrictOnDelete();
             $table->foreignId('from_location_id')->nullable()->constrained('asset_locations')->nullOnDelete();
@@ -29,6 +30,7 @@ return new class extends Migration
             $table->index('asset_id');
             $table->index('employee_id');
             $table->index('action_type');
+            $table->unique(['business_id', 'assignment_code']);
         });
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -9,9 +10,10 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class Warning extends Model
 {
-    use LogsActivity;
+    use BelongsToBusiness, LogsActivity;
 
     protected $fillable = [
+        'business_id',
         'warning_code', 'employee_id', 'level',
         'title', 'reason', 'action_required',
         'issued_on', 'status', 'acknowledged_at',

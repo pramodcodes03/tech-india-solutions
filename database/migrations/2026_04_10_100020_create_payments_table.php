@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->string('payment_number')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('payment_number');
             $table->foreignId('invoice_id')->constrained('invoices')->restrictOnDelete();
             $table->foreignId('customer_id')->constrained('customers')->restrictOnDelete();
             $table->date('payment_date');
@@ -23,6 +24,8 @@ return new class extends Migration
             $table->foreignId('deleted_by')->nullable()->constrained('admins')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique(['business_id', 'payment_number']);
 
             $table->index('invoice_id');
             $table->index('customer_id');

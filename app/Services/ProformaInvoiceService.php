@@ -20,7 +20,8 @@ class ProformaInvoiceService
     public function generateNumber(): string
     {
         $year = date('Y');
-        $prefix = "PI-{$year}-";
+        $base = app(\App\Support\Tenancy\CurrentBusiness::class)->get()?->proforma_prefix ?? 'PFI-';
+        $prefix = $base.$year.'-';
         $last = ProformaInvoice::withTrashed()
             ->where('proforma_number', 'like', $prefix.'%')
             ->orderByDesc('proforma_number')

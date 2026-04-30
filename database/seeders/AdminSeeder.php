@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Admin;
+use App\Models\Business;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -12,71 +13,36 @@ class AdminSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
-            $admins = [
+            // Super Admin — no business; can manage all businesses.
+            $super = Admin::firstOrCreate(
+                ['email' => 'super@altechnics.com'],
                 [
                     'name' => 'Super Admin',
-                    'email' => 'admin@altechnics.com',
                     'password' => Hash::make('Admin@12345'),
-                    'phone' => '+91 98401 12345',
+                    'phone' => '+91 98401 00000',
                     'status' => 'active',
-                    'role' => 'Super Admin',
+                    'business_id' => null,
                 ],
-                [
-                    'name' => 'Rajesh Kumar',
-                    'email' => 'rajesh@altechnics.com',
-                    'password' => Hash::make('Admin@12345'),
-                    'phone' => '+91 98401 23456',
-                    'status' => 'active',
-                    'role' => 'Admin',
-                ],
-                [
-                    'name' => 'Priya Sharma',
-                    'email' => 'priya@altechnics.com',
-                    'password' => Hash::make('Admin@12345'),
-                    'phone' => '+91 98401 34567',
-                    'status' => 'active',
-                    'role' => 'Sales',
-                ],
-                [
-                    'name' => 'Suresh Nair',
-                    'email' => 'suresh@altechnics.com',
-                    'password' => Hash::make('Admin@12345'),
-                    'phone' => '+91 98401 45678',
-                    'status' => 'active',
-                    'role' => 'Inventory',
-                ],
-                [
-                    'name' => 'Lakshmi Devi',
-                    'email' => 'lakshmi@altechnics.com',
-                    'password' => Hash::make('Admin@12345'),
-                    'phone' => '+91 98401 56789',
-                    'status' => 'active',
-                    'role' => 'Accounts',
-                ],
-                [
-                    'name' => 'Mohammed Ali',
-                    'email' => 'mohammed@altechnics.com',
-                    'password' => Hash::make('Admin@12345'),
-                    'phone' => '+91 98401 67890',
-                    'status' => 'active',
-                    'role' => 'Service',
-                ],
-                [
-                    'name' => 'Anita Verma',
-                    'email' => 'anita@altechnics.com',
-                    'password' => Hash::make('Admin@12345'),
-                    'phone' => '+91 98401 78901',
-                    'status' => 'active',
-                    'role' => 'Viewer',
-                ],
-            ];
+            );
+            if (! $super->hasRole('Super Admin')) {
+                $super->assignRole('Super Admin');
+            }
 
-            foreach ($admins as $data) {
-                $role = $data['role'];
-                unset($data['role']);
-
-                $admin = Admin::create($data);
-                $admin->assignRole($role);
+            // One Business Admin per business.
+            foreach (Business::all() as $business) {
+                $admin = Admin::firstOrCreate(
+                    ['email' => 'admin@'.$business->slug.'.test'],
+                    [
+                        'name' => $business->name.' Admin',
+                        'password' => Hash::make('Admin@12345'),
+                        'phone' => $business->phone,
+                        'status' => 'active',
+                        'business_id' => $business->id,
+                    ],
+                );
+                if (! $admin->hasRole('Business Admin')) {
+                    $admin->assignRole('Business Admin');
+                }
             }
         });
     }

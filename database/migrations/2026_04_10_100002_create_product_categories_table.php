@@ -10,8 +10,9 @@ return new class extends Migration
     {
         Schema::create('product_categories', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->string('name');
-            $table->string('slug')->unique();
+            $table->string('slug');
             $table->foreignId('parent_id')->nullable()->constrained('product_categories')->nullOnDelete();
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
@@ -21,6 +22,8 @@ return new class extends Migration
             $table->foreignId('deleted_by')->nullable()->constrained('admins')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique(['business_id', 'slug']);
         });
     }
 

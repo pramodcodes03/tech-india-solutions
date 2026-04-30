@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('proforma_invoice_items', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->foreignId('proforma_invoice_id')->constrained('proforma_invoices')->cascadeOnDelete();
             $table->foreignId('product_id')->nullable()->constrained('products')->nullOnDelete();
             $table->string('description');

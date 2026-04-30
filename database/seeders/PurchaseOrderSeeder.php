@@ -10,13 +10,30 @@ class PurchaseOrderSeeder extends Seeder
 {
     public function run(): void
     {
+        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
         $now = Carbon::now();
         $inventoryAdminId = 4; // Suresh - Inventory
 
         $products = DB::table('products')
+            ->where('business_id', $businessId)
             ->select('id', 'name', 'hsn_code', 'unit', 'purchase_price', 'tax_percent')
             ->get()
             ->keyBy('id');
+
+        // Position-based ID maps (translate hardcoded 1-based ids to per-business ids)
+        $vendorIdByPosition = DB::table('vendors')
+            ->where('business_id', $businessId)
+            ->orderBy('id')
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        $productIdByPosition = DB::table('products')
+            ->where('business_id', $businessId)
+            ->orderBy('id')
+            ->pluck('id')
+            ->values()
+            ->all();
 
         // PO definitions: vendor_id, status, product_ids with quantities
         $pos = [
@@ -36,9 +53,13 @@ class PurchaseOrderSeeder extends Seeder
             $poDate = $now->copy()->subDays($po['days_ago']);
             $expectedDate = $poDate->copy()->addDays($po['expected_days']);
 
+            // Translate hardcoded vendor id; fall back to first vendor if out of range
+            $resolvedVendorId = $vendorIdByPosition[$po['vendor_id'] - 1] ?? $vendorIdByPosition[0];
+
             $poId = DB::table('purchase_orders')->insertGetId([
+                'business_id' => $businessId,
                 'po_number' => $po['num'],
-                'vendor_id' => $po['vendor_id'],
+                'vendor_id' => $resolvedVendorId,
                 'po_date' => $poDate->toDateString(),
                 'expected_date' => $expectedDate->toDateString(),
                 'status' => $po['status'],
@@ -63,7 +84,9 @@ class PurchaseOrderSeeder extends Seeder
             $poItemIds = [];
 
             foreach ($po['items'] as $sortOrder => [$pid, $qty]) {
-                $p = $products[$pid];
+                // Translate hardcoded product id via position map; fall back to first product if out of range
+                $resolvedProductId = $productIdByPosition[$pid - 1] ?? $productIdByPosition[0];
+                $p = $products[$resolvedProductId];
                 $rate = $p->purchase_price;
                 $lineAmount = $qty * $rate;
                 $lineTax = round($lineAmount * $p->tax_percent / 100, 2);
@@ -72,8 +95,9 @@ class PurchaseOrderSeeder extends Seeder
                 $totalTax += $lineTax;
 
                 $poItemId = DB::table('purchase_order_items')->insertGetId([
+                    'business_id' => $businessId,
                     'purchase_order_id' => $poId,
-                    'product_id' => $pid,
+                    'product_id' => $resolvedProductId,
                     'description' => $p->name,
                     'hsn_code' => $p->hsn_code,
                     'quantity' => $qty,
@@ -87,7 +111,7 @@ class PurchaseOrderSeeder extends Seeder
                     'updated_at' => $poDate,
                 ]);
 
-                $poItemIds[] = ['po_item_id' => $poItemId, 'product_id' => $pid, 'qty_ordered' => $qty];
+                $poItemIds[] = ['po_item_id' => $poItemId, 'product_id' => $resolvedProductId, 'qty_ordered' => $qty];
             }
 
             $grandTotal = round($subtotal + $totalTax, 2);
@@ -102,6 +126,7 @@ class PurchaseOrderSeeder extends Seeder
                 $grnDate = $poDate->copy()->addDays($po['expected_days']);
 
                 $grnId = DB::table('goods_receipts')->insertGetId([
+                    'business_id' => $businessId,
                     'grn_number' => 'GRN-'.substr($po['num'], 3),
                     'purchase_order_id' => $poId,
                     'received_date' => $grnDate->toDateString(),
@@ -120,6 +145,7 @@ class PurchaseOrderSeeder extends Seeder
                         : round($item['qty_ordered'] * 0.6); // 60% received for partial
 
                     DB::table('goods_receipt_items')->insert([
+                        'business_id' => $businessId,
                         'goods_receipt_id' => $grnId,
                         'purchase_order_item_id' => $item['po_item_id'],
                         'product_id' => $item['product_id'],

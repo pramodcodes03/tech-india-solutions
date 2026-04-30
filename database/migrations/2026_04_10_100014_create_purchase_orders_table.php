@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('purchase_orders', function (Blueprint $table) {
             $table->id();
-            $table->string('po_number')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('po_number');
             $table->foreignId('vendor_id')->constrained('vendors')->restrictOnDelete();
             $table->date('po_date');
             $table->date('expected_date')->nullable();
@@ -28,6 +29,8 @@ return new class extends Migration
             $table->foreignId('deleted_by')->nullable()->constrained('admins')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique(['business_id', 'po_number']);
 
             $table->index('vendor_id');
             $table->index('status');

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -9,9 +10,10 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class Penalty extends Model
 {
-    use LogsActivity;
+    use BelongsToBusiness, LogsActivity;
 
     protected $fillable = [
+        'business_id',
         'penalty_code', 'employee_id', 'penalty_type_id',
         'amount', 'incident_date', 'remarks', 'status',
         'original_amount', 'eligible_reduction_after',

@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('quotations', function (Blueprint $table) {
             $table->id();
-            $table->string('quotation_number')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('quotation_number');
             $table->foreignId('customer_id')->constrained('customers')->restrictOnDelete();
             $table->date('quotation_date');
             $table->date('valid_until')->nullable();
@@ -28,6 +29,8 @@ return new class extends Migration
             $table->foreignId('deleted_by')->nullable()->constrained('admins')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique(['business_id', 'quotation_number']);
 
             $table->index('customer_id');
             $table->index('status');

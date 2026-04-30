@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,7 +10,10 @@ use Illuminate\Support\Str;
 
 class ServiceCategory extends Model
 {
+    use BelongsToBusiness;
+
     protected $fillable = [
+        'business_id',
         'name', 'slug', 'description', 'icon', 'color',
         'status', 'sort_order', 'created_by', 'updated_by',
     ];

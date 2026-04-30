@@ -10,9 +10,25 @@ class ServiceTicketSeeder extends Seeder
 {
     public function run(): void
     {
+        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
         $now = Carbon::now();
         $serviceAdminId = 6; // Mohammed - Service
         $superAdminId = 1;
+
+        // Position-based ID maps (translate hardcoded 1-based ids to per-business ids)
+        $customerIdByPosition = DB::table('customers')
+            ->where('business_id', $businessId)
+            ->orderBy('id')
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        $productIdByPosition = DB::table('products')
+            ->where('business_id', $businessId)
+            ->orderBy('id')
+            ->pluck('id')
+            ->values()
+            ->all();
 
         $tickets = [
             [
@@ -109,10 +125,15 @@ class ServiceTicketSeeder extends Seeder
             $openedAt = $now->copy()->subDays($t['days_ago']);
             $closedAt = $t['closed_days_ago'] ? $now->copy()->subDays($t['closed_days_ago']) : null;
 
+            // Translate hardcoded customer/product ids; fall back to first item if out of range
+            $resolvedCustomerId = $customerIdByPosition[$t['customer_id'] - 1] ?? $customerIdByPosition[0];
+            $resolvedProductId = $productIdByPosition[$t['product_id'] - 1] ?? $productIdByPosition[0];
+
             $ticketId = DB::table('service_tickets')->insertGetId([
+                'business_id' => $businessId,
                 'ticket_number' => $t['ticket_number'],
-                'customer_id' => $t['customer_id'],
-                'product_id' => $t['product_id'],
+                'customer_id' => $resolvedCustomerId,
+                'product_id' => $resolvedProductId,
                 'issue_description' => $t['issue_description'],
                 'priority' => $t['priority'],
                 'status' => $t['status'],
@@ -133,6 +154,7 @@ class ServiceTicketSeeder extends Seeder
 
             // First comment: acknowledgment
             $comments[] = [
+                'business_id' => $businessId,
                 'service_ticket_id' => $ticketId,
                 'comment' => 'Ticket received and assigned to service team for review.',
                 'created_by' => $superAdminId,
@@ -143,6 +165,7 @@ class ServiceTicketSeeder extends Seeder
             // Second comment: investigation
             if (in_array($t['status'], ['in_progress', 'closed'])) {
                 $comments[] = [
+                    'business_id' => $businessId,
                     'service_ticket_id' => $ticketId,
                     'comment' => 'Inspected the product. Issue confirmed. Proceeding with repair/replacement.',
                     'created_by' => $serviceAdminId,
@@ -154,6 +177,7 @@ class ServiceTicketSeeder extends Seeder
             // Third comment: resolution (for closed tickets)
             if ($t['status'] === 'closed' && $closedAt) {
                 $comments[] = [
+                    'business_id' => $businessId,
                     'service_ticket_id' => $ticketId,
                     'comment' => 'Issue resolved. '.($t['resolution_notes'] ?? 'Customer notified.'),
                     'created_by' => $serviceAdminId,

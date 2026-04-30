@@ -10,7 +10,8 @@ class VendorSeeder extends Seeder
 {
     public function run(): void
     {
-        $adminId = Admin::first()->id;
+        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
+        $adminId = Admin::where('business_id', $businessId)->first()?->id ?? Admin::first()->id;
         $now = now();
 
         $vendors = [
@@ -33,6 +34,7 @@ class VendorSeeder extends Seeder
 
         $rows = [];
         foreach ($vendors as $v) {
+            $v['business_id'] = $businessId;
             $v['country'] = 'India';
             $v['notes'] = null;
             $v['status'] = 'active';

@@ -100,6 +100,21 @@
                     <span>Management</span>
                 </h2>
 
+                {{-- Businesses (Super Admin only) --}}
+                @if(\Illuminate\Support\Facades\Auth::guard('admin')->user()?->isSuperAdmin())
+                <li class="menu nav-item">
+                    <a href="{{ route('admin.businesses.index') }}" class="nav-link group">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 9.5L12 4l9 5.5M5 10v9h14v-9" stroke="currentColor" stroke-width="1.5"/>
+                                <path opacity="0.5" d="M9 19v-5h6v5" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Businesses</span>
+                        </div>
+                    </a>
+                </li>
+                @endif
+
                 {{-- Users --}}
                 @can('users.view')
                 <li class="menu nav-item">
@@ -359,6 +374,32 @@
                     <ul x-collapse x-show="activeDropdown === 'payments'" class="sub-menu text-gray-500">
                         <li><a href="{{ route('admin.payments.index') }}">All Payments</a></li>
                         <li><a href="{{ route('admin.payments.create') }}">Record Payment</a></li>
+                    </ul>
+                </li>
+                @endcan
+
+                {{-- Expenses --}}
+                @can('expenses.view')
+                <li class="menu nav-item">
+                    <button type="button" class="nav-link group w-full"
+                        :class="{ 'active': activeDropdown === 'expenses' }"
+                        @click="activeDropdown = activeDropdown === 'expenses' ? null : 'expenses'">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Expenses</span>
+                        </div>
+                        <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'expenses' }">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </button>
+                    <ul x-collapse x-show="activeDropdown === 'expenses'" class="sub-menu text-gray-500">
+                        <li><a href="{{ route('admin.expenses.index') }}">All Expenses</a></li>
+                        @can('expenses.create')<li><a href="{{ route('admin.expenses.create') }}">Add Expense</a></li>@endcan
+                        @can('expense_categories.view')<li><a href="{{ route('admin.expense-categories.index') }}">Categories</a></li>@endcan
                     </ul>
                 </li>
                 @endcan

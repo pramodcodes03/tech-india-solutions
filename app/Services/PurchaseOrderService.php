@@ -21,7 +21,8 @@ class PurchaseOrderService
     public function generateNumber(): string
     {
         $year = date('Y');
-        $prefix = "PO-{$year}-";
+        $base = app(\App\Support\Tenancy\CurrentBusiness::class)->get()?->po_prefix ?? 'PO-';
+        $prefix = $base.$year.'-';
         $last = PurchaseOrder::withTrashed()
             ->where('po_number', 'like', $prefix.'%')
             ->orderByDesc('po_number')
@@ -116,7 +117,8 @@ class PurchaseOrderService
 
             // Generate GRN number
             $year = date('Y');
-            $grnPrefix = "GRN-{$year}-";
+            $grnBase = app(\App\Support\Tenancy\CurrentBusiness::class)->get()?->grn_prefix ?? 'GRN-';
+            $grnPrefix = $grnBase.$year.'-';
             $lastGrn = GoodsReceipt::withTrashed()
                 ->where('grn_number', 'like', $grnPrefix.'%')
                 ->orderByDesc('grn_number')

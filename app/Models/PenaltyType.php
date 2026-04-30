@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PenaltyType extends Model
 {
-    protected $fillable = ['name', 'description', 'default_amount', 'status'];
+    use BelongsToBusiness;
+
+    protected $fillable = ['business_id', 'name', 'description', 'default_amount', 'status'];
 
     protected function casts(): array
     {

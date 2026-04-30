@@ -10,8 +10,9 @@ return new class extends Migration
     {
         Schema::create('service_categories', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
-            $table->string('slug')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('name');
+            $table->string('slug');
             $table->text('description')->nullable();
             $table->string('icon', 10)->nullable();  // emoji or short code
             $table->string('color', 20)->default('#3b82f6');
@@ -20,6 +21,9 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('admins')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('admins')->nullOnDelete();
             $table->timestamps();
+
+            $table->unique(['business_id', 'name']);
+            $table->unique(['business_id', 'slug']);
 
             $table->index('status');
         });

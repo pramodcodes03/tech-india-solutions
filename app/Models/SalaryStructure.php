@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SalaryStructure extends Model
 {
+    use BelongsToBusiness;
+
     protected $fillable = [
+        'business_id',
         'employee_id', 'effective_from', 'effective_to',
         'basic', 'hra', 'conveyance', 'medical', 'special', 'other_allowance',
         'gross_monthly', 'ctc_annual',

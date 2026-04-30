@@ -15,7 +15,6 @@ class StoreAdminRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'business_name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:admins,email'],
             'phone' => ['nullable', 'string', 'max:20'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],

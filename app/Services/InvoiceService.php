@@ -15,7 +15,8 @@ class InvoiceService
     public function generateNumber(): string
     {
         $year = date('Y');
-        $prefix = "INV-{$year}-";
+        $base = app(\App\Support\Tenancy\CurrentBusiness::class)->get()?->invoice_prefix ?? 'INV-';
+        $prefix = $base.$year.'-';
         $last = Invoice::withTrashed()
             ->where('invoice_number', 'like', $prefix.'%')
             ->orderByDesc('invoice_number')

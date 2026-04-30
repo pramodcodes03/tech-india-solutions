@@ -13,7 +13,7 @@ class EmployeeService
 {
     public function generateCode(): string
     {
-        $prefix = 'EMP-';
+        $prefix = app(\App\Support\Tenancy\CurrentBusiness::class)->get()?->employee_code_prefix ?? 'EMP';
         $last = Employee::withTrashed()
             ->where('employee_code', 'like', $prefix.'%')
             ->orderByDesc('employee_code')

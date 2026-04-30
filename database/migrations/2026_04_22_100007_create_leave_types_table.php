@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('leave_types', function (Blueprint $table) {
             $table->id();
-            $table->string('code')->unique(); // CL, SL, PL, ML, COMP
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('code'); // CL, SL, PL, ML, COMP
             $table->string('name');
             $table->decimal('annual_quota', 5, 1)->default(0); // days per year
             $table->boolean('is_paid')->default(true);
@@ -21,6 +22,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('status')->default('active');
             $table->timestamps();
+
+            $table->unique(['business_id', 'code']);
         });
     }
 

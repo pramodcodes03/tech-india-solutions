@@ -10,11 +10,13 @@ class WarehouseSeeder extends Seeder
 {
     public function run(): void
     {
-        $adminId = Admin::first()->id;
+        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
+        $adminId = Admin::where('business_id', $businessId)->first()?->id ?? Admin::first()->id;
         $now = now();
 
         DB::table('warehouses')->insert([
             [
+                'business_id' => $businessId,
                 'code' => 'WH-001',
                 'name' => 'Main Warehouse',
                 'address' => 'Plot No. 45, Industrial Estate, Ambattur, Chennai - 600058',
@@ -28,6 +30,7 @@ class WarehouseSeeder extends Seeder
                 'deleted_at' => null,
             ],
             [
+                'business_id' => $businessId,
                 'code' => 'WH-002',
                 'name' => 'Ambattur Unit',
                 'address' => 'No. 78, SIDCO Industrial Estate, Ambattur, Chennai - 600098',
@@ -41,6 +44,7 @@ class WarehouseSeeder extends Seeder
                 'deleted_at' => null,
             ],
             [
+                'business_id' => $businessId,
                 'code' => 'WH-003',
                 'name' => 'Bangalore Branch',
                 'address' => 'No. 12, Peenya Industrial Area, 2nd Phase, Bangalore - 560058',

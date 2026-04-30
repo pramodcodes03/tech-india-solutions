@@ -20,7 +20,8 @@ class QuotationService
     public function generateNumber(): string
     {
         $year = date('Y');
-        $prefix = "QUO-{$year}-";
+        $base = app(\App\Support\Tenancy\CurrentBusiness::class)->get()?->quotation_prefix ?? 'QUO-';
+        $prefix = $base.$year.'-';
         $last = Quotation::withTrashed()
             ->where('quotation_number', 'like', $prefix.'%')
             ->orderByDesc('quotation_number')

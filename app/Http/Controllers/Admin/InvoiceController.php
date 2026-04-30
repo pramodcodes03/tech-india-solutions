@@ -137,8 +137,9 @@ class InvoiceController extends Controller
 
         $invoice = Invoice::with(['customer', 'items.product', 'creator', 'payments'])->findOrFail($id);
         $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
+        $business = app(\App\Support\Tenancy\CurrentBusiness::class)->get();
 
-        $pdf = Pdf::loadView('admin.invoices.pdf', compact('invoice', 'settings'));
+        $pdf = Pdf::loadView('admin.invoices.pdf', compact('invoice', 'settings', 'business'));
 
         return $pdf->stream("Invoice-{$invoice->invoice_number}.pdf");
     }

@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GoodsReceiptItem extends Model
 {
+    use BelongsToBusiness;
+
     protected $fillable = [
+        'business_id',
         'goods_receipt_id',
         'purchase_order_item_id',
         'product_id',

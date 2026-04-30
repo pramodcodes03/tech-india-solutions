@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\BusinessController;
+use App\Http\Controllers\Admin\ExpenseCategoryController;
+use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Admin\Hr\AppraisalController as HrAppraisalController;
 use App\Http\Controllers\Admin\Hr\DashboardController as HrDashboardController;
 use App\Http\Controllers\Admin\Hr\AppraisalCycleController as HrAppraisalCycleController;
@@ -72,8 +75,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     // Protected routes
-    Route::middleware('auth:admin')->group(function () {
+    Route::middleware(['auth:admin', 'business'])->group(function () {
         Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
+
+        // Business management (Super Admin)
+        Route::get('select-business', [BusinessController::class, 'selector'])->name('businesses.select');
+        Route::post('businesses/{business}/switch', [BusinessController::class, 'switch'])->name('businesses.switch');
+        Route::post('businesses/{business}/admins', [BusinessController::class, 'storeAdmin'])->name('businesses.admins.store');
+        Route::put('businesses/{business}/admins/{admin}', [BusinessController::class, 'updateAdmin'])->name('businesses.admins.update');
+        Route::delete('businesses/{business}/admins/{admin}', [BusinessController::class, 'destroyAdmin'])->name('businesses.admins.destroy');
+        Route::resource('businesses', BusinessController::class);
 
         // Specialised dashboards
         Route::prefix('dashboards')->name('dashboards.')->group(function () {
@@ -162,6 +173,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Payment Management
         Route::resource('payments', PaymentController::class)->except(['edit', 'update']);
+
+        // Expense Management
+        Route::resource('expense-categories', ExpenseCategoryController::class)->parameters(['expense-categories' => 'expense_category']);
+        Route::post('expense-categories/{expense_category}/subcategories', [ExpenseCategoryController::class, 'storeSubcategory'])->name('expense-categories.subcategories.store');
+        Route::put('expense-categories/{expense_category}/subcategories/{subcategory}', [ExpenseCategoryController::class, 'updateSubcategory'])->name('expense-categories.subcategories.update');
+        Route::delete('expense-categories/{expense_category}/subcategories/{subcategory}', [ExpenseCategoryController::class, 'destroySubcategory'])->name('expense-categories.subcategories.destroy');
+
+        Route::get('expense-categories/{expense_category}/subcategories-json', [ExpenseController::class, 'subcategories'])->name('expenses.subcategories.json');
+        Route::resource('expenses', ExpenseController::class);
+        Route::post('expenses/{expense}/mark-paid', [ExpenseController::class, 'markPaid'])->name('expenses.mark-paid');
 
         // Service Ticket Management
         Route::resource('service-categories', ServiceCategoryController::class)->except(['show']);
@@ -310,7 +331,7 @@ Route::prefix('employee')->name('employee.')->group(function () {
     Route::post('/login', [EmpAuthController::class, 'login'])->name('signin');
     Route::post('/logout', [EmpAuthController::class, 'logout'])->name('logout');
 
-    Route::middleware('auth:employee')->group(function () {
+    Route::middleware(['auth:employee', 'business'])->group(function () {
         Route::get('/dashboard', [EmpDashboardController::class, 'index'])->name('dashboard');
         Route::post('change-password', [EmpAuthController::class, 'changePassword'])->name('change-password');
 

@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('payslips', function (Blueprint $table) {
             $table->id();
-            $table->string('payslip_code')->unique();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->string('payslip_code');
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
             $table->unsignedSmallInteger('month'); // 1-12
             $table->unsignedSmallInteger('year');
@@ -53,6 +54,7 @@ return new class extends Migration
             $table->foreignId('generated_by')->nullable()->constrained('admins')->nullOnDelete();
             $table->timestamps();
 
+            $table->unique(['business_id', 'payslip_code']);
             $table->unique(['employee_id', 'month', 'year']);
             $table->index(['year', 'month']);
             $table->index('status');

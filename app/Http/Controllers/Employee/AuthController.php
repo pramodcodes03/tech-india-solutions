@@ -39,9 +39,6 @@ class AuthController extends Controller
             $request->session()->regenerate();
             $employee->update(['last_login_at' => now()]);
 
-            // Only honour "intended" if it's an employee-area URL. Otherwise a stale
-            // /admin/* intended URL (left from an earlier guest visit) would bounce the
-            // employee over to the admin panel after login.
             $intended = $request->session()->pull('url.intended');
             $target = ($intended && str_contains($intended, '/employee'))
                 ? $intended
