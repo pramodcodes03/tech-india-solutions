@@ -27,7 +27,8 @@ class AttendanceController extends Controller
             ->when($request->search, fn ($q, $s) => $q->whereHas('employee', fn ($e) => $e->where(function ($q) use ($s) {
                 $q->where('first_name', 'like', "%{$s}%")
                     ->orWhere('last_name', 'like', "%{$s}%")
-                    ->orWhere('employee_code', 'like', "%{$s}%");
+                    ->orWhere('employee_code', 'like', "%{$s}%")
+                    ->orWhere('card_no', 'like', "%{$s}%");
             })))
             ->orderBy('employee_id')
             ->paginate(30)
@@ -50,7 +51,8 @@ class AttendanceController extends Controller
             ->when($request->search, fn ($q, $s) => $q->where(function ($q) use ($s) {
                 $q->where('first_name', 'like', "%{$s}%")
                     ->orWhere('last_name', 'like', "%{$s}%")
-                    ->orWhere('employee_code', 'like', "%{$s}%");
+                    ->orWhere('employee_code', 'like', "%{$s}%")
+                    ->orWhere('card_no', 'like', "%{$s}%");
             }))
             ->orderBy('first_name')
             ->paginate(20)
@@ -102,15 +104,29 @@ class AttendanceController extends Controller
     public function import(Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('attendance.import'), 403);
-        $request->validate(['csv' => ['required', 'file', 'mimes:csv,txt']]);
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt,xls,xlsx'],
+            'report_date' => ['nullable', 'date'],
+        ]);
 
-        $result = $this->service->importBiometricCsv($request->file('csv'));
+        $file = $request->file('file');
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        $result = match ($extension) {
+            'xls', 'xlsx' => $this->service->importDailyPerformance($file, $request->input('report_date')),
+            default => $this->service->importBiometricCsv($file),
+        };
 
         $msg = "Imported {$result['imported']} records, skipped {$result['skipped']}.";
+        if (! empty($result['date'] ?? null)) {
+            $msg .= " Date: {$result['date']}.";
+        }
         if (! empty($result['errors'])) {
             return back()->with('error', $msg.' First errors: '.implode(' | ', array_slice($result['errors'], 0, 3)));
         }
 
-        return redirect()->route('admin.hr.attendance.index')->with('success', $msg);
+        $redirectParams = ! empty($result['date'] ?? null) ? ['date' => $result['date']] : [];
+
+        return redirect()->route('admin.hr.attendance.index', $redirectParams)->with('success', $msg);
     }
 }

@@ -17,6 +17,9 @@ class Attendance extends Model
         'employee_id', 'date', 'check_in', 'check_out',
         'hours_worked', 'status', 'source', 'biometric_ref',
         'remarks', 'created_by',
+        'shift', 'start_time',
+        'late_hours', 'early_hours', 'over_time',
+        'in_temp', 'out_temp', 'card_no',
     ];
 
     protected function casts(): array
@@ -24,6 +27,8 @@ class Attendance extends Model
         return [
             'date' => 'date',
             'hours_worked' => 'decimal:2',
+            'in_temp' => 'decimal:2',
+            'out_temp' => 'decimal:2',
         ];
     }
 

@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AttendanceService
 {
@@ -18,7 +19,7 @@ class AttendanceService
     public function upsert(array $data): Attendance
     {
         $data['created_by'] = Auth::guard('admin')->id();
-        $data['hours_worked'] = $this->calcHours($data['check_in'] ?? null, $data['check_out'] ?? null);
+        $data['hours_worked'] = $data['hours_worked'] ?? $this->calcHours($data['check_in'] ?? null, $data['check_out'] ?? null);
         $data['status'] = $data['status'] ?? $this->deriveStatus($data);
 
         return Attendance::updateOrCreate(
@@ -30,7 +31,7 @@ class AttendanceService
     /**
      * Import biometric CSV.
      * Expected columns: employee_code, date (Y-m-d), check_in (H:i[:s]), check_out (H:i[:s])
-     * Also tolerates: Employee ID / Date / In / Out / In Time / Out Time
+     * Also tolerates: Employee ID / Date / In / Out / In Time / Out Time / Card No / CardNo
      *
      * @return array{imported:int, skipped:int, errors:array<int,string>}
      */
@@ -56,17 +57,19 @@ class AttendanceService
         $map = array_flip($header);
 
         $codeKey = $map['employee_code'] ?? $map['employee_id'] ?? $map['emp_code'] ?? null;
+        $cardKey = $map['card_no'] ?? $map['cardno'] ?? $map['card_number'] ?? null;
         $dateKey = $map['date'] ?? null;
-        $inKey = $map['check_in'] ?? $map['in'] ?? $map['in_time'] ?? null;
-        $outKey = $map['check_out'] ?? $map['out'] ?? $map['out_time'] ?? null;
+        $inKey = $map['check_in'] ?? $map['in'] ?? $map['in_time'] ?? $map['arr_time'] ?? null;
+        $outKey = $map['check_out'] ?? $map['out'] ?? $map['out_time'] ?? $map['dept_time'] ?? null;
 
-        if ($codeKey === null || $dateKey === null) {
+        if (($codeKey === null && $cardKey === null) || $dateKey === null) {
             fclose($handle);
 
-            return ['imported' => 0, 'skipped' => 0, 'errors' => ['CSV must include employee_code and date columns.']];
+            return ['imported' => 0, 'skipped' => 0, 'errors' => ['CSV must include employee_code (or card_no) and date columns.']];
         }
 
-        $employeeCache = [];
+        $codeCache = [];
+        $cardCache = [];
         $row = 1;
 
         DB::beginTransaction();
@@ -77,25 +80,23 @@ class AttendanceService
                     continue;
                 }
 
-                $code = trim((string) ($cols[$codeKey] ?? ''));
+                $code = $codeKey !== null ? trim((string) ($cols[$codeKey] ?? '')) : '';
+                $card = $cardKey !== null ? trim((string) ($cols[$cardKey] ?? '')) : '';
                 $date = trim((string) ($cols[$dateKey] ?? ''));
                 $in = $inKey !== null ? trim((string) ($cols[$inKey] ?? '')) : null;
                 $out = $outKey !== null ? trim((string) ($cols[$outKey] ?? '')) : null;
 
-                if ($code === '' || $date === '') {
+                if (($code === '' && $card === '') || $date === '') {
                     $skipped++;
                     continue;
                 }
 
-                $employeeId = $employeeCache[$code] ?? null;
-                if ($employeeId === null) {
-                    $employeeId = Employee::where('employee_code', $code)->value('id');
-                    $employeeCache[$code] = $employeeId;
-                }
+                $employeeId = $this->resolveEmployeeId($code, $card, $codeCache, $cardCache);
 
                 if (! $employeeId) {
                     $skipped++;
-                    $errors[] = "Row {$row}: employee_code '{$code}' not found";
+                    $label = $code !== '' ? "employee_code '{$code}'" : "card_no '{$card}'";
+                    $errors[] = "Row {$row}: {$label} not found";
                     continue;
                 }
 
@@ -112,6 +113,7 @@ class AttendanceService
                     'date' => $parsedDate,
                     'check_in' => $in ?: null,
                     'check_out' => $out ?: null,
+                    'card_no' => $card !== '' ? $card : null,
                     'source' => 'biometric_csv',
                 ]);
 
@@ -126,6 +128,134 @@ class AttendanceService
         }
 
         return ['imported' => $imported, 'skipped' => $skipped, 'errors' => $errors];
+    }
+
+    /**
+     * Import a "Daily Performance" .xls / .xlsx exported from a biometric system.
+     *
+     * The sheet layout is non-tabular:
+     *  - Row with "Report Date : DD-MM-YYYY" carries the attendance date.
+     *  - "Branch : ..." and "Department : ..." rows split groups (skipped).
+     *  - Data rows have a numeric Sr.No in col index 3, with these fixed columns:
+     *      6=Emp.Code  7=CardNo  9=Name  11=Designation  13=Shift
+     *      14=StartTime  15=Arr.Time  16=LateHrs  17=Dept.Time
+     *      20=EarlyHrs  21=WrkHrs  22=O.Time  24=Status (P/A)
+     *      26=InTemp  27=OutTemp  28=Remark
+     *
+     * Employees are matched by `employee_code` first, then `card_no` as a fallback.
+     * If $forceDate is provided it overrides the in-file Report Date.
+     *
+     * @return array{imported:int, skipped:int, errors:array<int,string>, date:?string}
+     */
+    public function importDailyPerformance(UploadedFile $file, ?string $forceDate = null): array
+    {
+        $imported = 0;
+        $skipped = 0;
+        $errors = [];
+
+        try {
+            $rows = Excel::toArray(null, $file)[0] ?? [];
+        } catch (\Throwable $e) {
+            return ['imported' => 0, 'skipped' => 0, 'errors' => ['Could not read spreadsheet: '.$e->getMessage()], 'date' => null];
+        }
+
+        if (empty($rows)) {
+            return ['imported' => 0, 'skipped' => 0, 'errors' => ['Spreadsheet is empty.'], 'date' => null];
+        }
+
+        $reportDate = $forceDate ? Carbon::parse($forceDate)->toDateString() : $this->extractReportDate($rows);
+        if (! $reportDate) {
+            return ['imported' => 0, 'skipped' => 0, 'errors' => ['Could not determine the attendance date. Please pick a date in the form.'], 'date' => null];
+        }
+
+        $codeCache = [];
+        $cardCache = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($rows as $i => $row) {
+                $rowNumber = $i + 1;
+                $sr = $row[3] ?? null;
+
+                // Only process rows whose Sr.No (col 3) is numeric -> actual employee data row.
+                if (! is_numeric($sr)) {
+                    continue;
+                }
+
+                $code = isset($row[6]) ? trim((string) $row[6]) : '';
+                $card = isset($row[7]) ? trim((string) $row[7]) : '';
+                $shift = isset($row[13]) ? trim((string) $row[13]) : null;
+                $startTime = $this->normalizeTime($row[14] ?? null);
+                $checkIn = $this->normalizeTime($row[15] ?? null);
+                $lateHours = $this->normalizeDuration($row[16] ?? null);
+                $checkOut = $this->normalizeTime($row[17] ?? null);
+                $earlyHours = $this->normalizeDuration($row[20] ?? null);
+                $wrkHours = $this->normalizeDuration($row[21] ?? null);
+                $overTime = $this->normalizeDuration($row[22] ?? null);
+                $statusRaw = isset($row[24]) ? strtoupper(trim((string) $row[24])) : '';
+                $inTemp = is_numeric($row[26] ?? null) ? (float) $row[26] : null;
+                $outTemp = is_numeric($row[27] ?? null) ? (float) $row[27] : null;
+                $remark = isset($row[28]) ? trim((string) $row[28]) : null;
+
+                if ($code === '' && $card === '') {
+                    $skipped++;
+                    $errors[] = "Row {$rowNumber}: missing both Emp.Code and CardNo";
+                    continue;
+                }
+
+                $employeeId = $this->resolveEmployeeId($code, $card, $codeCache, $cardCache);
+                if (! $employeeId) {
+                    $skipped++;
+                    $label = $code !== '' ? "Emp.Code '{$code}'" : "CardNo '{$card}'";
+                    $errors[] = "Row {$rowNumber}: {$label} not found";
+                    continue;
+                }
+
+                $status = match ($statusRaw) {
+                    'P' => 'present',
+                    'A' => 'absent',
+                    'L', 'OL' => 'on_leave',
+                    'H' => 'holiday',
+                    'WO', 'W' => 'weekend',
+                    'HD' => 'half_day',
+                    default => $checkIn ? 'present' : 'absent',
+                };
+
+                $hoursWorked = $this->durationToHours($wrkHours);
+                if ($hoursWorked === 0.0) {
+                    $hoursWorked = $this->calcHours($checkIn, $checkOut);
+                }
+
+                Attendance::updateOrCreate(
+                    ['employee_id' => $employeeId, 'date' => $reportDate],
+                    [
+                        'check_in' => $checkIn,
+                        'check_out' => $checkOut,
+                        'hours_worked' => $hoursWorked,
+                        'status' => $status,
+                        'source' => 'biometric_xls',
+                        'shift' => $shift !== '' ? $shift : null,
+                        'start_time' => $startTime,
+                        'late_hours' => $lateHours,
+                        'early_hours' => $earlyHours,
+                        'over_time' => $overTime,
+                        'in_temp' => $inTemp,
+                        'out_temp' => $outTemp,
+                        'card_no' => $card !== '' ? $card : null,
+                        'remarks' => $remark !== '' ? $remark : null,
+                        'created_by' => Auth::guard('admin')->id(),
+                    ]
+                );
+
+                $imported++;
+            }
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            $errors[] = $e->getMessage();
+        }
+
+        return ['imported' => $imported, 'skipped' => $skipped, 'errors' => $errors, 'date' => $reportDate];
     }
 
     /**
@@ -287,5 +417,112 @@ class AttendanceService
     private function normalizeHeader(string $h): string
     {
         return strtolower(trim(preg_replace('/[^a-z0-9]+/i', '_', $h)));
+    }
+
+    private function resolveEmployeeId(string $code, string $card, array &$codeCache, array &$cardCache): ?int
+    {
+        if ($code !== '') {
+            if (! array_key_exists($code, $codeCache)) {
+                $codeCache[$code] = Employee::where('employee_code', $code)->value('id');
+            }
+            if ($codeCache[$code]) {
+                return $codeCache[$code];
+            }
+        }
+
+        if ($card !== '') {
+            if (! array_key_exists($card, $cardCache)) {
+                $cardCache[$card] = Employee::where('card_no', $card)->value('id');
+            }
+            if ($cardCache[$card]) {
+                return $cardCache[$card];
+            }
+        }
+
+        return null;
+    }
+
+    private function extractReportDate(array $rows): ?string
+    {
+        foreach ($rows as $row) {
+            foreach ($row as $cell) {
+                if (! is_string($cell)) {
+                    continue;
+                }
+                if (preg_match('/Report\s*Date\s*[:\-]\s*(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/i', $cell, $m)) {
+                    try {
+                        return Carbon::parse(str_replace('/', '-', $m[1]))->toDateString();
+                    } catch (\Throwable) {
+                        return null;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeTime(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        // Excel may return a fraction-of-day for time cells.
+        if (is_numeric($value)) {
+            $totalSeconds = (int) round(((float) $value) * 86400);
+            $h = intdiv($totalSeconds, 3600);
+            $m = intdiv($totalSeconds % 3600, 60);
+            $s = $totalSeconds % 60;
+
+            return sprintf('%02d:%02d:%02d', $h, $m, $s);
+        }
+
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $value, $m)) {
+            return sprintf('%02d:%02d:%02d', (int) $m[1], (int) $m[2], isset($m[3]) ? (int) $m[3] : 0);
+        }
+
+        try {
+            return Carbon::parse($value)->format('H:i:s');
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Keep "H:MM" durations (late/early/work/overtime) as printed in the source.
+     */
+    private function normalizeDuration(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_numeric($value)) {
+            $totalMinutes = (int) round(((float) $value) * 1440);
+            $h = intdiv($totalMinutes, 60);
+            $m = $totalMinutes % 60;
+
+            return sprintf('%d:%02d', $h, $m);
+        }
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
+    private function durationToHours(?string $duration): float
+    {
+        if (! $duration) {
+            return 0.0;
+        }
+        if (! preg_match('/^(\d{1,3}):(\d{2})/', $duration, $m)) {
+            return 0.0;
+        }
+
+        return round((int) $m[1] + ((int) $m[2]) / 60, 2);
     }
 }
