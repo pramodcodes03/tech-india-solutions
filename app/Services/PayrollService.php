@@ -51,19 +51,87 @@ class PayrollService
         ];
     }
 
+    /**
+     * HR submits a salary structure proposal. The existing approved structure
+     * remains in effect (is_current=true) until the new one is approved by
+     * Admin/Super Admin. We do NOT touch the existing row here.
+     *
+     * The new row is created with status=pending and is_current=false.
+     */
     public function saveStructure(Employee $employee, array $data): SalaryStructure
     {
         return DB::transaction(function () use ($employee, $data) {
+            // Cancel any prior pending submissions for this employee — only
+            // one in-flight proposal at a time, otherwise the queue gets messy.
             SalaryStructure::where('employee_id', $employee->id)
-                ->where('is_current', true)
-                ->update(['is_current' => false, 'effective_to' => Carbon::parse($data['effective_from'])->subDay()]);
+                ->where('status', SalaryStructure::STATUS_PENDING)
+                ->update([
+                    'status' => SalaryStructure::STATUS_REJECTED,
+                    'reviewed_at' => now(),
+                    'review_notes' => 'Superseded by a newer submission.',
+                ]);
 
             $data['employee_id'] = $employee->id;
-            $data['is_current'] = true;
+            $data['is_current'] = false;
+            $data['status'] = SalaryStructure::STATUS_PENDING;
+            $data['submitted_by'] = Auth::guard('admin')->id();
+            $data['submitted_at'] = now();
             $data['created_by'] = Auth::guard('admin')->id();
 
             return SalaryStructure::create($data);
         });
+    }
+
+    /**
+     * Approve a pending structure: mark it approved + current, and end-date
+     * the previously-approved current structure for the employee.
+     */
+    public function approveStructure(SalaryStructure $structure, ?string $notes = null): SalaryStructure
+    {
+        if (! $structure->isPending()) {
+            throw new \RuntimeException('Only pending salary structures can be approved.');
+        }
+
+        return DB::transaction(function () use ($structure, $notes) {
+            // End-date the previously-current structure.
+            SalaryStructure::where('employee_id', $structure->employee_id)
+                ->where('id', '!=', $structure->id)
+                ->where('is_current', true)
+                ->update([
+                    'is_current' => false,
+                    'effective_to' => Carbon::parse($structure->effective_from)->subDay(),
+                ]);
+
+            $structure->update([
+                'status' => SalaryStructure::STATUS_APPROVED,
+                'is_current' => true,
+                'reviewed_by' => Auth::guard('admin')->id(),
+                'reviewed_at' => now(),
+                'review_notes' => $notes,
+            ]);
+
+            return $structure->fresh();
+        });
+    }
+
+    /**
+     * Reject a pending structure. The existing current structure remains in effect.
+     */
+    public function rejectStructure(SalaryStructure $structure, string $notes): SalaryStructure
+    {
+        if (! $structure->isPending()) {
+            throw new \RuntimeException('Only pending salary structures can be rejected.');
+        }
+
+        $structure->update([
+            'status' => SalaryStructure::STATUS_REJECTED,
+            'is_current' => false,
+            'reviewed_by' => Auth::guard('admin')->id(),
+            'reviewed_at' => now(),
+            'review_notes' => $notes,
+        ]);
+
+        return $structure->fresh();
     }
 
     public function generatePayslipCode(): string

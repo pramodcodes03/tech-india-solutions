@@ -51,7 +51,12 @@ class WarningController extends Controller
             'action_required' => ['nullable', 'string'],
             'issued_on' => ['required', 'date'],
         ]);
-        $this->service->create($data);
+        $warning = $this->service->create($data);
+
+        \App\Notifications\NotificationDispatcher::fire(
+            'warning.issued',
+            $warning->loadMissing('employee.reportingManager'),
+        );
 
         return redirect()->route('admin.hr.warnings.index')->with('success', 'Warning issued.');
     }
@@ -68,6 +73,11 @@ class WarningController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('warnings.edit'), 403);
         $warning->update(['status' => 'withdrawn']);
+
+        \App\Notifications\NotificationDispatcher::fire(
+            'warning.withdrawn',
+            $warning->loadMissing('employee'),
+        );
 
         return back()->with('success', 'Warning withdrawn.');
     }

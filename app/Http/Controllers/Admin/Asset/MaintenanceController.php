@@ -85,6 +85,19 @@ class MaintenanceController extends Controller
             }
         });
 
+        $event = $log->status === 'completed'
+            ? 'asset.maintenance_completed'
+            : 'asset.maintenance_scheduled';
+
+        \App\Notifications\NotificationDispatcher::fire(
+            $event,
+            $log->loadMissing('asset'),
+            [
+                'asset_code' => $log->asset->asset_code ?? null,
+                'asset_name' => $log->asset->name ?? null,
+            ],
+        );
+
         return redirect()->route('admin.assets.maintenance.index')->with('success', 'Maintenance logged.');
     }
 
@@ -113,7 +126,20 @@ class MaintenanceController extends Controller
         $data = $this->validateData($request);
         $data['total_cost'] = (float) ($data['parts_cost'] ?? 0) + (float) ($data['labour_cost'] ?? 0);
         $data['updated_by'] = Auth::guard('admin')->id();
+        $oldStatus = $maintenance->status;
         $maintenance->update($data);
+
+        // Fire only on the transition into 'completed' (not on every edit).
+        if ($oldStatus !== 'completed' && ($data['status'] ?? null) === 'completed') {
+            \App\Notifications\NotificationDispatcher::fire(
+                'asset.maintenance_completed',
+                $maintenance->loadMissing('asset'),
+                [
+                    'asset_code' => $maintenance->asset->asset_code ?? null,
+                    'asset_name' => $maintenance->asset->name ?? null,
+                ],
+            );
+        }
 
         return redirect()->route('admin.assets.maintenance.show', $maintenance)->with('success', 'Maintenance log updated.');
     }

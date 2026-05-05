@@ -84,7 +84,11 @@ class PaymentController extends Controller
         $invoice = Invoice::findOrFail($data['invoice_id']);
         $data['customer_id'] = $invoice->customer_id;
 
-        $this->paymentService->create($data);
+        $payment = $this->paymentService->create($data);
+
+        \App\Notifications\NotificationDispatcher::fire('payment.received', $payment->loadMissing('customer'), [
+            'invoice_number' => $invoice->invoice_number,
+        ]);
 
         return redirect()->route('admin.payments.index')->with('success', 'Payment recorded successfully.');
     }

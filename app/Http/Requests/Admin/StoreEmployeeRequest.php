@@ -21,7 +21,15 @@ class StoreEmployeeRequest extends FormRequest
 
     public function rules(): array
     {
+        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
+
         return [
+            // Optional on create. If left blank, EmployeeService auto-generates.
+            // If provided, must be unique within this business.
+            'employee_code' => [
+                'nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9\-_]+$/',
+                Rule::unique('employees', 'employee_code')->where('business_id', $businessId),
+            ],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
             'email' => ['required', 'email', Rule::unique('employees', 'email')],

@@ -1,5 +1,5 @@
-<x-layout.admin title="Edit Expense">
-    <x-admin.breadcrumb :items="[['label' => 'Expenses', 'url' => route('admin.expenses.index')], ['label' => $expense->expense_code]]" />
+<x-layout.admin title="Edit Payment">
+    <x-admin.breadcrumb :items="[['label' => 'Routine Payment Tracker', 'url' => route('admin.expenses.index')], ['label' => $expense->expense_code]]" />
 
     <h5 class="text-lg font-semibold mb-4">Edit: {{ $expense->expense_code }}</h5>
     <form method="POST" action="{{ route('admin.expenses.update', $expense) }}" enctype="multipart/form-data">

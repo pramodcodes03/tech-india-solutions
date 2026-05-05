@@ -57,7 +57,11 @@ class LeaveController extends Controller
         $data['employee_id'] = $employee->id;
 
         try {
-            $this->service->submit($data);
+            $leaveRequest = $this->service->submit($data);
+            \App\Notifications\NotificationDispatcher::fire(
+                'leave.applied',
+                $leaveRequest->loadMissing('employee.reportingManager', 'leaveType'),
+            );
         } catch (\RuntimeException $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }
@@ -71,6 +75,11 @@ class LeaveController extends Controller
         abort_unless($leaveRequest->employee_id === $employee->id, 403);
 
         $this->service->cancel($leaveRequest);
+
+        \App\Notifications\NotificationDispatcher::fire(
+            'leave.cancelled',
+            $leaveRequest->loadMissing('employee.reportingManager', 'leaveType'),
+        );
 
         return back()->with('success', 'Leave request cancelled.');
     }

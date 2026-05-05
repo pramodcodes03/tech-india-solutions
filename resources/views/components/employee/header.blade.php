@@ -1,6 +1,24 @@
-@php $emp = Auth::guard('employee')->user(); @endphp
+@php
+    $emp = Auth::guard('employee')->user();
+    $empBusiness = $emp?->business;
+@endphp
 <header class="sticky top-0 z-40 bg-white dark:bg-[#0e1726] shadow">
-    <div class="flex items-center justify-between px-4 py-2">
+    <div class="relative flex items-center justify-between px-4 py-2">
+        @if($empBusiness)
+            <div class="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none">
+                <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/15 dark:bg-white/5 dark:border-white/10 backdrop-blur-sm shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+                    <svg class="w-4 h-4 text-primary dark:text-white-light shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 21h18"/>
+                        <path d="M5 21V7l7-4 7 4v14"/>
+                        <path d="M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/>
+                    </svg>
+                    <span class="text-sm lg:text-[15px] font-bold text-primary dark:text-white tracking-tight truncate">
+                        {{ $empBusiness->name }}
+                    </span>
+                </div>
+            </div>
+        @endif
         <button type="button" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-dark-light lg:hidden" @click="$store.app.toggleSidebar()">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>

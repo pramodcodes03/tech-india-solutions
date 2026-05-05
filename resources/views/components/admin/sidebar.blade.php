@@ -156,6 +156,20 @@
                 </li>
                 @endcan
 
+                {{-- Email Notifications --}}
+                @can('settings.view')
+                <li class="menu nav-item">
+                    <a href="{{ route('admin.notifications.index') }}" class="nav-link group">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 7l9 6 9-6 M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7 M3 7a2 2 0 012-2h14a2 2 0 012 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Email Notifications</span>
+                        </div>
+                    </a>
+                </li>
+                @endcan
+
                 {{-- Locations (States & Cities) --}}
                 <li class="menu nav-item">
                     <button type="button" class="nav-link group w-full"
@@ -388,7 +402,7 @@
                             <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                             </svg>
-                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Expenses</span>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Routine Payment Tracker</span>
                         </div>
                         <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'expenses' }">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -397,8 +411,8 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'expenses'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.expenses.index') }}">All Expenses</a></li>
-                        @can('expenses.create')<li><a href="{{ route('admin.expenses.create') }}">Add Expense</a></li>@endcan
+                        <li><a href="{{ route('admin.expenses.index') }}">All Payments</a></li>
+                        @can('expenses.create')<li><a href="{{ route('admin.expenses.create') }}">Add Payment</a></li>@endcan
                         @can('expense_categories.view')<li><a href="{{ route('admin.expense-categories.index') }}">Categories</a></li>@endcan
                     </ul>
                 </li>
@@ -673,6 +687,30 @@
                     <ul x-collapse x-show="activeDropdown === 'hr-payroll'" class="sub-menu text-gray-500">
                         <li><a href="{{ route('admin.hr.payroll.index') }}">Payslips</a></li>
                         @can('payroll.generate')<li><a href="{{ route('admin.hr.payroll.generate-form') }}">Generate Payroll</a></li>@endcan
+                        @if(\Illuminate\Support\Facades\Auth::guard('admin')->user()?->isSuperAdmin() || \Illuminate\Support\Facades\Auth::guard('admin')->user()?->hasAnyRole(['Admin','Business Admin']))
+                            @php
+                                $pendingCount = \App\Models\SalaryStructure::where('status', 'pending')->count();
+                            @endphp
+                            <li>
+                                <a href="{{ route('admin.hr.payroll.approvals.index') }}" class="flex items-center justify-between">
+                                    <span>Salary Approvals</span>
+                                    @if($pendingCount > 0)
+                                        <span class="badge bg-warning text-[10px]">{{ $pendingCount }}</span>
+                                    @endif
+                                </a>
+                            </li>
+                            @php
+                                $pendingBankCount = \App\Models\BankDetailEditRequest::where('status', 'pending')->count();
+                            @endphp
+                            <li>
+                                <a href="{{ route('admin.hr.bank-edit-requests.index') }}" class="flex items-center justify-between">
+                                    <span>Bank Change Requests</span>
+                                    @if($pendingBankCount > 0)
+                                        <span class="badge bg-warning text-[10px]">{{ $pendingBankCount }}</span>
+                                    @endif
+                                </a>
+                            </li>
+                        @endif
                     </ul>
                 </li>
                 @endcan

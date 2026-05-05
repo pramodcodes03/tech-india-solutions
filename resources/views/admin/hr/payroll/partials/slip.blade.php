@@ -54,7 +54,7 @@
                 @foreach([
                     ['PF (Employee)', $p->pf],
                     ['ESI', $p->esi],
-                    ['Professional Tax', $p->professional_tax],
+                    ['LWF / Professional Tax', $p->professional_tax],
                     ['TDS', $p->tds],
                     ['LOP Deduction', $p->lop_deduction],
                     ['Penalty Deduction', $p->penalty_deduction],

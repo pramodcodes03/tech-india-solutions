@@ -1,8 +1,8 @@
-<x-layout.admin title="Expense Categories">
-    <x-admin.breadcrumb :items="[['label' => 'Expenses', 'url' => route('admin.expenses.index')], ['label' => 'Categories']]" />
+<x-layout.admin title="Payment Categories">
+    <x-admin.breadcrumb :items="[['label' => 'Routine Payment Tracker', 'url' => route('admin.expenses.index')], ['label' => 'Categories']]" />
 
     <div class="flex items-center justify-between gap-4 mb-5">
-        <h5 class="text-lg font-semibold dark:text-white-light">Expense Categories</h5>
+        <h5 class="text-lg font-semibold dark:text-white-light">Payment Categories</h5>
         @can('expense_categories.create')
             <a href="{{ route('admin.expense-categories.create') }}" class="btn btn-primary gap-2">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -23,7 +23,7 @@
                         <th class="px-4 py-2">Name</th>
                         <th class="px-4 py-2">Slug</th>
                         <th class="px-4 py-2">Subcategories</th>
-                        <th class="px-4 py-2">Expenses</th>
+                        <th class="px-4 py-2">Payments</th>
                         <th class="px-4 py-2">Status</th>
                         <th class="px-4 py-2 !text-center">Actions</th>
                     </tr>

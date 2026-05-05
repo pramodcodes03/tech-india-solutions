@@ -16,6 +16,15 @@ class StoreExpenseRequest extends FormRequest
         return $this->user('admin')?->can('expenses.create') ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        // Coerce empty string / "null" string to actual null so the
+        // 'nullable' rule applies before 'integer' kicks in.
+        if (in_array($this->input('expense_subcategory_id'), ['', 'null', null], true)) {
+            $this->merge(['expense_subcategory_id' => null]);
+        }
+    }
+
     public function rules(): array
     {
         $businessId = app(CurrentBusiness::class)->id();

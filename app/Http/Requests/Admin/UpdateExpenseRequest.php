@@ -14,6 +14,13 @@ class UpdateExpenseRequest extends FormRequest
         return $this->user('admin')?->can('expenses.edit') ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (in_array($this->input('expense_subcategory_id'), ['', 'null', null], true)) {
+            $this->merge(['expense_subcategory_id' => null]);
+        }
+    }
+
     public function rules(): array
     {
         $businessId = app(CurrentBusiness::class)->id();

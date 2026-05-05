@@ -12,8 +12,8 @@ class BusinessSeeder extends Seeder
         $businesses = [
             [
                 'slug' => 'altechnics',
-                'name' => 'Apparel & Leather Technics',
-                'legal_name' => 'Apparel & Leather Technics Pvt. Ltd.',
+                'name' => 'Tech India Solutions Pvt Ltd',
+                'legal_name' => 'Tech India Solutions Pvt Ltd',
                 'gst' => '33AAACA1234F1Z5',
                 'pan' => 'AAACA1234F',
                 'address' => 'No. 12, Industrial Estate, Ambattur',

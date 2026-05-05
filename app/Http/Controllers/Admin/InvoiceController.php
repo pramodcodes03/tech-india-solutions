@@ -73,7 +73,9 @@ class InvoiceController extends Controller
         $data = $request->except('items');
         $items = $request->input('items', []);
 
-        $this->invoiceService->create($data, $items);
+        $invoice = $this->invoiceService->create($data, $items);
+
+        \App\Notifications\NotificationDispatcher::fire('invoice.created', $invoice->loadMissing('customer'));
 
         return redirect()->route('admin.invoices.index')->with('success', 'Invoice created successfully.');
     }
@@ -121,7 +123,8 @@ class InvoiceController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('invoices.delete'), 403);
 
-        $invoice = Invoice::findOrFail($id);
+        $invoice = Invoice::with('customer')->findOrFail($id);
+        \App\Notifications\NotificationDispatcher::fire('invoice.cancelled', $invoice);
         $this->invoiceService->delete($invoice);
 
         if ($request->ajax()) {

@@ -5,7 +5,10 @@ use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BusinessController;
 use App\Http\Controllers\Admin\ExpenseCategoryController;
 use App\Http\Controllers\Admin\ExpenseController;
+use App\Http\Controllers\Admin\InboxController;
+use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\Hr\AppraisalController as HrAppraisalController;
+use App\Http\Controllers\Admin\Hr\BankEditRequestController as HrBankEditRequestController;
 use App\Http\Controllers\Admin\Hr\DashboardController as HrDashboardController;
 use App\Http\Controllers\Admin\Hr\AppraisalCycleController as HrAppraisalCycleController;
 use App\Http\Controllers\Admin\Hr\AttendanceController as HrAttendanceController;
@@ -181,8 +184,21 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('expense-categories/{expense_category}/subcategories/{subcategory}', [ExpenseCategoryController::class, 'destroySubcategory'])->name('expense-categories.subcategories.destroy');
 
         Route::get('expense-categories/{expense_category}/subcategories-json', [ExpenseController::class, 'subcategories'])->name('expenses.subcategories.json');
+        Route::get('expenses/{expense}/pdf', [ExpenseController::class, 'pdf'])->name('expenses.pdf');
         Route::resource('expenses', ExpenseController::class);
         Route::post('expenses/{expense}/mark-paid', [ExpenseController::class, 'markPaid'])->name('expenses.mark-paid');
+
+        // Email Notification Settings
+        Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::put('notifications', [NotificationController::class, 'update'])->name('notifications.update');
+        Route::post('notifications/test', [NotificationController::class, 'test'])->name('notifications.test');
+        Route::get('notifications/logs', [NotificationController::class, 'logs'])->name('notifications.logs');
+
+        // In-app notification inbox
+        Route::get('inbox', [InboxController::class, 'index'])->name('inbox.index');
+        Route::get('inbox/open/{adminNotification}', [InboxController::class, 'open'])->name('inbox.open');
+        Route::post('inbox/mark-all-read', [InboxController::class, 'markAllRead'])->name('inbox.mark-all-read');
+        Route::get('inbox/unread-count', [InboxController::class, 'unreadCount'])->name('inbox.unread-count');
 
         // Service Ticket Management
         Route::resource('service-categories', ServiceCategoryController::class)->except(['show']);
@@ -256,6 +272,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('payroll/preview-structure', [HrPayrollController::class, 'previewStructure'])->name('payroll.preview-structure');
             Route::get('employees/{employee}/salary', [HrPayrollController::class, 'salaryForm'])->name('salary.form');
             Route::post('employees/{employee}/salary', [HrPayrollController::class, 'salaryStore'])->name('salary.store');
+
+            // Salary structure approvals (Admin / Super Admin only)
+            Route::get('payroll/approvals', [HrPayrollController::class, 'pendingApprovals'])->name('payroll.approvals.index');
+            Route::post('payroll/approvals/{salaryStructure}/approve', [HrPayrollController::class, 'approveStructure'])->name('payroll.approvals.approve');
+            Route::post('payroll/approvals/{salaryStructure}/reject', [HrPayrollController::class, 'rejectStructure'])->name('payroll.approvals.reject');
+
+            // Bank-detail edit requests
+            Route::post('employees/{employee}/bank-edit-requests', [HrBankEditRequestController::class, 'store'])->name('employees.bank-edit-requests.store');
+            Route::get('bank-edit-requests', [HrBankEditRequestController::class, 'index'])->name('bank-edit-requests.index');
+            Route::post('bank-edit-requests/{bankEditRequest}/approve', [HrBankEditRequestController::class, 'approve'])->name('bank-edit-requests.approve');
+            Route::post('bank-edit-requests/{bankEditRequest}/reject', [HrBankEditRequestController::class, 'reject'])->name('bank-edit-requests.reject');
 
             // Simple per-employee increment / appraisal
             Route::get('employees/{employee}/increments/create', [HrIncrementController::class, 'create'])->name('employees.increments.create');

@@ -3,10 +3,14 @@
 namespace App\Providers;
 
 use App\Auth\TenantAwareUserProvider;
+use App\Listeners\MarkNotificationLogSent;
 use App\Support\Tenancy\CurrentBusiness;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -53,5 +57,9 @@ class AppServiceProvider extends ServiceProvider
         Blade::directive('formatDateTime', function ($expression) {
             return "<?php echo $expression ? \Carbon\Carbon::parse($expression)->format('d-m-Y H:i') : '-'; ?>";
         });
+
+        // Notification log: mark rows 'sent' once mail is delivered.
+        Event::listen(MessageSending::class, [MarkNotificationLogSent::class, 'handleSending']);
+        Event::listen(MessageSent::class, [MarkNotificationLogSent::class, 'handleSent']);
     }
 }

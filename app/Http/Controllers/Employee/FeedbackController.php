@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\DepartmentFeedback;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class FeedbackController extends Controller
 {
@@ -23,16 +24,40 @@ class FeedbackController extends Controller
     public function store(Request $request)
     {
         $employee = Auth::guard('employee')->user();
-        $data = $request->validate([
+
+        // Validate the 10 parameter scores as a flat dictionary keyed by the
+        // parameter slug. 0 means "Not applicable" — still acceptable.
+        $paramKeys = array_keys(DepartmentFeedback::PARAMETERS);
+        $rules = [
             'department_id' => ['required', 'exists:departments,id'],
-            'rating' => ['required', 'integer', 'between:1,5'],
             'feedback' => ['required', 'string', 'min:10'],
             'is_anonymous' => ['nullable', 'boolean'],
-        ]);
-        $data['employee_id'] = $employee->id;
-        $data['is_anonymous'] = (bool) ($data['is_anonymous'] ?? false);
+            'parameter_ratings' => ['required', 'array'],
+        ];
+        foreach ($paramKeys as $key) {
+            $rules['parameter_ratings.'.$key] = ['required', 'integer', 'between:0,5'];
+        }
+        $data = $request->validate($rules);
 
-        DepartmentFeedback::create($data);
+        $params = $data['parameter_ratings'];
+        $overall = DepartmentFeedback::computeOverall($params);
+
+        $feedback = DepartmentFeedback::create([
+            'employee_id' => $employee->id,
+            'department_id' => $data['department_id'],
+            'parameter_ratings' => $params,
+            'overall_rating' => $overall,
+            // Keep the legacy `rating` column populated with the rounded overall
+            // so old reports that reference `rating` still see a sensible value.
+            'rating' => $overall ? (int) round($overall) : 3,
+            'feedback' => $data['feedback'],
+            'is_anonymous' => (bool) ($data['is_anonymous'] ?? false),
+        ]);
+
+        \App\Notifications\NotificationDispatcher::fire(
+            'feedback.submitted',
+            $feedback->loadMissing('department'),
+        );
 
         return back()->with('success', 'Thank you! Your feedback has been submitted.');
     }

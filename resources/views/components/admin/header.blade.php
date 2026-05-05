@@ -1,6 +1,26 @@
+@php
+    $admin = \Illuminate\Support\Facades\Auth::guard('admin')->user();
+    $currentBusiness = app(\App\Support\Tenancy\CurrentBusiness::class)->get();
+    $showBusinessTitle = $admin && ! $admin->isSuperAdmin() && $currentBusiness;
+@endphp
 <header class="z-40" :class="{ 'dark': $store.app.semidark && $store.app.menu === 'horizontal' }">
     <div class="shadow-sm">
         <div class="relative bg-white flex w-full items-center px-5 py-2.5 dark:bg-[#0e1726]">
+            @if($showBusinessTitle)
+                <div class="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none">
+                    <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/15 dark:bg-white/5 dark:border-white/10 backdrop-blur-sm shadow-sm">
+                        <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+                        <svg class="w-4 h-4 text-primary dark:text-white-light shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 21h18"/>
+                            <path d="M5 21V7l7-4 7 4v14"/>
+                            <path d="M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/>
+                        </svg>
+                        <span class="text-sm lg:text-[15px] font-bold text-primary dark:text-white tracking-tight truncate">
+                            {{ $currentBusiness->name }}
+                        </span>
+                    </div>
+                </div>
+            @endif
             <div class="flex items-center justify-between horizontal-logo lg:hidden ltr:mr-2 rtl:ml-2">
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center main-logo shrink-0">
                     <img x-show="$store.app.theme !== 'dark'" x-transition.opacity class="inline w-8"
@@ -29,6 +49,8 @@
                 <div class="sm:ltr:mr-auto sm:rtl:ml-auto"></div>
 
                 @include('components.admin.business-switcher')
+
+                @include('components.admin.notification-bell')
 
                 <!-- Theme Toggle -->
                 <div>

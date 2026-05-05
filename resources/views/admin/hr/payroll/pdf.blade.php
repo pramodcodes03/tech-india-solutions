@@ -75,7 +75,7 @@
         <div class="col">
             <table>
                 <tr class="earn-head-d"><th colspan="2">Deductions</th></tr>
-                @foreach([['PF (Employee)', $p->pf],['ESI', $p->esi],['Professional Tax', $p->professional_tax],['TDS', $p->tds],['LOP Deduction', $p->lop_deduction],['Penalty Deduction', $p->penalty_deduction],['Other Deductions', $p->other_deductions]] as [$l, $v])
+                @foreach([['PF (Employee)', $p->pf],['ESI', $p->esi],['LWF / Professional Tax', $p->professional_tax],['TDS', $p->tds],['LOP Deduction', $p->lop_deduction],['Penalty Deduction', $p->penalty_deduction],['Other Deductions', $p->other_deductions]] as [$l, $v])
                     <tr><td>{{ $l }}</td><td class="num">₹{{ number_format($v, 2) }}</td></tr>
                 @endforeach
                 <tr class="total-row"><td>Total Deductions</td><td class="num">₹{{ number_format($p->total_deductions, 2) }}</td></tr>

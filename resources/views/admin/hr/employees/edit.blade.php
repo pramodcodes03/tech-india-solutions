@@ -21,4 +21,13 @@
             <a href="{{ route('admin.hr.employees.show', $employee) }}" class="btn btn-outline-secondary">Cancel</a>
         </div>
     </form>
+
+    {{-- Bank-edit request form. Lives outside the parent employee-update form
+         to avoid invalid HTML nesting; the inputs/buttons inside _form.blade.php
+         use form="bank-edit-request-form" to associate with this form. --}}
+    <form id="bank-edit-request-form" method="POST"
+          action="{{ route('admin.hr.employees.bank-edit-requests.store', $employee) }}"
+          class="hidden">
+        @csrf
+    </form>
 </x-layout.admin>

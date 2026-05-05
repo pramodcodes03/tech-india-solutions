@@ -64,7 +64,7 @@ class IncrementController extends Controller
             (float) $data['performance_score']
         );
 
-        Appraisal::create(array_merge([
+        $appraisal = Appraisal::create(array_merge([
             'appraisal_code' => $this->service->generateCode(),
             'employee_id' => $employee->id,
             'cycle' => 'Increment '.\Carbon\Carbon::parse($data['review_date'])->format('M Y'),
@@ -80,6 +80,11 @@ class IncrementController extends Controller
             'status' => 'finalized',
             'conducted_by' => Auth::guard('admin')->id(),
         ], $snap));
+
+        \App\Notifications\NotificationDispatcher::fire(
+            'appraisal.recorded',
+            $appraisal->setRelation('employee', $employee),
+        );
 
         return redirect()->route('admin.hr.employees.show', $employee)
             ->with('success', 'Increment recorded for '.$employee->full_name.'.');

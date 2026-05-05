@@ -90,7 +90,7 @@ class AssignmentController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        DB::transaction(function () use ($data) {
+        $assignment = DB::transaction(function () use ($data) {
             $asset = Asset::findOrFail($data['asset_id']);
 
             // Auto-return any open assignment for this asset
@@ -121,7 +121,18 @@ class AssignmentController extends Controller
                 'status'      => 'assigned',
                 'updated_by'  => Auth::guard('admin')->id(),
             ]);
+
+            return $assignment->setRelation('asset', $asset);
         });
+
+        \App\Notifications\NotificationDispatcher::fire(
+            'asset.assigned',
+            $assignment->loadMissing('employee', 'asset'),
+            [
+                'asset_code' => $assignment->asset->asset_code ?? null,
+                'asset_name' => $assignment->asset->name ?? null,
+            ],
+        );
 
         return redirect()->route('admin.assets.assignments.index')->with('success', 'Asset assigned.');
     }
@@ -153,6 +164,15 @@ class AssignmentController extends Controller
             ]);
         });
 
+        \App\Notifications\NotificationDispatcher::fire(
+            'asset.returned',
+            $assignment->fresh()->loadMissing('employee', 'asset'),
+            [
+                'asset_code' => $assignment->asset->asset_code ?? null,
+                'asset_name' => $assignment->asset->name ?? null,
+            ],
+        );
+
         return back()->with('success', 'Asset returned to storage.');
     }
 
@@ -167,10 +187,11 @@ class AssignmentController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        DB::transaction(function () use ($data) {
+        $transferAssignment = DB::transaction(function () use ($data) {
             $asset = Asset::findOrFail($data['asset_id']);
+            $oldCustodianId = $asset->current_custodian_id;
 
-            AssetAssignment::create([
+            $assignment = AssetAssignment::create([
                 'assignment_code' => $this->generateCode('TRN'),
                 'asset_id'        => $asset->id,
                 'employee_id'     => $data['employee_id'] ?? $asset->current_custodian_id,
@@ -187,7 +208,24 @@ class AssignmentController extends Controller
                 'current_custodian_id' => $data['employee_id'] ?? $asset->current_custodian_id,
                 'updated_by'  => Auth::guard('admin')->id(),
             ]);
+
+            return $assignment->setRelation('asset', $asset);
         });
+
+        $newEmp = $transferAssignment->employee;
+        $oldEmp = $transferAssignment->fresh()->employee_id !== $transferAssignment->employee_id
+            ? \App\Models\Employee::find($transferAssignment->employee_id)
+            : null;
+
+        \App\Notifications\NotificationDispatcher::fire(
+            'asset.transferred',
+            $transferAssignment->loadMissing('employee', 'asset'),
+            [
+                'asset_code' => $transferAssignment->asset->asset_code ?? null,
+                'from_employee' => $oldEmp ? trim($oldEmp->first_name.' '.$oldEmp->last_name) : '—',
+                'to_employee' => $newEmp ? trim($newEmp->first_name.' '.$newEmp->last_name) : '—',
+            ],
+        );
 
         return back()->with('success', 'Asset transferred.');
     }

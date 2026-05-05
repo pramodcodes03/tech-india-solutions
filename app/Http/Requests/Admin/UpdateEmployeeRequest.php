@@ -22,8 +22,17 @@ class UpdateEmployeeRequest extends FormRequest
     public function rules(): array
     {
         $id = $this->route('employee');
+        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
 
         return [
+            // Editable, but must be unique within the current business
+            // (the DB has a compound unique index that enforces this too).
+            'employee_code' => [
+                'required', 'string', 'max:30', 'regex:/^[A-Za-z0-9\-_]+$/',
+                Rule::unique('employees', 'employee_code')
+                    ->where('business_id', $businessId)
+                    ->ignore($id),
+            ],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
             'email' => ['required', 'email', Rule::unique('employees', 'email')->ignore($id)],

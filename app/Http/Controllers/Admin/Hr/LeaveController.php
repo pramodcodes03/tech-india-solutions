@@ -66,6 +66,12 @@ class LeaveController extends Controller
             $paid
         );
 
+        \App\Notifications\NotificationDispatcher::fire(
+            'leave.approved',
+            $leaveRequest->loadMissing('employee', 'leaveType'),
+            ['remarks' => $data['remarks'] ?? null],
+        );
+
         $msg = 'Leave request approved.';
         if ($paid !== null && $paid < (float) $leaveRequest->days) {
             $unpaid = (float) $leaveRequest->days - $paid;
@@ -80,6 +86,12 @@ class LeaveController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('leaves.reject'), 403);
         $data = $request->validate(['remarks' => ['required', 'string', 'min:3']]);
         $this->service->reject($leaveRequest, Auth::guard('admin')->id(), $data['remarks']);
+
+        \App\Notifications\NotificationDispatcher::fire(
+            'leave.rejected',
+            $leaveRequest->loadMissing('employee', 'leaveType'),
+            ['reason' => $data['remarks']],
+        );
 
         return back()->with('success', 'Leave request rejected.');
     }

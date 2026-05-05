@@ -1,8 +1,8 @@
-<x-layout.admin title="Expenses">
-    <x-admin.breadcrumb :items="[['label' => 'Expenses']]" />
+<x-layout.admin title="Routine Payment Tracker">
+    <x-admin.breadcrumb :items="[['label' => 'Routine Payment Tracker']]" />
 
     <div class="flex items-center justify-between gap-4 mb-5">
-        <h5 class="text-lg font-semibold dark:text-white-light">Expenses</h5>
+        <h5 class="text-lg font-semibold dark:text-white-light">Routine Payment Tracker</h5>
         <div class="flex items-center gap-2">
             @can('expense_categories.view')
                 <a href="{{ route('admin.expense-categories.index') }}" class="btn btn-outline-secondary">Categories</a>
@@ -10,7 +10,7 @@
             @can('expenses.create')
                 <a href="{{ route('admin.expenses.create') }}" class="btn btn-primary gap-2">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Add Expense
+                    Add Payment
                 </a>
             @endcan
         </div>
@@ -33,7 +33,7 @@
             <div class="text-xl font-bold text-warning">{{ $stats['overdue_count'] }}</div>
         </div>
         <div class="panel">
-            <div class="text-xs text-gray-500 uppercase">Recurring expenses</div>
+            <div class="text-xs text-gray-500 uppercase">Recurring payments</div>
             <div class="text-xl font-bold">{{ $stats['recurring_count'] }}</div>
         </div>
     </div>
@@ -124,7 +124,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="text-center py-8 text-gray-500">No expenses recorded yet.</td></tr>
+                        <tr><td colspan="8" class="text-center py-8 text-gray-500">No payments recorded yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>

@@ -105,7 +105,24 @@ class EmployeeController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('employees.edit'), 403);
 
+        $oldShiftId = $employee->shift_id;
         $this->service->update($employee, $request->validated());
+
+        // Notify the employee if their shift changed.
+        $fresh = $employee->fresh();
+        if ($fresh->shift_id !== $oldShiftId && $fresh->shift_id) {
+            $shift = $fresh->shift;
+            \App\Notifications\NotificationDispatcher::fire(
+                'shift.changed',
+                $fresh,
+                [
+                    'shift_name' => $shift->name ?? null,
+                    'start_time' => $shift->start_time ?? null,
+                    'end_time' => $shift->end_time ?? null,
+                    'effective_from' => now()->toDateString(),
+                ],
+            );
+        }
 
         return redirect()->route('admin.hr.employees.show', $employee)
             ->with('success', 'Employee updated.');

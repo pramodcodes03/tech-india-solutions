@@ -69,7 +69,9 @@ class PurchaseOrderController extends Controller
         $data = $request->except('items');
         $items = $request->input('items', []);
 
-        $this->purchaseOrderService->create($data, $items);
+        $po = $this->purchaseOrderService->create($data, $items);
+
+        \App\Notifications\NotificationDispatcher::fire('purchase_order.issued', $po->loadMissing('vendor'));
 
         return redirect()->route('admin.purchase-orders.index')->with('success', 'Purchase order created successfully.');
     }
@@ -136,6 +138,11 @@ class PurchaseOrderController extends Controller
             $purchaseOrder,
             $request->input('items', []),
             $request->input('notes', ''),
+        );
+
+        \App\Notifications\NotificationDispatcher::fire(
+            'goods_receipt.received',
+            $grn->loadMissing('purchaseOrder'),
         );
 
         return redirect()->route('admin.purchase-orders.show', $purchaseOrder->id)

@@ -1,5 +1,5 @@
-<x-layout.admin title="Edit Expense Category">
-    <x-admin.breadcrumb :items="[['label' => 'Expenses', 'url' => route('admin.expenses.index')], ['label' => 'Categories', 'url' => route('admin.expense-categories.index')], ['label' => $category->name]]" />
+<x-layout.admin title="Edit Payment Category">
+    <x-admin.breadcrumb :items="[['label' => 'Routine Payment Tracker', 'url' => route('admin.expenses.index')], ['label' => 'Categories', 'url' => route('admin.expense-categories.index')], ['label' => $category->name]]" />
 
     <h5 class="text-lg font-semibold mb-4">Edit: {{ $category->name }}</h5>
     <form method="POST" action="{{ route('admin.expense-categories.update', $category) }}">

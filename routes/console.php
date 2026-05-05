@@ -24,3 +24,9 @@ Schedule::command('backup:run --only-db')->dailyAt('02:00');
 // second, so a freshly-generated row can also pick up its T-3 reminder.
 Schedule::command('expenses:generate-recurring')->dailyAt('00:30');
 Schedule::command('expenses:send-reminders')->dailyAt('09:00');
+
+// Invoice reminders: T-3 and daily overdue.
+Schedule::command('invoices:send-reminders')->dailyAt('09:30');
+
+// Calendar: holiday-upcoming (T-2) + employee birthdays (today).
+Schedule::command('calendar:send-reminders')->dailyAt('08:00');

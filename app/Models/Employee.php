@@ -120,7 +120,12 @@ class Employee extends Authenticatable
 
     public function currentSalary(): HasOne
     {
-        return $this->hasOne(SalaryStructure::class)->where('is_current', true);
+        // Only approved structures count as "current" for payroll purposes.
+        // is_current is set to true only on approval; this extra status check
+        // is defence in depth against direct DB edits.
+        return $this->hasOne(SalaryStructure::class)
+            ->where('is_current', true)
+            ->where('status', SalaryStructure::STATUS_APPROVED);
     }
 
     public function payslips(): HasMany

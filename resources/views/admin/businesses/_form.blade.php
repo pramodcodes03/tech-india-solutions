@@ -43,14 +43,7 @@
         <label class="form-label">Address</label>
         <textarea name="address" class="form-textarea" rows="2">{{ old('address', $business?->address) }}</textarea>
     </div>
-    <div>
-        <label class="form-label">City</label>
-        <input type="text" name="city" class="form-input" value="{{ old('city', $business?->city) }}">
-    </div>
-    <div>
-        <label class="form-label">State</label>
-        <input type="text" name="state" class="form-input" value="{{ old('state', $business?->state) }}">
-    </div>
+    <x-admin.india-location :state="$business?->state" :city="$business?->city" />
     <div>
         <label class="form-label">Pincode</label>
         <input type="text" name="pincode" class="form-input" value="{{ old('pincode', $business?->pincode) }}">

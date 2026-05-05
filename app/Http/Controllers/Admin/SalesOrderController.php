@@ -68,7 +68,19 @@ class SalesOrderController extends Controller
         $data = $request->except('items');
         $items = $request->input('items', []);
 
-        $this->salesOrderService->create($data, $items);
+        $salesOrder = $this->salesOrderService->create($data, $items);
+
+        // If this SO was created from a quotation, also fire the conversion event.
+        if (! empty($data['quotation_id'])) {
+            $quotation = \App\Models\Quotation::with('customer')->find($data['quotation_id']);
+            if ($quotation) {
+                \App\Notifications\NotificationDispatcher::fire(
+                    'quotation.converted_to_so',
+                    $quotation,
+                    ['order_number' => $salesOrder->order_number],
+                );
+            }
+        }
 
         return redirect()->route('admin.sales-orders.index')->with('success', 'Sales order created successfully.');
     }
@@ -138,6 +150,7 @@ class SalesOrderController extends Controller
         ]);
 
         $salesOrder = SalesOrder::findOrFail($id);
+        $oldStatus = $salesOrder->status;
 
         try {
             $this->salesOrderService->updateStatus($salesOrder, $request->status);
@@ -147,6 +160,14 @@ class SalesOrderController extends Controller
             }
 
             return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        if ($oldStatus !== $request->status) {
+            \App\Notifications\NotificationDispatcher::fire(
+                'sales_order.status_changed',
+                $salesOrder->fresh()->loadMissing('customer'),
+                ['old_status' => $oldStatus, 'new_status' => $request->status],
+            );
         }
 
         if ($request->ajax()) {

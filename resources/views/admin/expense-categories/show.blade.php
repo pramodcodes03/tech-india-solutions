@@ -1,5 +1,5 @@
 <x-layout.admin title="{{ $category->name }}">
-    <x-admin.breadcrumb :items="[['label' => 'Expenses', 'url' => route('admin.expenses.index')], ['label' => 'Categories', 'url' => route('admin.expense-categories.index')], ['label' => $category->name]]" />
+    <x-admin.breadcrumb :items="[['label' => 'Routine Payment Tracker', 'url' => route('admin.expenses.index')], ['label' => 'Categories', 'url' => route('admin.expense-categories.index')], ['label' => $category->name]]" />
 
     <div class="flex items-center justify-between gap-4 mb-5">
         <h5 class="text-lg font-semibold dark:text-white-light flex items-center gap-2">

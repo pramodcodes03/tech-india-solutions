@@ -57,7 +57,12 @@ class PenaltyController extends Controller
             'incident_date' => ['required', 'date'],
             'remarks' => ['nullable', 'string'],
         ]);
-        $this->service->create($data);
+        $penalty = $this->service->create($data);
+
+        \App\Notifications\NotificationDispatcher::fire(
+            'penalty.issued',
+            $penalty->loadMissing('employee', 'penaltyType'),
+        );
 
         return redirect()->route('admin.hr.penalties.index')->with('success', 'Penalty recorded.');
     }
@@ -70,8 +75,16 @@ class PenaltyController extends Controller
             'reason' => ['required', 'string', 'min:3'],
         ]);
 
+        $originalAmount = $penalty->amount;
+
         try {
-            $this->service->reduce($penalty, (float) $data['new_amount'], $data['reason']);
+            $reduced = $this->service->reduce($penalty, (float) $data['new_amount'], $data['reason']);
+
+            \App\Notifications\NotificationDispatcher::fire(
+                'penalty.reduced',
+                $reduced->loadMissing('employee'),
+                ['original_amount' => $originalAmount, 'reason' => $data['reason']],
+            );
 
             return back()->with('success', 'Penalty reduced.');
         } catch (\RuntimeException $e) {

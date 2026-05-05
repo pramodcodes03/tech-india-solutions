@@ -33,10 +33,5 @@
                 </li>
             </ul>
         </div>
-    @elseif($current)
-        <div class="hidden md:flex items-center gap-2 px-3 py-2 rounded-md bg-white-light/40 dark:bg-dark/40 text-sm font-semibold">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9.5L12 4l9 5.5M5 10v9h14v-9"/></svg>
-            <span>{{ $current->name }}</span>
-        </div>
     @endif
 @endif

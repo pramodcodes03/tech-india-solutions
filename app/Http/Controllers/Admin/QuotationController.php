@@ -69,7 +69,9 @@ class QuotationController extends Controller
         $data = $request->except('items');
         $items = $request->input('items', []);
 
-        $this->quotationService->create($data, $items);
+        $quotation = $this->quotationService->create($data, $items);
+
+        \App\Notifications\NotificationDispatcher::fire('quotation.sent', $quotation->loadMissing('customer'));
 
         return redirect()->route('admin.quotations.index')->with('success', 'Quotation created successfully.');
     }
@@ -184,7 +186,20 @@ class QuotationController extends Controller
             return redirect()->back()->with('error', $msg);
         }
 
+        $oldStatus = $quotation->status;
         $quotation->update(['status' => $request->status]);
+
+        $event = match ($request->status) {
+            'accepted' => 'quotation.approved',
+            'rejected' => 'quotation.rejected',
+            default => null,
+        };
+        if ($event) {
+            \App\Notifications\NotificationDispatcher::fire($event, $quotation->loadMissing('customer', 'creator'), [
+                'old_status' => $oldStatus,
+                'new_status' => $request->status,
+            ]);
+        }
 
         $msg = 'Quotation marked as ' . ucfirst($request->status) . '.';
         if ($request->ajax()) return response()->json(['success' => true, 'message' => $msg]);

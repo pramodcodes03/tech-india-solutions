@@ -9,6 +9,7 @@ use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\ExpenseSubcategory;
 use App\Services\ExpenseService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -113,6 +114,23 @@ class ExpenseController extends Controller
 
         return redirect()->route('admin.expenses.index')
             ->with('success', 'Expense deleted.');
+    }
+
+    /**
+     * Stream a payment-receipt PDF for this expense.
+     * Available on any expense (paid or not), but the visible status badge
+     * makes the actual state obvious in the document.
+     */
+    public function pdf(Expense $expense)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('expenses.view'), 403);
+
+        $expense->load(['category', 'subcategory', 'creator', 'paidByAdmin', 'business']);
+        $business = $expense->business ?? app(\App\Support\Tenancy\CurrentBusiness::class)->get();
+
+        $pdf = Pdf::loadView('admin.expenses.pdf', compact('expense', 'business'));
+
+        return $pdf->stream("Expense-{$expense->expense_code}.pdf");
     }
 
     public function markPaid(Request $request, Expense $expense)

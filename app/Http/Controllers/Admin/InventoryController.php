@@ -92,12 +92,35 @@ class InventoryController extends Controller
             'notes' => 'required|string|max:500',
         ]);
 
-        $this->inventoryService->adjustStock(
+        $movement = $this->inventoryService->adjustStock(
             $request->product_id,
             $request->warehouse_id,
             $request->quantity,
             $request->notes,
         );
+
+        $product = \App\Models\Product::find($request->product_id);
+
+        \App\Notifications\NotificationDispatcher::fire(
+            'stock.adjusted',
+            $movement,
+            [
+                'product_name' => $product?->name,
+                'type' => 'adjustment',
+                'quantity' => $request->quantity,
+                'reason' => $request->notes,
+            ],
+        );
+
+        // After any movement, check if the product crossed below reorder level.
+        if ($product && $product->reorder_level > 0) {
+            $currentStock = $this->inventoryService->getProductStock($product->id);
+            if ($currentStock <= $product->reorder_level) {
+                \App\Notifications\NotificationDispatcher::fire('stock.low', $product, [
+                    'current_stock' => $currentStock,
+                ]);
+            }
+        }
 
         return redirect()->route('admin.inventory.movements')->with('success', 'Stock adjustment recorded successfully.');
     }

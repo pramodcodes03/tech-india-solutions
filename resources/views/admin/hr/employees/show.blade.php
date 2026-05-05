@@ -63,7 +63,7 @@
                         <div><div class="text-xs text-gray-500">Basic</div><div>₹{{ number_format($s->basic, 2) }}</div></div>
                         <div><div class="text-xs text-gray-500">HRA</div><div>₹{{ number_format($s->hra, 2) }}</div></div>
                         <div><div class="text-xs text-gray-500">PF %</div><div>{{ $s->pf_percent }}%</div></div>
-                        <div><div class="text-xs text-gray-500">PT</div><div>₹{{ number_format($s->professional_tax, 2) }}</div></div>
+                        <div><div class="text-xs text-gray-500">LWF / PT</div><div>₹{{ number_format($s->professional_tax, 2) }}</div></div>
                         <div><div class="text-xs text-gray-500">TDS (Monthly)</div><div>₹{{ number_format($s->monthly_tds, 2) }}</div></div>
                         <div><div class="text-xs text-gray-500">Effective</div><div>{{ $s->effective_from->format('d M Y') }}</div></div>
                     </div>

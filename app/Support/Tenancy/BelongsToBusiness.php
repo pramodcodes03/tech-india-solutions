@@ -40,17 +40,51 @@ trait BelongsToBusiness
     {
         $field = $field ?? $this->getRouteKeyName();
 
+        // SubstituteBindings runs before the `business` middleware, so
+        // CurrentBusiness may not be hydrated yet. Without it, BusinessScope
+        // fails closed and 404s every binding for non-super admins.
+        // Hydrate it the same way EnsureBusinessContext would.
+        $current = app(CurrentBusiness::class);
+        if (! $current->id()) {
+            $admin = Auth::guard('admin')->user();
+            $employee = Auth::guard('employee')->user();
+
+            $businessId = match (true) {
+                (bool) ($admin && ! $admin->isSuperAdmin() && $admin->business_id) => $admin->business_id,
+                (bool) ($employee && $employee->business_id) => $employee->business_id,
+                (bool) ($admin && $admin->isSuperAdmin() && session('business_id')) => session('business_id'),
+                default => null,
+            };
+
+            if ($businessId && $business = Business::find($businessId)) {
+                $current->setWithoutSession($business);
+            }
+        }
+
         // First try the normal scoped lookup (active business).
         $found = $this->newQuery()->where($field, $value)->first();
         if ($found) {
             return $found;
         }
 
-        // Not found in active business. If the requester is Super Admin and
-        // the row exists in another business, switch context and return it.
         $admin = Auth::guard('admin')->user();
+        $employee = Auth::guard('employee')->user();
+
+        // Not authenticated yet. SubstituteBindings runs BEFORE the auth
+        // middleware in Laravel 11's web pipeline, so returning null here
+        // would 404 the request before the auth middleware ever gets to
+        // redirect to the login page. Fall back to an unscoped lookup so
+        // the route binding succeeds; auth:admin / auth:employee will fire
+        // immediately after and bounce the visitor to the login page.
+        if (! $admin && ! $employee) {
+            return static::withoutGlobalScopes()->where($field, $value)->first();
+        }
+
+        // Authenticated, but the row isn't in the active business.
+        // - Super Admin: auto-switch to the row's business and return it.
+        // - Anyone else: tenant isolation kicks in, return null → 404.
         if (! $admin || ! $admin->isSuperAdmin()) {
-            return null; // → 404 for non-super admins (correct isolation)
+            return null;
         }
 
         $other = static::withoutGlobalScopes()->where($field, $value)->first();
@@ -58,11 +92,6 @@ trait BelongsToBusiness
             return null;
         }
 
-        // Switch session AND in-memory singleton to this row's business.
-        // Persist the session immediately so the next request picks it up.
-        // No redirect — we just return the resolved model so the controller
-        // continues with the correct business context. This avoids any chance
-        // of a redirect loop.
         $business = Business::find($other->business_id);
         if ($business) {
             app(CurrentBusiness::class)->setWithoutSession($business);

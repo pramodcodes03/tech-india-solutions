@@ -27,7 +27,10 @@ class EmployeeService
     public function create(array $data): Employee
     {
         return DB::transaction(function () use ($data) {
-            $data['employee_code'] = $this->generateCode();
+            // Honour an admin-provided code; fall back to auto-generated.
+            if (empty($data['employee_code'])) {
+                $data['employee_code'] = $this->generateCode();
+            }
             $data['created_by'] = Auth::guard('admin')->id();
 
             // Default password is the employee code (employee must change on first login)

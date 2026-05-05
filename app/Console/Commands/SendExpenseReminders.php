@@ -2,34 +2,27 @@
 
 namespace App\Console\Commands;
 
-use App\Mail\ExpenseDueReminder;
-use App\Models\Admin;
 use App\Models\Expense;
+use App\Notifications\NotificationDispatcher;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Mail;
 
 /**
- * Sends T-3 / T-1 / due / overdue reminder emails for unpaid expenses.
+ * Walks every unpaid expense due within 3 days (or already past due) and
+ * fires the appropriate reminder event through NotificationDispatcher:
+ *   T-3  → expense.reminder_t3
+ *   T-1  → expense.reminder_t1
+ *   due  → expense.due_today
+ *   +N   → expense.overdue   (daily until paid)
  *
- * Recipients: every active admin of the expense's business.
- *
- * Cadence:
- *   - 3 days before due date: 't-3' email (once)
- *   - 1 day before:           't-1' email (once)
- *   - On due date:            'due' email (once)
- *   - Each day overdue:       'overdue' email (once per day)
- *
- * The expense's last_reminder_stage + last_reminder_sent_at columns
- * deduplicate so we don't send the same stage twice.
- *
- * Stops automatically when status flips to 'paid' or 'cancelled'.
+ * Idempotent within a day: the expense's last_reminder_stage + last_reminder_sent_at
+ * columns prevent the same stage firing twice on the same date.
  */
 class SendExpenseReminders extends Command
 {
-    protected $signature = 'expenses:send-reminders {--dry-run : Print what would be sent without actually sending}';
+    protected $signature = 'expenses:send-reminders {--dry-run}';
 
-    protected $description = 'Send T-3 / T-1 / due / overdue reminder emails for unpaid expenses';
+    protected $description = 'Fire reminder events for unpaid expenses approaching or past their due date';
 
     public function handle(): int
     {
@@ -44,69 +37,43 @@ class SendExpenseReminders extends Command
             ->with('business')
             ->cursor();
 
-        $sent = 0;
+        $count = 0;
 
         foreach ($expenses as $expense) {
             if (! $expense->business || ! $expense->business->is_active) {
                 continue;
             }
 
-            // diffInDays(false) returns positive when due_date is in the future,
-            // negative when past. Flip the sign so:
-            //   -3 = 3 days before, 0 = today, +N = N days overdue.
-            // Cast to int — Carbon returns float, which breaks strict === comparisons below.
             $daysFromDue = (int) ($today->diffInDays($expense->due_date, false) * -1);
 
-            $stage = match (true) {
-                $daysFromDue === -3 => 't-3',
-                $daysFromDue === -1 => 't-1',
-                $daysFromDue === 0  => 'due',
-                $daysFromDue > 0    => 'overdue',
-                default => null, // -2 or other gaps: don't send
+            [$stage, $eventKey] = match (true) {
+                $daysFromDue === -3 => ['t-3', 'expense.reminder_t3'],
+                $daysFromDue === -1 => ['t-1', 'expense.reminder_t1'],
+                $daysFromDue === 0  => ['due', 'expense.due_today'],
+                $daysFromDue > 0    => ['overdue', 'expense.overdue'],
+                default => [null, null],
             };
 
-            if ($stage === null) {
+            if (! $stage) {
                 continue;
             }
 
-            // De-dupe: skip if we already sent THIS stage on the same day.
-            $alreadySentToday =
+            // De-dupe within a day.
+            if (
                 $expense->last_reminder_stage === $stage
                 && $expense->last_reminder_sent_at
-                && $expense->last_reminder_sent_at->isSameDay($today);
-
-            if ($alreadySentToday) {
+                && $expense->last_reminder_sent_at->isSameDay($today)
+            ) {
                 continue;
             }
 
-            // For overdue, also skip if we already sent overdue today (to support
-            // running the command multiple times per day safely).
-            if ($stage === 'overdue' && $alreadySentToday) {
-                continue;
-            }
-
-            $admins = Admin::where('business_id', $expense->business_id)
-                ->where('status', 'active')
-                ->whereNotNull('email')
-                ->get();
-
-            if ($admins->isEmpty()) {
-                $this->warn("  - No active admins for business #{$expense->business_id}, skipping {$expense->expense_code}");
-                continue;
-            }
-
-            $this->line("  → {$stage} for {$expense->expense_code} ({$expense->business->name}) → ".$admins->pluck('email')->implode(', '));
+            $this->line("  → {$eventKey} for {$expense->expense_code} ({$expense->business->name})");
 
             if (! $dryRun) {
-                foreach ($admins as $admin) {
-                    try {
-                        Mail::to($admin->email)->send(
-                            new ExpenseDueReminder($expense, $stage, $daysFromDue),
-                        );
-                    } catch (\Throwable $e) {
-                        $this->error("  ✗ Failed sending to {$admin->email}: ".$e->getMessage());
-                    }
-                }
+                NotificationDispatcher::fire($eventKey, $expense, [
+                    'days_overdue' => max(0, $daysFromDue),
+                    'category' => $expense->category->name ?? null,
+                ]);
 
                 $expense->update([
                     'last_reminder_stage' => $stage,
@@ -114,10 +81,10 @@ class SendExpenseReminders extends Command
                 ]);
             }
 
-            $sent++;
+            $count++;
         }
 
-        $this->info(($dryRun ? '[DRY RUN] Would send' : 'Sent')." reminders for {$sent} expense(s).");
+        $this->info(($dryRun ? '[DRY RUN] Would fire' : 'Fired')." {$count} reminder event(s).");
 
         return self::SUCCESS;
     }

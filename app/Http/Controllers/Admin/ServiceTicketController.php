@@ -91,7 +91,19 @@ class ServiceTicketController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('service_tickets.create'), 403);
 
-        $this->serviceTicketService->create($request->validated());
+        $ticket = $this->serviceTicketService->create($request->validated());
+
+        \App\Notifications\NotificationDispatcher::fire(
+            'service_ticket.created',
+            $ticket->loadMissing('customer'),
+        );
+
+        if ($ticket->assigned_to) {
+            \App\Notifications\NotificationDispatcher::fire(
+                'service_ticket.assigned',
+                $ticket->loadMissing('assignedTo', 'customer'),
+            );
+        }
 
         return redirect()->route('admin.service-tickets.index')->with('success', 'Service ticket created successfully.');
     }
@@ -135,6 +147,7 @@ class ServiceTicketController extends Controller
         ]);
 
         $ticket = ServiceTicket::findOrFail($id);
+        $oldStatus = $ticket->status;
         $data['updated_by'] = Auth::guard('admin')->id();
         if (in_array($data['status'], ['resolved', 'closed']) && ! $ticket->closed_at) {
             $data['closed_at'] = now();
@@ -144,6 +157,14 @@ class ServiceTicketController extends Controller
         }
         $ticket->update($data);
 
+        if ($oldStatus !== $data['status']) {
+            \App\Notifications\NotificationDispatcher::fire(
+                'service_ticket.status_changed',
+                $ticket->loadMissing('customer'),
+                ['old_status' => $oldStatus, 'new_status' => $data['status']],
+            );
+        }
+
         return back()->with('success', 'Ticket status updated to '.str_replace('_', ' ', $data['status']).'.');
     }
 
@@ -152,7 +173,16 @@ class ServiceTicketController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('service_tickets.edit'), 403);
 
         $ticket = ServiceTicket::findOrFail($id);
+        $oldAssignee = $ticket->assigned_to;
         $this->serviceTicketService->update($ticket, $request->validated());
+
+        // Fire reassignment when assignee actually changed.
+        if ($ticket->fresh()->assigned_to && $ticket->fresh()->assigned_to !== $oldAssignee) {
+            \App\Notifications\NotificationDispatcher::fire(
+                'service_ticket.assigned',
+                $ticket->fresh()->loadMissing('assignedTo', 'customer'),
+            );
+        }
 
         return redirect()->route('admin.service-tickets.index')->with('success', 'Service ticket updated successfully.');
     }
@@ -184,6 +214,15 @@ class ServiceTicketController extends Controller
             $ticket,
             $request->comment,
             Auth::guard('admin')->id(),
+        );
+
+        \App\Notifications\NotificationDispatcher::fire(
+            'service_ticket.commented',
+            $ticket->loadMissing('customer'),
+            [
+                'comment_excerpt' => mb_substr($request->comment, 0, 200),
+                'author' => Auth::guard('admin')->user()?->name,
+            ],
         );
 
         if ($request->ajax()) {

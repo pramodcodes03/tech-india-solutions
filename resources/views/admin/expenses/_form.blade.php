@@ -34,7 +34,7 @@
 >
     {{-- Type toggle --}}
     <div class="mb-4">
-        <label class="form-label">Expense Type <span class="text-danger">*</span></label>
+        <label class="form-label">Payment Type <span class="text-danger">*</span></label>
         <div class="flex gap-3">
             <label class="flex items-center gap-2 cursor-pointer">
                 <input type="radio" name="type" value="one_off" x-model="type" class="form-radio">
@@ -49,22 +49,32 @@
         </div>
     </div>
 
+    @php
+        // Server-side resolved values, used as authoritative initial selection.
+        // Alpine's x-model alone wasn't reliably preselecting the option on edit
+        // because options render after the select element initialises.
+        $selectedCategoryId = (int) old('expense_category_id', $expense?->expense_category_id);
+        $selectedSubcategoryId = (int) old('expense_subcategory_id', $expense?->expense_subcategory_id);
+    @endphp
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
             <label class="form-label">Category <span class="text-danger">*</span></label>
             <select name="expense_category_id" class="form-select" x-model.number="categoryId" @change="onCategoryChange()" required>
                 <option value="">— Select —</option>
                 @foreach($categories as $c)
-                    <option value="{{ $c->id }}">{{ $c->name }}</option>
+                    <option value="{{ $c->id }}" @selected($selectedCategoryId === (int) $c->id)>{{ $c->name }}</option>
                 @endforeach
             </select>
         </div>
 
-        {{-- Subcategory only shows when chosen category has subcategories. --}}
+        {{-- Subcategory only shows when chosen category has subcategories.
+             :disabled when hidden so the input isn't submitted at all,
+             otherwise the empty/null value tries to validate as integer. --}}
         <div x-show="hasSubcategories" x-cloak>
             <label class="form-label">Subcategory <span class="text-xs text-gray-500">(optional)</span></label>
-            <select name="expense_subcategory_id" class="form-select" x-model.number="subcategoryId">
-                <option :value="null">— None —</option>
+            <select name="expense_subcategory_id" class="form-select" x-model="subcategoryId" :disabled="!hasSubcategories">
+                <option value="" :selected="!subcategoryId">— None —</option>
                 <template x-for="sub in subcategories" :key="sub.id">
                     <option :value="sub.id" x-text="sub.name" :selected="sub.id === subcategoryId"></option>
                 </template>
@@ -85,7 +95,7 @@
             <input type="number" step="0.01" min="0" name="amount" class="form-input" value="{{ old('amount', $expense?->amount) }}" required>
         </div>
         <div>
-            <label class="form-label">Expense Date <span class="text-danger">*</span></label>
+            <label class="form-label">Bill Date <span class="text-danger">*</span></label>
             <input type="date" name="expense_date" class="form-input" value="{{ old('expense_date', $expense?->expense_date?->toDateString() ?? now()->toDateString()) }}" required>
         </div>
 

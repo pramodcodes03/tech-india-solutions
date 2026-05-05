@@ -48,7 +48,10 @@ class LeadController extends Controller
             ]);
         }
 
-        $admins = Admin::where('status', 'active')->orderBy('name')->get();
+        $admins = Admin::where('status', 'active')
+            ->where('business_id', app(\App\Support\Tenancy\CurrentBusiness::class)->id())
+            ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'Super Admin'))
+            ->orderBy('name')->get();
         $sources = Lead::SOURCES;
 
         return view('admin.leads.index', compact('leads', 'admins', 'sources'));
@@ -70,7 +73,10 @@ class LeadController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('leads.create'), 403);
 
-        $admins = Admin::where('status', 'active')->orderBy('name')->get();
+        $admins = Admin::where('status', 'active')
+            ->where('business_id', app(\App\Support\Tenancy\CurrentBusiness::class)->id())
+            ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'Super Admin'))
+            ->orderBy('name')->get();
         $sources = Lead::sourceOptions();
 
         return view('admin.leads.create', compact('admins', 'sources'));
@@ -80,7 +86,14 @@ class LeadController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('leads.create'), 403);
 
-        $this->leadService->create($request->validated());
+        $lead = $this->leadService->create($request->validated());
+
+        if ($lead->assigned_to) {
+            \App\Notifications\NotificationDispatcher::fire(
+                'lead.assigned',
+                $lead->loadMissing('assignedTo'),
+            );
+        }
 
         return redirect()->route('admin.leads.index')->with('success', 'Lead created successfully.');
     }
@@ -99,7 +112,10 @@ class LeadController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('leads.edit'), 403);
 
         $lead = Lead::findOrFail($id);
-        $admins = Admin::where('status', 'active')->orderBy('name')->get();
+        $admins = Admin::where('status', 'active')
+            ->where('business_id', app(\App\Support\Tenancy\CurrentBusiness::class)->id())
+            ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'Super Admin'))
+            ->orderBy('name')->get();
         $sources = Lead::sourceOptions();
 
         return view('admin.leads.edit', compact('lead', 'admins', 'sources'));
@@ -110,7 +126,16 @@ class LeadController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('leads.edit'), 403);
 
         $lead = Lead::findOrFail($id);
+        $oldAssignee = $lead->assigned_to;
         $this->leadService->update($lead, $request->validated());
+
+        // Fire reassignment when assignee changed.
+        if ($lead->fresh()->assigned_to && $lead->fresh()->assigned_to !== $oldAssignee) {
+            \App\Notifications\NotificationDispatcher::fire(
+                'lead.assigned',
+                $lead->fresh()->loadMissing('assignedTo'),
+            );
+        }
 
         return redirect()->route('admin.leads.index')->with('success', 'Lead updated successfully.');
     }
@@ -141,6 +166,12 @@ class LeadController extends Controller
 
         $customer = $this->leadService->convertToCustomer($lead);
 
+        \App\Notifications\NotificationDispatcher::fire(
+            'lead.converted',
+            $lead->fresh(),
+            ['customer_code' => $customer->code, 'customer_name' => $customer->name],
+        );
+
         return redirect()->route('admin.customers.show', $customer->id)
             ->with('success', "Lead converted to Customer #{$customer->code} successfully.");
     }
@@ -154,7 +185,16 @@ class LeadController extends Controller
         ]);
 
         $lead = Lead::findOrFail($id);
+        $oldStatus = $lead->status;
         $this->leadService->update($lead, ['status' => $request->status]);
+
+        if ($oldStatus !== $request->status) {
+            \App\Notifications\NotificationDispatcher::fire(
+                'lead.status_changed',
+                $lead->fresh()->loadMissing('assignedTo'),
+                ['old_status' => $oldStatus, 'new_status' => $request->status],
+            );
+        }
 
         if ($request->ajax()) {
             return response()->json(['success' => true, 'message' => 'Lead status updated successfully.']);

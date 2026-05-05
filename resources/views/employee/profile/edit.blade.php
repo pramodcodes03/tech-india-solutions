@@ -27,8 +27,7 @@
                     <label class="text-xs text-gray-500 font-semibold">Permanent Address</label>
                     <textarea name="permanent_address" rows="2" class="form-input mt-1">{{ old('permanent_address', $employee->permanent_address) }}</textarea>
                 </div>
-                <div><label class="text-xs text-gray-500 font-semibold">City</label><input type="text" name="city" value="{{ old('city', $employee->city) }}" class="form-input mt-1" /></div>
-                <div><label class="text-xs text-gray-500 font-semibold">State</label><input type="text" name="state" value="{{ old('state', $employee->state) }}" class="form-input mt-1" /></div>
+                <x-admin.india-location :state="$employee->state" :city="$employee->city" />
                 <div><label class="text-xs text-gray-500 font-semibold">Pincode</label><input type="text" name="pincode" value="{{ old('pincode', $employee->pincode) }}" class="form-input mt-1" /></div>
             </div>
         </div>

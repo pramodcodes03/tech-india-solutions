@@ -73,7 +73,9 @@ class ProformaInvoiceController extends Controller
         $data = $request->except('items');
         $items = $request->input('items', []);
 
-        $this->service->create($data, $items);
+        $proforma = $this->service->create($data, $items);
+
+        \App\Notifications\NotificationDispatcher::fire('proforma.issued', $proforma->loadMissing('customer'));
 
         return redirect()->route('admin.proforma-invoices.index')->with('success', 'Proforma invoice created successfully.');
     }

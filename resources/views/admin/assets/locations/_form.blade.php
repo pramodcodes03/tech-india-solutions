@@ -27,14 +27,7 @@
             @endforeach
         </select>
     </div>
-    <div>
-        <label class="form-label">City</label>
-        <input type="text" name="city" value="{{ old('city', $loc?->city) }}" class="form-input" />
-    </div>
-    <div>
-        <label class="form-label">State</label>
-        <input type="text" name="state" value="{{ old('state', $loc?->state) }}" class="form-input" />
-    </div>
+    <x-admin.india-location :state="$loc?->state" :city="$loc?->city" />
     <div class="md:col-span-2">
         <label class="form-label">Address</label>
         <textarea name="address" class="form-input" rows="2">{{ old('address', $loc?->address) }}</textarea>

@@ -61,9 +61,17 @@ class PayrollController extends Controller
             'employee_id' => ['nullable', 'exists:employees,id'],
         ]);
 
+        $period = sprintf('%s %d', \Carbon\Carbon::create()->month($data['month'])->format('M'), $data['year']);
+
         if (! empty($data['employee_id'])) {
             $employee = Employee::findOrFail($data['employee_id']);
-            $this->service->generate($employee, $data['month'], $data['year']);
+            $payslip = $this->service->generate($employee, $data['month'], $data['year']);
+
+            \App\Notifications\NotificationDispatcher::fire(
+                'payslip.generated',
+                $payslip->loadMissing('employee'),
+                ['period' => $period],
+            );
 
             return redirect()
                 ->route('admin.hr.payroll.index', ['month' => $data['month'], 'year' => $data['year']])
@@ -71,6 +79,29 @@ class PayrollController extends Controller
         }
 
         $result = $this->service->generateBulk($data['month'], $data['year']);
+
+        // Send each generated payslip to its employee.
+        $newPayslips = \App\Models\Payslip::with('employee')
+            ->where('month', $data['month'])
+            ->where('year', $data['year'])
+            ->latest()
+            ->take($result['success'])
+            ->get();
+        foreach ($newPayslips as $payslip) {
+            \App\Notifications\NotificationDispatcher::fire(
+                'payslip.generated',
+                $payslip,
+                ['period' => $period],
+            );
+        }
+
+        // Summary email to HR admin.
+        \App\Notifications\NotificationDispatcher::fire('payroll.completed', null, [
+            'period' => $period,
+            'employees_count' => $result['success'],
+            'errors_count' => count($result['errors']),
+        ]);
+
         $msg = "Generated {$result['success']} payslips.";
         if (! empty($result['errors'])) {
             $msg .= ' Skipped: '.count($result['errors']).' (missing salary structure or other issues).';
@@ -108,6 +139,14 @@ class PayrollController extends Controller
         ]);
         $payslip->update(array_merge($data, ['status' => 'paid']));
 
+        \App\Notifications\NotificationDispatcher::fire(
+            'payslip.paid',
+            $payslip->loadMissing('employee'),
+            [
+                'period' => sprintf('%s %d', \Carbon\Carbon::create()->month($payslip->month)->format('M'), $payslip->year),
+            ],
+        );
+
         return back()->with('success', 'Payslip marked as paid.');
     }
 
@@ -140,14 +179,86 @@ class PayrollController extends Controller
         ]);
         $data['gross_monthly'] = $data['basic'] + $data['hra'] + $data['conveyance'] + $data['medical'] + $data['special'] + ($data['other_allowance'] ?? 0);
 
-        $this->service->saveStructure($employee, $data);
+        $structure = $this->service->saveStructure($employee, $data);
+        $structure->setRelation('employee', $employee);
 
-        return redirect()->route('admin.hr.employees.show', $employee)->with('success', 'Salary structure saved.');
+        // Fire approval-pending notification to Admin / Super Admin only.
+        // We no longer fire 'salary_structure.changed' here — that event
+        // notifies the employee, and the employee shouldn't see CTC changes
+        // until approval lands.
+        \App\Notifications\NotificationDispatcher::fire('salary_structure.submitted', $structure);
+
+        return redirect()->route('admin.hr.employees.show', $employee)
+            ->with('success', 'Salary structure submitted for approval. The previous structure remains in effect until Admin approves.');
     }
 
     public function previewStructure(Request $request)
     {
         $ctc = (float) $request->input('ctc_annual', 0);
         return response()->json($this->service->buildStructureFromCtc($ctc));
+    }
+
+    /**
+     * Approval queue — pending salary structures awaiting Admin/Super Admin review.
+     */
+    public function pendingApprovals()
+    {
+        abort_unless(
+            Auth::guard('admin')->user()->isSuperAdmin()
+                || Auth::guard('admin')->user()->hasAnyRole(['Admin', 'Business Admin']),
+            403,
+            'Only Admin / Super Admin may review salary structure approvals.',
+        );
+
+        $pending = SalaryStructure::where('status', SalaryStructure::STATUS_PENDING)
+            ->with(['employee.department', 'employee.designation', 'submitter'])
+            ->orderByDesc('submitted_at')
+            ->paginate(20);
+
+        return view('admin.hr.payroll.approvals', compact('pending'));
+    }
+
+    public function approveStructure(Request $request, SalaryStructure $salaryStructure)
+    {
+        abort_unless(
+            Auth::guard('admin')->user()->isSuperAdmin()
+                || Auth::guard('admin')->user()->hasAnyRole(['Admin', 'Business Admin']),
+            403,
+        );
+
+        $data = $request->validate(['notes' => ['nullable', 'string', 'max:1000']]);
+
+        try {
+            $approved = $this->service->approveStructure($salaryStructure, $data['notes'] ?? null);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        $approved->loadMissing('employee', 'submitter');
+        \App\Notifications\NotificationDispatcher::fire('salary_structure.approved', $approved);
+
+        return back()->with('success', "Approved. Structure for {$approved->employee->first_name} is now active.");
+    }
+
+    public function rejectStructure(Request $request, SalaryStructure $salaryStructure)
+    {
+        abort_unless(
+            Auth::guard('admin')->user()->isSuperAdmin()
+                || Auth::guard('admin')->user()->hasAnyRole(['Admin', 'Business Admin']),
+            403,
+        );
+
+        $data = $request->validate(['notes' => ['required', 'string', 'min:5', 'max:1000']]);
+
+        try {
+            $rejected = $this->service->rejectStructure($salaryStructure, $data['notes']);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        $rejected->loadMissing('employee', 'submitter');
+        \App\Notifications\NotificationDispatcher::fire('salary_structure.rejected', $rejected);
+
+        return back()->with('success', 'Salary structure rejected. HR has been notified.');
     }
 }
