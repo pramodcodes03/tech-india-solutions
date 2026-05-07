@@ -61,11 +61,13 @@ class PayrollController extends Controller
             'employee_id' => ['nullable', 'exists:employees,id'],
         ]);
 
-        $period = sprintf('%s %d', \Carbon\Carbon::create()->month($data['month'])->format('M'), $data['year']);
+        $month = (int) $data['month'];
+        $year = (int) $data['year'];
+        $period = sprintf('%s %d', \Carbon\Carbon::create()->month($month)->format('M'), $year);
 
         if (! empty($data['employee_id'])) {
             $employee = Employee::findOrFail($data['employee_id']);
-            $payslip = $this->service->generate($employee, $data['month'], $data['year']);
+            $payslip = $this->service->generate($employee, $month, $year);
 
             \App\Notifications\NotificationDispatcher::fire(
                 'payslip.generated',
@@ -74,16 +76,16 @@ class PayrollController extends Controller
             );
 
             return redirect()
-                ->route('admin.hr.payroll.index', ['month' => $data['month'], 'year' => $data['year']])
+                ->route('admin.hr.payroll.index', ['month' => $month, 'year' => $year])
                 ->with('success', 'Payslip generated.');
         }
 
-        $result = $this->service->generateBulk($data['month'], $data['year']);
+        $result = $this->service->generateBulk($month, $year);
 
         // Send each generated payslip to its employee.
         $newPayslips = \App\Models\Payslip::with('employee')
-            ->where('month', $data['month'])
-            ->where('year', $data['year'])
+            ->where('month', $month)
+            ->where('year', $year)
             ->latest()
             ->take($result['success'])
             ->get();
@@ -108,7 +110,7 @@ class PayrollController extends Controller
         }
 
         return redirect()
-            ->route('admin.hr.payroll.index', ['month' => $data['month'], 'year' => $data['year']])
+            ->route('admin.hr.payroll.index', ['month' => $month, 'year' => $year])
             ->with('success', $msg);
     }
 
@@ -123,8 +125,12 @@ class PayrollController extends Controller
     public function pdf(Payslip $payslip)
     {
         abort_unless(Auth::guard('admin')->user()->can('payroll.view'), 403);
-        $payslip->load('employee.department', 'employee.designation');
-        $pdf = Pdf::loadView('admin.hr.payroll.pdf', compact('payslip'));
+        $payslip->load('employee.department', 'employee.designation', 'employee.business');
+        // Tenant identity comes from the payslip's own employee — not the
+        // current session — so a super admin who switched business won't get
+        // the wrong header on a payslip from another tenant.
+        $business = $payslip->employee?->business;
+        $pdf = Pdf::loadView('admin.hr.payroll.pdf', compact('payslip', 'business'));
 
         // Stream inline so the browser opens the PDF in-tab instead of downloading.
         return $pdf->stream("payslip-{$payslip->payslip_code}.pdf");
@@ -203,19 +209,38 @@ class PayrollController extends Controller
      */
     public function pendingApprovals()
     {
+        $admin = Auth::guard('admin')->user();
         abort_unless(
-            Auth::guard('admin')->user()->isSuperAdmin()
-                || Auth::guard('admin')->user()->hasAnyRole(['Admin', 'Business Admin']),
+            $admin->isSuperAdmin() || $admin->hasAnyRole(['Admin', 'Business Admin']),
             403,
             'Only Admin / Super Admin may review salary structure approvals.',
         );
 
-        $pending = SalaryStructure::where('status', SalaryStructure::STATUS_PENDING)
-            ->with(['employee.department', 'employee.designation', 'submitter'])
+        // Super admin reviews structures across every business — they can't act
+        // on pending approvals if they only see the currently-active business's
+        // queue. Regular admins stay scoped via the global scope.
+        $isSuperAdmin = $admin->isSuperAdmin();
+        $query = $isSuperAdmin
+            ? SalaryStructure::withoutGlobalScopes()
+            : SalaryStructure::query();
+
+        // Cross-business eager loads must bypass BusinessScope on the related
+        // tables, otherwise employee/department/designation come back NULL for
+        // rows outside the currently-active business.
+        $eagerLoad = $isSuperAdmin ? [
+            'employee' => fn ($q) => $q->withoutGlobalScopes(),
+            'employee.department' => fn ($q) => $q->withoutGlobalScopes(),
+            'employee.designation' => fn ($q) => $q->withoutGlobalScopes(),
+            'submitter',
+            'business',
+        ] : ['employee.department', 'employee.designation', 'submitter', 'business'];
+
+        $pending = $query->where('status', SalaryStructure::STATUS_PENDING)
+            ->with($eagerLoad)
             ->orderByDesc('submitted_at')
             ->paginate(20);
 
-        return view('admin.hr.payroll.approvals', compact('pending'));
+        return view('admin.hr.payroll.approvals', compact('pending', 'isSuperAdmin'));
     }
 
     public function approveStructure(Request $request, SalaryStructure $salaryStructure)

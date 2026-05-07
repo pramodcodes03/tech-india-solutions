@@ -80,23 +80,47 @@
 <body>
 
 @php
-    $companyName    = $settings['company_name']    ?? 'Tech India Solutions';
-    $companyAddress = $settings['company_address'] ?? '';
-    $companyPhone   = $settings['company_phone']   ?? '';
-    $companyEmail   = $settings['company_email']   ?? '';
-    $companyGst     = $settings['company_gst']     ?? ($settings['company_gstin'] ?? '');
-    $companyPan     = $settings['company_pan']     ?? '';
-    $companyLogo    = $settings['company_logo']    ?? 'assets/images/logo.png';
+    // Per-business identity takes precedence over the global settings table —
+    // each tenant's invoices must show that tenant's name / GST / address /
+    // logo, not the singleton company info from settings.
+    $companyName    = $business?->name    ?? $settings['company_name']    ?? 'Tech India Solutions';
+    $companyAddress = $business?->address ?? $settings['company_address'] ?? '';
+    if ($business) {
+        $cityState = collect([$business->city, $business->state, $business->pincode])->filter()->implode(', ');
+        if ($cityState !== '') {
+            $companyAddress = trim(($business->address ? $business->address.', ' : '').$cityState);
+        }
+    }
+    $companyPhone   = $business?->phone   ?? $settings['company_phone']   ?? '';
+    $companyEmail   = $business?->email   ?? $settings['company_email']   ?? '';
+    $companyGst     = $business?->gst     ?? ($settings['company_gst'] ?? ($settings['company_gstin'] ?? ''));
+    $companyPan     = $business?->pan     ?? $settings['company_pan']     ?? '';
+    // Business logo is on the public storage disk; fall back to the legacy
+    // settings.company_logo (which is a path under public/) only if the
+    // tenant hasn't uploaded its own.
+    $logoPath = null;
+    if ($business?->logo) {
+        $candidate = storage_path('app/public/'.$business->logo);
+        if (file_exists($candidate)) {
+            $logoPath = $candidate;
+        }
+    }
+    $companyLogo    = $business?->logo ?? ($settings['company_logo'] ?? 'assets/images/logo.png');
+    if (! $logoPath) {
+        $candidate = public_path($settings['company_logo'] ?? 'assets/images/logo.png');
+        if (file_exists($candidate)) {
+            $logoPath = $candidate;
+        }
+    }
+    $logoExists = $logoPath !== null;
+
     $bankName       = $settings['bank_name']       ?? '';
     $bankAccount    = $settings['bank_account']    ?? '';
     $bankIfsc       = $settings['bank_ifsc']       ?? '';
     $bankAccType    = $settings['bank_account_type'] ?? '';
     $bankHolder     = $settings['bank_account_holder'] ?? $companyName;
     $bankBranch     = $settings['bank_branch']     ?? '';
-    $currencySymbol = $settings['currency_symbol'] ?? '₹';
-
-    $logoPath = public_path($companyLogo);
-    $logoExists = $companyLogo && file_exists($logoPath);
+    $currencySymbol = $business?->currency_symbol ?? $settings['currency_symbol'] ?? '₹';
 
     $discountAmount = $invoice->discount_type === 'percent'
         ? round((float) $invoice->subtotal * (float) $invoice->discount_value / 100, 2)

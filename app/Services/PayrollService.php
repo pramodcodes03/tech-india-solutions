@@ -190,7 +190,11 @@ class PayrollService
             $pt = (float) $structure->professional_tax;
             $tds = (float) $structure->monthly_tds;
 
-            // LOP deduction = per-day basic × lop_days (convention)
+            // LOP is already reflected in $grossEarnings via the paid_days /
+            // working_days proration above — deducting it again here would
+            // double-count it (e.g. 2 paid days out of 30 would zero earnings
+            // AND subtract ~28 days of pay, producing a hugely negative net).
+            // Track it for display only.
             $perDay = $workingDays > 0 ? round($structure->gross_monthly / $workingDays, 2) : 0;
             $lopDeduction = round($perDay * $lopDays, 2);
 
@@ -201,7 +205,7 @@ class PayrollService
                 ->get();
             $penaltyDeduction = round($pendingPenalties->sum('amount'), 2);
 
-            $totalDeductions = round($pf + $esi + $pt + $tds + $lopDeduction + $penaltyDeduction, 2);
+            $totalDeductions = round($pf + $esi + $pt + $tds + $penaltyDeduction, 2);
             $netPay = round($grossEarnings - $totalDeductions, 2);
 
             $payslip = Payslip::updateOrCreate(

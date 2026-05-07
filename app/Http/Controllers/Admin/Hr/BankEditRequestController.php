@@ -87,20 +87,52 @@ class BankEditRequestController extends Controller
     {
         $this->authorizeApprover();
 
-        $pending = BankDetailEditRequest::where('status', BankDetailEditRequest::STATUS_PENDING)
-            ->with(['employee', 'requester'])
+        $admin = Auth::guard('admin')->user();
+        // Super admin sees pending requests across every business — they can't
+        // act on a request without first being able to see it. Regular admins
+        // are pinned to one business; the global scope handles that for them.
+        $isSuperAdmin = $admin->isSuperAdmin();
+
+        // When super admin is viewing across businesses, the related models
+        // (Employee, Admin) also have BusinessScope and would resolve to NULL
+        // for any record outside the currently-active business. Bypass the
+        // scope on the eager loads so cross-business rows render correctly.
+        $eagerLoad = $isSuperAdmin ? [
+            'employee' => fn ($q) => $q->withoutGlobalScopes(),
+            'requester',
+            'business',
+        ] : ['employee', 'requester', 'business'];
+
+        $historyEagerLoad = $isSuperAdmin ? [
+            'employee' => fn ($q) => $q->withoutGlobalScopes(),
+            'requester',
+            'reviewer',
+            'business',
+        ] : ['employee', 'requester', 'reviewer', 'business'];
+
+        $pendingQuery = $isSuperAdmin
+            ? BankDetailEditRequest::withoutGlobalScopes()
+            : BankDetailEditRequest::query();
+
+        $pending = $pendingQuery
+            ->where('status', BankDetailEditRequest::STATUS_PENDING)
+            ->with($eagerLoad)
             ->orderByDesc('created_at')
             ->paginate(20);
 
-        $history = BankDetailEditRequest::whereIn('status', [
+        $historyQuery = $isSuperAdmin
+            ? BankDetailEditRequest::withoutGlobalScopes()
+            : BankDetailEditRequest::query();
+
+        $history = $historyQuery->whereIn('status', [
                 BankDetailEditRequest::STATUS_APPROVED, BankDetailEditRequest::STATUS_REJECTED,
             ])
-            ->with(['employee', 'requester', 'reviewer'])
+            ->with($historyEagerLoad)
             ->orderByDesc('reviewed_at')
             ->limit(20)
             ->get();
 
-        return view('admin.hr.bank-edit-requests.index', compact('pending', 'history'));
+        return view('admin.hr.bank-edit-requests.index', compact('pending', 'history', 'isSuperAdmin'));
     }
 
     public function approve(Request $request, BankDetailEditRequest $bankEditRequest)

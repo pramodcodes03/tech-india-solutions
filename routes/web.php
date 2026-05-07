@@ -266,17 +266,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('payroll', [HrPayrollController::class, 'index'])->name('payroll.index');
             Route::get('payroll/generate', [HrPayrollController::class, 'generateForm'])->name('payroll.generate-form');
             Route::post('payroll/generate', [HrPayrollController::class, 'generate'])->name('payroll.generate');
-            Route::get('payroll/{payslip}', [HrPayrollController::class, 'show'])->name('payroll.show');
-            Route::get('payroll/{payslip}/pdf', [HrPayrollController::class, 'pdf'])->name('payroll.pdf');
-            Route::post('payroll/{payslip}/mark-paid', [HrPayrollController::class, 'markPaid'])->name('payroll.mark-paid');
             Route::post('payroll/preview-structure', [HrPayrollController::class, 'previewStructure'])->name('payroll.preview-structure');
-            Route::get('employees/{employee}/salary', [HrPayrollController::class, 'salaryForm'])->name('salary.form');
-            Route::post('employees/{employee}/salary', [HrPayrollController::class, 'salaryStore'])->name('salary.store');
 
-            // Salary structure approvals (Admin / Super Admin only)
+            // Salary structure approvals (Admin / Super Admin only) — must
+            // come BEFORE the `payroll/{payslip}` wildcard, otherwise
+            // /payroll/approvals binds "approvals" as a payslip id and 404s.
             Route::get('payroll/approvals', [HrPayrollController::class, 'pendingApprovals'])->name('payroll.approvals.index');
             Route::post('payroll/approvals/{salaryStructure}/approve', [HrPayrollController::class, 'approveStructure'])->name('payroll.approvals.approve');
             Route::post('payroll/approvals/{salaryStructure}/reject', [HrPayrollController::class, 'rejectStructure'])->name('payroll.approvals.reject');
+
+            Route::get('payroll/{payslip}', [HrPayrollController::class, 'show'])->name('payroll.show');
+            Route::get('payroll/{payslip}/pdf', [HrPayrollController::class, 'pdf'])->name('payroll.pdf');
+            Route::post('payroll/{payslip}/mark-paid', [HrPayrollController::class, 'markPaid'])->name('payroll.mark-paid');
+            Route::get('employees/{employee}/salary', [HrPayrollController::class, 'salaryForm'])->name('salary.form');
+            Route::post('employees/{employee}/salary', [HrPayrollController::class, 'salaryStore'])->name('salary.store');
 
             // Bank-detail edit requests
             Route::post('employees/{employee}/bank-edit-requests', [HrBankEditRequestController::class, 'store'])->name('employees.bank-edit-requests.store');

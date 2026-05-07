@@ -580,6 +580,76 @@
                 </li>
                 @endcan
 
+                {{-- ── Approvals (Admin / Business Admin / Super Admin) ─────────
+                     Promoted to top of HR group so HR-submitted requests
+                     (salary structures, bank-detail edits) are immediately
+                     visible to whoever can approve them. Counts live-update
+                     on every page load so admins know what's waiting. --}}
+                @php
+                    $currentAdmin = \Illuminate\Support\Facades\Auth::guard('admin')->user();
+                    $canApprove = $currentAdmin && (
+                        $currentAdmin->isSuperAdmin()
+                        || $currentAdmin->hasAnyRole(['Admin', 'Business Admin'])
+                    );
+                @endphp
+                @if($canApprove)
+                    @php
+                        // Super admin's badges should reflect work-to-do across every
+                        // business (matching the now cross-business approval queue),
+                        // otherwise the bell would show pending items the sidebar
+                        // count silently hides. Regular admins stay scoped.
+                        $isSuperAdminForBadges = $currentAdmin->isSuperAdmin();
+                        $salaryQuery = $isSuperAdminForBadges
+                            ? \App\Models\SalaryStructure::withoutGlobalScopes()
+                            : \App\Models\SalaryStructure::query();
+                        $bankQuery = $isSuperAdminForBadges
+                            ? \App\Models\BankDetailEditRequest::withoutGlobalScopes()
+                            : \App\Models\BankDetailEditRequest::query();
+
+                        $pendingSalary = $salaryQuery->where('status', 'pending')->count();
+                        $pendingBank = $bankQuery->where('status', 'pending')->count();
+                        $totalPending = $pendingSalary + $pendingBank;
+                    @endphp
+                    <li class="menu nav-item">
+                        <button type="button" class="nav-link group w-full"
+                            :class="{ 'active': activeDropdown === 'hr-approvals' }"
+                            @click="activeDropdown = activeDropdown === 'hr-approvals' ? null : 'hr-approvals'">
+                            <div class="flex items-center">
+                                <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Approvals</span>
+                                @if($totalPending > 0)
+                                    <span class="ml-2 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-warning text-white text-[10px] font-bold leading-none">
+                                        {{ $totalPending }}
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'hr-approvals' }">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                        </button>
+                        <ul x-collapse x-show="activeDropdown === 'hr-approvals' || {{ $totalPending > 0 ? 'true' : 'false' }}" class="sub-menu text-gray-500">
+                            <li>
+                                <a href="{{ route('admin.hr.payroll.approvals.index') }}" class="flex items-center justify-between">
+                                    <span>Salary Approvals</span>
+                                    @if($pendingSalary > 0)
+                                        <span class="badge bg-warning text-[10px]">{{ $pendingSalary }}</span>
+                                    @endif
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('admin.hr.bank-edit-requests.index') }}" class="flex items-center justify-between">
+                                    <span>Bank Change Requests</span>
+                                    @if($pendingBank > 0)
+                                        <span class="badge bg-warning text-[10px]">{{ $pendingBank }}</span>
+                                    @endif
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                @endif
+
                 {{-- Employees --}}
                 @can('employees.view')
                 <li class="menu nav-item">
@@ -687,30 +757,9 @@
                     <ul x-collapse x-show="activeDropdown === 'hr-payroll'" class="sub-menu text-gray-500">
                         <li><a href="{{ route('admin.hr.payroll.index') }}">Payslips</a></li>
                         @can('payroll.generate')<li><a href="{{ route('admin.hr.payroll.generate-form') }}">Generate Payroll</a></li>@endcan
-                        @if(\Illuminate\Support\Facades\Auth::guard('admin')->user()?->isSuperAdmin() || \Illuminate\Support\Facades\Auth::guard('admin')->user()?->hasAnyRole(['Admin','Business Admin']))
-                            @php
-                                $pendingCount = \App\Models\SalaryStructure::where('status', 'pending')->count();
-                            @endphp
-                            <li>
-                                <a href="{{ route('admin.hr.payroll.approvals.index') }}" class="flex items-center justify-between">
-                                    <span>Salary Approvals</span>
-                                    @if($pendingCount > 0)
-                                        <span class="badge bg-warning text-[10px]">{{ $pendingCount }}</span>
-                                    @endif
-                                </a>
-                            </li>
-                            @php
-                                $pendingBankCount = \App\Models\BankDetailEditRequest::where('status', 'pending')->count();
-                            @endphp
-                            <li>
-                                <a href="{{ route('admin.hr.bank-edit-requests.index') }}" class="flex items-center justify-between">
-                                    <span>Bank Change Requests</span>
-                                    @if($pendingBankCount > 0)
-                                        <span class="badge bg-warning text-[10px]">{{ $pendingBankCount }}</span>
-                                    @endif
-                                </a>
-                            </li>
-                        @endif
+                        {{-- Salary Approvals + Bank Change Requests promoted to the
+                             top-level "Approvals" menu (above), so removed from here
+                             to avoid duplicate sidebar entries. --}}
                     </ul>
                 </li>
                 @endcan

@@ -277,11 +277,15 @@
                 <a href="{{ route('employee.payslips.show', $p) }}" class="flex items-center justify-between p-3 rounded hover:bg-gray-50 dark:hover:bg-dark-light">
                     <div>
                         <div class="font-semibold">{{ $p->period_label }}</div>
-                        <div class="text-xs text-gray-500">{{ $p->payslip_code }} · {{ ucfirst($p->status) }}</div>
+                        <div class="text-xs text-gray-500">{{ $p->payslip_code }}</div>
                     </div>
                     <div class="text-right">
-                        <div class="font-extrabold text-success">₹{{ number_format($p->net_pay, 2) }}</div>
-                        <div class="text-[11px] text-gray-400">Net Pay</div>
+                        <span @class([
+                            'px-2 py-0.5 rounded text-xs font-semibold',
+                            'bg-info/10 text-info' => $p->status === 'generated',
+                            'bg-success/10 text-success' => $p->status === 'paid',
+                        ])>{{ ucfirst($p->status) }}</span>
+                        <div class="text-[11px] text-gray-400 mt-1">View slip →</div>
                     </div>
                 </a>
             @empty

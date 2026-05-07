@@ -23,6 +23,9 @@
                             <div>
                                 <div class="font-bold">{{ $req->employee->full_name ?? '—' }}
                                     <span class="text-xs text-gray-500 font-normal">({{ $req->employee->employee_code ?? '—' }})</span>
+                                    @if($isSuperAdmin && $req->business)
+                                        <span class="badge bg-info-light text-info ml-2 align-middle">{{ $req->business->name }}</span>
+                                    @endif
                                 </div>
                                 <div class="text-xs text-gray-500 mt-1">
                                     Requested by <strong>{{ $req->requester->name ?? '—' }}</strong>
@@ -119,6 +122,7 @@
                     <thead>
                         <tr>
                             <th class="px-4 py-2">Employee</th>
+                            @if($isSuperAdmin)<th class="px-4 py-2">Business</th>@endif
                             <th class="px-4 py-2">Requested by</th>
                             <th class="px-4 py-2">Status</th>
                             <th class="px-4 py-2">Reviewed by</th>
@@ -130,6 +134,7 @@
                         @foreach($history as $h)
                             <tr>
                                 <td class="px-4 py-2 font-semibold text-sm">{{ $h->employee->full_name ?? '—' }}</td>
+                                @if($isSuperAdmin)<td class="px-4 py-2 text-xs text-gray-600">{{ $h->business->name ?? '—' }}</td>@endif
                                 <td class="px-4 py-2 text-sm">{{ $h->requester->name ?? '—' }}</td>
                                 <td class="px-4 py-2">
                                     @if($h->status === 'approved')<span class="badge bg-success">Approved</span>

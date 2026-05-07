@@ -97,12 +97,23 @@
     <table class="header-table">
         <tr>
             <td style="width:55%; vertical-align:top;">
-                <div class="company-name">{{ $settings['company_name'] ?? 'Leather Technics' }}</div>
+                @php
+                    $bizName    = $business?->name    ?? ($settings['company_name'] ?? 'Leather Technics');
+                    $bizAddress = $business?->address ?? ($settings['company_address'] ?? '');
+                    $bizCityLine = $business
+                        ? collect([$business->city, $business->state, $business->pincode])->filter()->implode(', ')
+                        : '';
+                    $bizPhone = $business?->phone ?? ($settings['company_phone'] ?? '');
+                    $bizEmail = $business?->email ?? ($settings['company_email'] ?? '');
+                    $bizGst   = $business?->gst   ?? ($settings['company_gstin'] ?? ($settings['company_gst'] ?? ''));
+                @endphp
+                <div class="company-name">{{ $bizName }}</div>
                 <div class="company-info">
-                    @if(!empty($settings['company_address'])){{ $settings['company_address'] }}<br>@endif
-                    @if(!empty($settings['company_phone']))Phone: {{ $settings['company_phone'] }}<br>@endif
-                    @if(!empty($settings['company_email']))Email: {{ $settings['company_email'] }}<br>@endif
-                    @if(!empty($settings['company_gstin']))<strong>GSTIN:</strong> {{ $settings['company_gstin'] }}@endif
+                    @if($bizAddress){{ $bizAddress }}<br>@endif
+                    @if($bizCityLine){{ $bizCityLine }}<br>@endif
+                    @if($bizPhone)Phone: {{ $bizPhone }}<br>@endif
+                    @if($bizEmail)Email: {{ $bizEmail }}<br>@endif
+                    @if($bizGst)<strong>GSTIN:</strong> {{ $bizGst }}@endif
                 </div>
             </td>
             <td style="width:45%; vertical-align:top; text-align:right;">
@@ -238,7 +249,7 @@
         <tr>
             <td style="width:42%; vertical-align:bottom;">
                 <div class="sig-line">
-                    <div class="sig-name">{{ $settings['company_name'] ?? 'Company Name' }}</div>
+                    <div class="sig-name">{{ $business?->name ?? ($settings['company_name'] ?? 'Company Name') }}</div>
                     <div class="sig-label">Authorised Signatory</div>
                 </div>
             </td>
@@ -255,8 +266,12 @@
     {{-- FOOTER --}}
     <div class="footer">
         This is a computer-generated quotation and does not require a physical signature.
-        @if(!empty($settings['company_email']))&nbsp;&bull;&nbsp;{{ $settings['company_email'] }}@endif
-        @if(!empty($settings['company_phone']))&nbsp;&bull;&nbsp;{{ $settings['company_phone'] }}@endif
+        @php
+            $footerEmail = $business?->email ?? ($settings['company_email'] ?? '');
+            $footerPhone = $business?->phone ?? ($settings['company_phone'] ?? '');
+        @endphp
+        @if($footerEmail)&nbsp;&bull;&nbsp;{{ $footerEmail }}@endif
+        @if($footerPhone)&nbsp;&bull;&nbsp;{{ $footerPhone }}@endif
     </div>
 
 </div>

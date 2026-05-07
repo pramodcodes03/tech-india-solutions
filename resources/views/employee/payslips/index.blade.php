@@ -15,16 +15,20 @@
                         'bg-success/10 text-success' => $p->status === 'paid',
                     ])>{{ ucfirst($p->status) }}</span>
                 </div>
-                <div class="space-y-1 text-sm border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
-                    <div class="flex justify-between"><span class="text-gray-500">Gross</span><span>₹{{ number_format($p->gross_earnings, 2) }}</span></div>
-                    <div class="flex justify-between"><span class="text-gray-500">Deductions</span><span class="text-danger">-₹{{ number_format($p->total_deductions, 2) }}</span></div>
-                    <div class="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
-                        <span class="font-bold">Net Pay</span>
-                        <span class="font-extrabold text-success">₹{{ number_format($p->net_pay, 2) }}</span>
+                {{-- Salary amounts intentionally hidden from the listing.
+                     They're disclosed only on the slip itself (Show page / PDF). --}}
+                <div class="space-y-1 text-sm border-t border-gray-200 dark:border-gray-700 pt-3 mt-3 text-gray-500">
+                    <div class="flex justify-between">
+                        <span>Period</span>
+                        <span>{{ $p->period_start->format('d M') }} – {{ $p->period_end->format('d M Y') }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Paid Days</span>
+                        <span>{{ rtrim(rtrim(number_format($p->paid_days, 1), '0'), '.') }} / {{ rtrim(rtrim(number_format($p->working_days, 1), '0'), '.') }}</span>
                     </div>
                 </div>
                 <div class="flex gap-2 mt-4">
-                    <a href="{{ route('employee.payslips.show', $p) }}" class="btn btn-sm btn-outline-primary flex-1">View</a>
+                    <a href="{{ route('employee.payslips.show', $p) }}" class="btn btn-sm btn-outline-primary flex-1">View Slip</a>
                     <a href="{{ route('employee.payslips.pdf', $p) }}" target="_blank" rel="noopener" class="btn btn-sm btn-primary">PDF</a>
                 </div>
             </div>

@@ -40,6 +40,18 @@ class InboxController extends Controller
 
         $adminNotification->markAsRead();
 
+        // Super admins span all businesses; auto-switch their active business
+        // to the one this notification belongs to so the destination page shows
+        // the right scoped data. Regular admins are pinned to a single business
+        // and only get notifications for events in their business, so this is
+        // a no-op for them.
+        if ($admin->isSuperAdmin()
+            && $adminNotification->business_id
+            && session('business_id') !== $adminNotification->business_id) {
+            session(['business_id' => $adminNotification->business_id]);
+            session()->save();
+        }
+
         if ($adminNotification->link) {
             return redirect()->to($adminNotification->link);
         }

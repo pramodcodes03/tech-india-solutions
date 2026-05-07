@@ -156,8 +156,12 @@ class QuotationController extends Controller
         $pdfTaxAmt     = round($pdfAfterDisc * (floatval($quotation->tax_percent ?? 0) / 100), 2);
         $pdfGrandTotal = round($pdfAfterDisc + $pdfTaxAmt, 2);
 
+        $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
+        $business = app(\App\Support\Tenancy\CurrentBusiness::class)->get();
+
         $pdf = Pdf::loadView('admin.quotations.pdf', compact(
-            'quotation', 'pdfSubtotal', 'pdfDiscVal', 'pdfDiscAmt', 'pdfTaxAmt', 'pdfGrandTotal'
+            'quotation', 'pdfSubtotal', 'pdfDiscVal', 'pdfDiscAmt', 'pdfTaxAmt', 'pdfGrandTotal',
+            'settings', 'business'
         ));
 
         return $pdf->stream("Quotation-{$quotation->quotation_number}.pdf");

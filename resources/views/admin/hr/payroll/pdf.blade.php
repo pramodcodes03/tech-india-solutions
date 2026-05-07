@@ -31,7 +31,16 @@
     </style>
 </head>
 <body>
-    @php $p = $payslip; $emp = $p->employee; @endphp
+    @php
+        $p = $payslip;
+        $emp = $p->employee;
+        // $business is now passed by the controller; fall back to the employee's
+        // own business in case some legacy caller forgets to provide it.
+        $biz = $business ?? $emp->business ?? null;
+        $bizCityLine = $biz
+            ? collect([$biz->city, $biz->state, $biz->pincode])->filter()->implode(', ')
+            : '';
+    @endphp
 
     <div class="header">
         <div>
@@ -39,8 +48,9 @@
             <div>{{ $p->period_label }} · {{ $p->payslip_code }}</div>
         </div>
         <div class="right">
-            <div style="font-weight:bold">Tech India Solutions</div>
-            <div style="color:#64748b;font-size:10px">Payroll Division</div>
+            <div style="font-weight:bold">{{ $biz?->name ?? 'Company' }}</div>
+            @if($bizCityLine)<div style="color:#64748b;font-size:10px">{{ $bizCityLine }}</div>@endif
+            @if($biz?->gst)<div style="color:#64748b;font-size:9px">GSTIN: {{ $biz->gst }}</div>@endif
             <div style="margin-top:5px;padding:2px 8px;display:inline-block;background:#e0e7ff;color:#3730a3;border-radius:4px;font-size:10px;">{{ strtoupper($p->status) }}</div>
         </div>
     </div>

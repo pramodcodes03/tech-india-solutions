@@ -25,11 +25,17 @@
                         <th class="px-4 py-2 !text-center">Action</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @forelse($pending as $s)
-                        <tr x-data="{ approveOpen: false, rejectOpen: false }">
+                @forelse($pending as $s)
+                    {{-- One <tbody> per row group so x-data scope reaches all four <tr> siblings (main / breakdown / approve / reject). --}}
+                    <tbody x-data="{ approveOpen: false, rejectOpen: false }">
+                        <tr>
                             <td class="px-4 py-2">
-                                <div class="font-semibold">{{ $s->employee->full_name ?? '—' }}</div>
+                                <div class="font-semibold">
+                                    {{ $s->employee->full_name ?? '—' }}
+                                    @if($isSuperAdmin && $s->business)
+                                        <span class="badge bg-info-light text-info ml-1 align-middle text-[10px]">{{ $s->business->name }}</span>
+                                    @endif
+                                </div>
                                 <div class="text-xs text-gray-500">{{ $s->employee->employee_code ?? '' }}</div>
                             </td>
                             <td class="px-4 py-2 text-sm">{{ $s->employee->department->name ?? '—' }}</td>
@@ -98,10 +104,10 @@
                                 </form>
                             </td>
                         </tr>
-                    @empty
-                        <tr><td colspan="7" class="text-center py-8 text-gray-500">No pending salary structures awaiting approval.</td></tr>
-                    @endforelse
-                </tbody>
+                    </tbody>
+                @empty
+                    <tbody><tr><td colspan="7" class="text-center py-8 text-gray-500">No pending salary structures awaiting approval.</td></tr></tbody>
+                @endforelse
             </table>
         </div>
         <div class="p-4">{{ $pending->links() }}</div>

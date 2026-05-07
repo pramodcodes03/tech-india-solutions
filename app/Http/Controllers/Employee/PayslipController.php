@@ -31,8 +31,9 @@ class PayslipController extends Controller
         $employee = Auth::guard('employee')->user();
         abort_unless($payslip->employee_id === $employee->id, 403);
 
-        $payslip->load('employee.department', 'employee.designation');
-        $pdf = Pdf::loadView('admin.hr.payroll.pdf', compact('payslip'));
+        $payslip->load('employee.department', 'employee.designation', 'employee.business');
+        $business = $payslip->employee?->business;
+        $pdf = Pdf::loadView('admin.hr.payroll.pdf', compact('payslip', 'business'));
 
         // Stream inline so the browser opens the PDF in-tab instead of downloading.
         return $pdf->stream("payslip-{$payslip->payslip_code}.pdf");
