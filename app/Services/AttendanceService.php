@@ -131,82 +131,105 @@ class AttendanceService
     }
 
     /**
-     * Import a "Daily Performance" .xls / .xlsx exported from a biometric system.
+     * Import a "Date wise Daily Attendance Report (Summary)" .xls / .xlsx
+     * exported from the biometric system.
      *
-     * The sheet layout is non-tabular:
-     *  - Row with "Report Date : DD-MM-YYYY" carries the attendance date.
-     *  - "Branch : ..." and "Department : ..." rows split groups (skipped).
-     *  - Data rows have a numeric Sr.No in col index 3, with these fixed columns:
-     *      6=Emp.Code  7=CardNo  9=Name  11=Designation  13=Shift
-     *      14=StartTime  15=Arr.Time  16=LateHrs  17=Dept.Time
-     *      20=EarlyHrs  21=WrkHrs  22=O.Time  24=Status (P/A)
-     *      26=InTemp  27=OutTemp  28=Remark
+     * Sheet layout (15 columns, multiple day-sections per file):
+     *  - Header rows (company / location / report title) at the top.
+     *  - Each day section starts with a row whose col 0 is "Date :" and col 1
+     *    is the date in DD/MM/YYYY format.
+     *  - The next row is the column header:
+     *      0=S No  1=EMP Code  2=Card No  3=Emp Name  4=Gender  5=Shift
+     *      6=In Time  7=Out Time  8=Shift Hrs  9=Work Hrs  10=OT Hrs
+     *      11=Work Status (P/A/MIS)  12=Temp In  13=Temp Out  14=Remarks
+     *  - Data rows follow until the next "Date :" row.
      *
      * Employees are matched by `employee_code` first, then `card_no` as a fallback.
-     * If $forceDate is provided it overrides the in-file Report Date.
+     * If $forceDate is provided, only the day-section matching that date is imported.
      *
-     * @return array{imported:int, skipped:int, errors:array<int,string>, date:?string}
+     * @return array{imported:int, skipped:int, errors:array<int,string>, date:?string, dates:array<int,string>}
      */
     public function importDailyPerformance(UploadedFile $file, ?string $forceDate = null): array
     {
         $imported = 0;
         $skipped = 0;
         $errors = [];
+        $dates = [];
 
         try {
             $rows = Excel::toArray(null, $file)[0] ?? [];
         } catch (\Throwable $e) {
-            return ['imported' => 0, 'skipped' => 0, 'errors' => ['Could not read spreadsheet: '.$e->getMessage()], 'date' => null];
+            return ['imported' => 0, 'skipped' => 0, 'errors' => ['Could not read spreadsheet: '.$e->getMessage()], 'date' => null, 'dates' => []];
         }
 
         if (empty($rows)) {
-            return ['imported' => 0, 'skipped' => 0, 'errors' => ['Spreadsheet is empty.'], 'date' => null];
+            return ['imported' => 0, 'skipped' => 0, 'errors' => ['Spreadsheet is empty.'], 'date' => null, 'dates' => []];
         }
 
-        $reportDate = $forceDate ? Carbon::parse($forceDate)->toDateString() : $this->extractReportDate($rows);
-        if (! $reportDate) {
-            return ['imported' => 0, 'skipped' => 0, 'errors' => ['Could not determine the attendance date. Please pick a date in the form.'], 'date' => null];
-        }
+        $forceDateStr = $forceDate ? Carbon::parse($forceDate)->toDateString() : null;
 
         $codeCache = [];
         $cardCache = [];
+        $currentDate = null;
 
         DB::beginTransaction();
         try {
             foreach ($rows as $i => $row) {
                 $rowNumber = $i + 1;
-                $sr = $row[3] ?? null;
+                $first = isset($row[0]) ? trim((string) $row[0]) : '';
 
-                // Only process rows whose Sr.No (col 3) is numeric -> actual employee data row.
-                if (! is_numeric($sr)) {
+                // Section break: "Date : " row sets the current date for the rows that follow.
+                if (stripos($first, 'date') === 0 && str_contains($first, ':')) {
+                    $currentDate = $this->parseSectionDate($row[1] ?? null);
+                    if ($currentDate && ! in_array($currentDate, $dates, true)) {
+                        $dates[] = $currentDate;
+                    }
                     continue;
                 }
 
-                $code = isset($row[6]) ? trim((string) $row[6]) : '';
-                $card = isset($row[7]) ? trim((string) $row[7]) : '';
-                $shift = isset($row[13]) ? trim((string) $row[13]) : null;
-                $startTime = $this->normalizeTime($row[14] ?? null);
-                $checkIn = $this->normalizeTime($row[15] ?? null);
-                $lateHours = $this->normalizeDuration($row[16] ?? null);
-                $checkOut = $this->normalizeTime($row[17] ?? null);
-                $earlyHours = $this->normalizeDuration($row[20] ?? null);
-                $wrkHours = $this->normalizeDuration($row[21] ?? null);
-                $overTime = $this->normalizeDuration($row[22] ?? null);
-                $statusRaw = isset($row[24]) ? strtoupper(trim((string) $row[24])) : '';
-                $inTemp = is_numeric($row[26] ?? null) ? (float) $row[26] : null;
-                $outTemp = is_numeric($row[27] ?? null) ? (float) $row[27] : null;
-                $remark = isset($row[28]) ? trim((string) $row[28]) : null;
+                // Skip column header row.
+                if (strcasecmp($first, 'S No') === 0 || strcasecmp($first, 'SNo') === 0) {
+                    continue;
+                }
+
+                // Data rows must have a numeric S No in col 0.
+                if (! is_numeric($first)) {
+                    continue;
+                }
+
+                if (! $currentDate) {
+                    $skipped++;
+                    $errors[] = "Row {$rowNumber}: data row before any 'Date :' header";
+                    continue;
+                }
+
+                if ($forceDateStr !== null && $currentDate !== $forceDateStr) {
+                    continue;
+                }
+
+                $code = isset($row[1]) ? trim((string) $row[1]) : '';
+                $card = isset($row[2]) ? trim((string) $row[2]) : '';
+                $shift = isset($row[5]) ? trim((string) $row[5]) : null;
+                $checkIn = $this->normalizeTime($row[6] ?? null);
+                $checkOut = $this->normalizeTime($row[7] ?? null);
+                $shiftHrs = $this->normalizeDuration($row[8] ?? null);
+                $wrkHours = $this->normalizeDuration($row[9] ?? null);
+                $overTime = $this->normalizeDuration($row[10] ?? null);
+                $statusRaw = isset($row[11]) ? strtoupper(trim((string) $row[11])) : '';
+                $inTemp = is_numeric($row[12] ?? null) ? (float) $row[12] : null;
+                $outTemp = is_numeric($row[13] ?? null) ? (float) $row[13] : null;
+                $remark = isset($row[14]) ? trim((string) $row[14]) : null;
 
                 if ($code === '' && $card === '') {
                     $skipped++;
-                    $errors[] = "Row {$rowNumber}: missing both Emp.Code and CardNo";
+                    $errors[] = "Row {$rowNumber}: missing both EMP Code and Card No";
                     continue;
                 }
 
                 $employeeId = $this->resolveEmployeeId($code, $card, $codeCache, $cardCache);
                 if (! $employeeId) {
                     $skipped++;
-                    $label = $code !== '' ? "Emp.Code '{$code}'" : "CardNo '{$card}'";
+                    $label = $code !== '' ? "EMP Code '{$code}'" : "Card No '{$card}'";
                     $errors[] = "Row {$rowNumber}: {$label} not found";
                     continue;
                 }
@@ -218,6 +241,7 @@ class AttendanceService
                     'H' => 'holiday',
                     'WO', 'W' => 'weekend',
                     'HD' => 'half_day',
+                    'MIS' => $checkIn || $checkOut ? 'present' : 'absent',
                     default => $checkIn ? 'present' : 'absent',
                 };
 
@@ -227,7 +251,7 @@ class AttendanceService
                 }
 
                 Attendance::updateOrCreate(
-                    ['employee_id' => $employeeId, 'date' => $reportDate],
+                    ['employee_id' => $employeeId, 'date' => $currentDate],
                     [
                         'check_in' => $checkIn,
                         'check_out' => $checkOut,
@@ -235,9 +259,9 @@ class AttendanceService
                         'status' => $status,
                         'source' => 'biometric_xls',
                         'shift' => $shift !== '' ? $shift : null,
-                        'start_time' => $startTime,
-                        'late_hours' => $lateHours,
-                        'early_hours' => $earlyHours,
+                        'start_time' => null,
+                        'late_hours' => null,
+                        'early_hours' => null,
                         'over_time' => $overTime,
                         'in_temp' => $inTemp,
                         'out_temp' => $outTemp,
@@ -255,7 +279,17 @@ class AttendanceService
             $errors[] = $e->getMessage();
         }
 
-        return ['imported' => $imported, 'skipped' => $skipped, 'errors' => $errors, 'date' => $reportDate];
+        if (empty($dates)) {
+            $errors[] = "No 'Date :' header rows were found in the spreadsheet.";
+        }
+
+        return [
+            'imported' => $imported,
+            'skipped' => $skipped,
+            'errors' => $errors,
+            'date' => $forceDateStr ?? ($dates[0] ?? null),
+            'dates' => $dates,
+        ];
     }
 
     /**
@@ -442,24 +476,44 @@ class AttendanceService
         return null;
     }
 
-    private function extractReportDate(array $rows): ?string
+    /**
+     * Parse the value next to a "Date :" header row. Accepts DD/MM/YYYY,
+     * DD-MM-YYYY, or an Excel date serial.
+     */
+    private function parseSectionDate(mixed $value): ?string
     {
-        foreach ($rows as $row) {
-            foreach ($row as $cell) {
-                if (! is_string($cell)) {
-                    continue;
-                }
-                if (preg_match('/Report\s*Date\s*[:\-]\s*(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/i', $cell, $m)) {
-                    try {
-                        return Carbon::parse(str_replace('/', '-', $m[1]))->toDateString();
-                    } catch (\Throwable) {
-                        return null;
-                    }
-                }
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            $days = (int) floor((float) $value);
+
+            try {
+                return Carbon::create(1899, 12, 30)->addDays($days)->toDateString();
+            } catch (\Throwable) {
+                return null;
             }
         }
 
-        return null;
+        $value = trim((string) $value);
+
+        foreach (['d/m/Y', 'd-m-Y', 'd/m/y', 'd-m-y'] as $fmt) {
+            try {
+                $parsed = Carbon::createFromFormat($fmt, $value);
+                if ($parsed !== false) {
+                    return $parsed->toDateString();
+                }
+            } catch (\Throwable) {
+                // try next
+            }
+        }
+
+        try {
+            return Carbon::parse($value)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function normalizeTime(mixed $value): ?string
@@ -468,9 +522,14 @@ class AttendanceService
             return null;
         }
 
-        // Excel may return a fraction-of-day for time cells.
+        // Excel may return either a fraction-of-day or a full date+time serial
+        // (e.g. 46113.4166). Use the fractional part to get time-of-day.
         if (is_numeric($value)) {
-            $totalSeconds = (int) round(((float) $value) * 86400);
+            $fraction = fmod((float) $value, 1.0);
+            if ($fraction < 0) {
+                $fraction += 1.0;
+            }
+            $totalSeconds = (int) round($fraction * 86400) % 86400;
             $h = intdiv($totalSeconds, 3600);
             $m = intdiv($totalSeconds % 3600, 60);
             $s = $totalSeconds % 60;
