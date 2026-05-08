@@ -24,6 +24,13 @@
             <div class="flex gap-2 mt-4 justify-center flex-wrap">
                 @can('employees.edit')
                     <a href="{{ route('admin.hr.employees.edit', $employee) }}" class="btn btn-sm btn-primary">Edit</a>
+                    <form method="POST" action="{{ route('admin.hr.employees.toggle-status', $employee) }}"
+                          onsubmit="return confirm('Mark this employee as {{ $employee->status === 'active' ? 'inactive' : 'active' }}?');">
+                        @csrf
+                        <button type="submit" class="btn btn-sm {{ $employee->status === 'active' ? 'btn-outline-warning' : 'btn-outline-success' }}">
+                            {{ $employee->status === 'active' ? 'Mark Inactive' : 'Mark Active' }}
+                        </button>
+                    </form>
                 @endcan
                 @can('salary_structures.create')
                     <a href="{{ route('admin.hr.salary.form', $employee) }}" class="btn btn-sm btn-outline-info">Salary</a>
@@ -317,6 +324,32 @@
                     </details>
                 @endif
             </div>
+            @endcan
+
+            @can('employees.delete')
+                <div id="danger-zone" class="panel p-5 border border-danger/30 bg-danger/5">
+                    <h3 class="font-bold text-danger mb-1">⚠️ Danger Zone — Permanently Delete Employee</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">
+                        This will permanently delete <strong>{{ $employee->full_name }}</strong> and ALL related data:
+                        attendance, payslips, leave records, salary structures, warnings, penalties, appraisals,
+                        documents, asset assignment history, bank-edit requests, and feedback.
+                        This <strong>cannot be undone</strong>. If you only want to disable the account, use “Mark Inactive” instead.
+                    </p>
+                    <form method="POST" action="{{ route('admin.hr.employees.destroy', $employee) }}" class="mt-3 flex flex-col md:flex-row gap-2 md:items-center"
+                          onsubmit="return confirm('FINAL CONFIRMATION: Permanently delete {{ $employee->employee_code }} and ALL related data? This cannot be undone.');">
+                        @csrf
+                        @method('DELETE')
+                        <label class="text-sm">
+                            Type <span class="font-mono font-bold">{{ $employee->employee_code }}</span> to confirm:
+                        </label>
+                        <input type="text" name="confirm_code" required autocomplete="off"
+                               class="form-input md:w-48" placeholder="{{ $employee->employee_code }}" />
+                        <button type="submit" class="btn btn-sm btn-danger">Permanently Delete</button>
+                    </form>
+                    @error('confirm_code')
+                        <div class="text-danger text-xs mt-2">{{ $message }}</div>
+                    @enderror
+                </div>
             @endcan
         </div>
     </div>

@@ -26,14 +26,18 @@
         </details>
 
         <details class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-            <summary class="cursor-pointer font-semibold">Daily Performance .xls format</summary>
+            <summary class="cursor-pointer font-semibold">Date wise Daily Attendance Report (.xls / .xlsx)</summary>
             <p class="mt-2">
-                The standard "ReportDailyperfomence" export with
-                <strong>Emp.Code</strong>, <strong>CardNo</strong>, <strong>Shift</strong>,
-                <strong>Start Time</strong>, <strong>Arr.Time</strong>, <strong>Late Hrs</strong>,
-                <strong>Dept Time</strong>, <strong>Early Hrs</strong>, <strong>WrkHrs</strong>,
-                <strong>O.Time</strong>, <strong>Status</strong> (P/A), <strong>In Temp</strong>,
-                <strong>Out Temp</strong>. The "Report Date" header is auto-detected.
+                The "Date wise Daily Attendance Report (Summary)" export. The file
+                may contain many day sections; each section starts with a
+                <strong>Date :</strong> row (DD/MM/YYYY) followed by columns
+                <strong>S No</strong>, <strong>EMP Code</strong>, <strong>Card No</strong>,
+                <strong>Emp Name</strong>, <strong>Gender</strong>, <strong>Shift</strong>,
+                <strong>In Time</strong>, <strong>Out Time</strong>, <strong>Shift Hrs</strong>,
+                <strong>Work Hrs</strong>, <strong>OT Hrs</strong>,
+                <strong>Work Status</strong> (P/A/MIS), <strong>Temp In</strong>,
+                <strong>Temp Out</strong>, <strong>Remarks</strong>. All day sections are
+                imported in a single upload.
             </p>
         </details>
 
@@ -43,9 +47,9 @@
         </div>
 
         <div class="mb-4">
-            <label class="block text-sm font-medium mb-1" for="report_date">Override Report Date (optional)</label>
+            <label class="block text-sm font-medium mb-1" for="report_date">Restrict to Date (optional)</label>
             <input id="report_date" type="date" name="report_date" class="form-input" value="{{ old('report_date') }}" />
-            <p class="mt-1 text-xs text-gray-500">Only used for .xls / .xlsx imports — leave blank to read the date from the file.</p>
+            <p class="mt-1 text-xs text-gray-500">Only used for .xls / .xlsx imports — leave blank to import every day section in the file. Set a date to import only that day's section.</p>
         </div>
 
         <div class="mt-4 flex gap-3">

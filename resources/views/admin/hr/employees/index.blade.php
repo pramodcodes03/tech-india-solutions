@@ -56,10 +56,20 @@
                                 'bg-gray-200 text-gray-600' => in_array($e->status, ['resigned','inactive']),
                             ])>{{ ucfirst(str_replace('_', ' ', $e->status)) }}</span>
                         </td>
-                        <td class="text-right">
+                        <td class="text-right whitespace-nowrap">
                             <a href="{{ route('admin.hr.employees.show', $e) }}" class="text-primary text-xs">View</a>
                             @can('employees.edit')
                                 <a href="{{ route('admin.hr.employees.edit', $e) }}" class="text-info text-xs ml-2">Edit</a>
+                                <form method="POST" action="{{ route('admin.hr.employees.toggle-status', $e) }}" class="inline ml-2"
+                                      onsubmit="return confirm('Mark {{ $e->full_name }} as {{ $e->status === 'active' ? 'inactive' : 'active' }}?');">
+                                    @csrf
+                                    <button type="submit" class="text-xs {{ $e->status === 'active' ? 'text-warning' : 'text-success' }}">
+                                        {{ $e->status === 'active' ? 'Deactivate' : 'Activate' }}
+                                    </button>
+                                </form>
+                            @endcan
+                            @can('employees.delete')
+                                <a href="{{ route('admin.hr.employees.show', $e) }}#danger-zone" class="text-danger text-xs ml-2">Delete</a>
                             @endcan
                         </td>
                     </tr>

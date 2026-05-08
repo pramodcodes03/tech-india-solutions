@@ -128,14 +128,30 @@ class EmployeeController extends Controller
             ->with('success', 'Employee updated.');
     }
 
-    public function destroy(Employee $employee)
+    public function destroy(Request $request, Employee $employee)
     {
         abort_unless(Auth::guard('admin')->user()->can('employees.delete'), 403);
 
-        $this->service->delete($employee);
+        $request->validate([
+            'confirm_code' => "required|string|in:{$employee->employee_code}",
+        ], [
+            'confirm_code.in' => 'Confirmation code did not match the employee code.',
+        ]);
+
+        $code = $employee->employee_code;
+        $this->service->hardDelete($employee);
 
         return redirect()->route('admin.hr.employees.index')
-            ->with('success', 'Employee deactivated.');
+            ->with('success', "Employee {$code} and all related data permanently deleted.");
+    }
+
+    public function toggleStatus(Employee $employee)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('employees.edit'), 403);
+
+        $employee = $this->service->toggleStatus($employee);
+
+        return back()->with('success', "Employee marked {$employee->status}.");
     }
 
     public function resetPassword(Employee $employee)

@@ -118,7 +118,12 @@ class AttendanceController extends Controller
         };
 
         $msg = "Imported {$result['imported']} records, skipped {$result['skipped']}.";
-        if (! empty($result['date'] ?? null)) {
+        $dates = $result['dates'] ?? [];
+        if (! empty($dates)) {
+            $msg .= count($dates) === 1
+                ? " Date: {$dates[0]}."
+                : ' Dates: '.implode(', ', $dates).'.';
+        } elseif (! empty($result['date'] ?? null)) {
             $msg .= " Date: {$result['date']}.";
         }
         if (! empty($result['errors'])) {
