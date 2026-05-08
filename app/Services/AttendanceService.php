@@ -333,11 +333,12 @@ class AttendanceService
             ->map(fn ($h) => $h->date->toDateString())
             ->flip();
 
-        // Dynamic week-offs for this employee (worked on a week-off day and swapped it)
-        $dynamicHolidayDates = $allHolidays
-            ->where('is_dynamic', true)
-            ->filter(fn ($h) => $h->employee_id === null || $h->employee_id === $employeeId)
-            ->map(fn ($h) => $h->date->toDateString())
+        // Comp-off (dynamic week-off): approved comp-off comp_dates count as paid days
+        $dynamicHolidayDates = \App\Models\CompOffRequest::where('employee_id', $employeeId)
+            ->where('status', 'approved')
+            ->whereBetween('comp_date', [$start->toDateString(), $end->toDateString()])
+            ->pluck('comp_date')
+            ->map(fn ($d) => Carbon::parse($d)->toDateString())
             ->flip();
 
         $present         = 0;

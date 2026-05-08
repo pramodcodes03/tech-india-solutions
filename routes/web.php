@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\Hr\BankEditRequestController as HrBankEditRequest
 use App\Http\Controllers\Admin\Hr\DashboardController as HrDashboardController;
 use App\Http\Controllers\Admin\Hr\AppraisalCycleController as HrAppraisalCycleController;
 use App\Http\Controllers\Admin\Hr\AttendanceController as HrAttendanceController;
+use App\Http\Controllers\Admin\Hr\CompOffController as HrCompOffController;
 use App\Http\Controllers\Admin\Hr\DepartmentController as HrDepartmentController;
 use App\Http\Controllers\Admin\Hr\DesignationController as HrDesignationController;
 use App\Http\Controllers\Admin\Hr\EmployeeController as HrEmployeeController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\Admin\Hr\PayrollController as HrPayrollController;
 use App\Http\Controllers\Admin\Hr\PenaltyController as HrPenaltyController;
 use App\Http\Controllers\Admin\Hr\ShiftController as HrShiftController;
 use App\Http\Controllers\Admin\Hr\WarningController as HrWarningController;
+use App\Http\Controllers\Admin\Hr\WeekOffController as HrWeekOffController;
 use App\Http\Controllers\Employee\AttendanceController as EmpAttendanceController;
 use App\Http\Controllers\Employee\AuthController as EmpAuthController;
 use App\Http\Controllers\Employee\DashboardController as EmpDashboardController;
@@ -242,6 +244,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Holidays
             Route::resource('holidays', HrHolidayController::class)->except(['show']);
 
+            // Week-Off Configuration
+            Route::get('week-off', [HrWeekOffController::class, 'index'])->name('week-off.index');
+            Route::post('week-off', [HrWeekOffController::class, 'save'])->name('week-off.save');
+
+            // Comp-Off (Dynamic Week-Off)
+            Route::get('comp-off', [HrCompOffController::class, 'index'])->name('comp-off.index');
+            Route::post('comp-off/{compOff}/approve', [HrCompOffController::class, 'approve'])->name('comp-off.approve');
+            Route::post('comp-off/{compOff}/reject', [HrCompOffController::class, 'reject'])->name('comp-off.reject');
+
             // Leave Types
             Route::resource('leave-types', HrLeaveTypeController::class)->except(['show'])->parameters(['leave-types' => 'leaveType']);
 
@@ -381,6 +392,11 @@ Route::prefix('employee')->name('employee.')->group(function () {
         Route::post('leaves', [EmpLeaveController::class, 'store'])->name('leaves.store');
         Route::get('leaves/{leaveRequest}', [EmpLeaveController::class, 'show'])->name('leaves.show');
         Route::post('leaves/{leaveRequest}/cancel', [EmpLeaveController::class, 'cancel'])->name('leaves.cancel');
+
+        // Comp-Off
+        Route::get('comp-off', [\App\Http\Controllers\Employee\CompOffController::class, 'index'])->name('comp-off.index');
+        Route::post('comp-off', [\App\Http\Controllers\Employee\CompOffController::class, 'store'])->name('comp-off.store');
+        Route::delete('comp-off/{compOff}', [\App\Http\Controllers\Employee\CompOffController::class, 'cancel'])->name('comp-off.cancel');
 
         // Payslips
         Route::get('payslips', [EmpPayslipController::class, 'index'])->name('payslips.index');

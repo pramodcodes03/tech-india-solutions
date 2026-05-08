@@ -78,6 +78,15 @@
                 </li>
 
                 <li class="menu nav-item">
+                    <a href="{{ route('employee.comp-off.index') }}" class="nav-link group {{ request()->routeIs('employee.comp-off.*') ? 'active' : '' }}">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path opacity="0.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span class="ltr:pl-3 text-black dark:text-[#506690]">Comp-Off</span>
+                        </div>
+                    </a>
+                </li>
+
+                <li class="menu nav-item">
                     <a href="{{ route('employee.payslips.index') }}" class="nav-link group {{ request()->routeIs('employee.payslips.*') ? 'active' : '' }}">
                         <div class="flex items-center">
                             <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12.5" r="2.25" stroke="currentColor" stroke-width="1.5"/></svg>

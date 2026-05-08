@@ -700,7 +700,11 @@
                         <li><a href="{{ route('admin.hr.attendance.monthly') }}">Monthly Summary</a></li>
                         @can('attendance.create')<li><a href="{{ route('admin.hr.attendance.create') }}">Mark Attendance</a></li>@endcan
                         @can('attendance.import')<li><a href="{{ route('admin.hr.attendance.import-form') }}">Import Biometric CSV</a></li>@endcan
-                        @can('holidays.view')<li><a href="{{ route('admin.hr.holidays.index') }}">Holiday Calendar</a></li>@endcan
+                        @can('holidays.view')
+                            <li><a href="{{ route('admin.hr.holidays.index') }}">Holiday Calendar</a></li>
+                            <li><a href="{{ route('admin.hr.week-off.index') }}">Week-Off Setup</a></li>
+                            <li><a href="{{ route('admin.hr.comp-off.index') }}">Comp-Off Requests</a></li>
+                        @endcan
                     </ul>
                 </li>
                 @endcan

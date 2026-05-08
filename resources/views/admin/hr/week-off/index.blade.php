@@ -218,13 +218,14 @@
     <script>
         const dayNames = @json($days);
 
-        document.querySelectorAll('.day-card').forEach(label => {
-            label.addEventListener('click', function(e) {
-                if (e.target.tagName === 'INPUT') return;
-                const dow = this.dataset.dow;
-                const cb = document.getElementById('day_' + dow);
-                cb.checked = !cb.checked;
-                updateCard(dow, cb.checked);
+        // Listen to the native checkbox change event; the wrapping <label>
+        // already toggles the checkbox when the card is clicked. Manually
+        // flipping `cb.checked` here would race with the label's default
+        // action and the toggles would cancel out.
+        document.querySelectorAll('.day-checkbox').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const dow = this.id.replace('day_', '');
+                updateCard(dow, this.checked);
                 updateSummary();
             });
         });
