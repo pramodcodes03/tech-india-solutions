@@ -230,6 +230,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Employees
             Route::resource('employees', HrEmployeeController::class);
             Route::post('employees/{employee}/reset-password', [HrEmployeeController::class, 'resetPassword'])->name('employees.reset-password');
+            Route::post('employees/{employee}/toggle-status', [HrEmployeeController::class, 'toggleStatus'])->name('employees.toggle-status');
 
             // Departments & Designations
             Route::resource('departments', HrDepartmentController::class)->except(['show']);

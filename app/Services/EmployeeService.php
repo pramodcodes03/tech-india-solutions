@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Models\AssetAssignment;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class EmployeeService
 {
@@ -65,6 +67,47 @@ class EmployeeService
     {
         $employee->update(['deleted_by' => Auth::guard('admin')->id(), 'status' => 'inactive']);
         $employee->delete();
+    }
+
+    /**
+     * Toggle status between active and inactive without deleting.
+     */
+    public function toggleStatus(Employee $employee): Employee
+    {
+        $next = $employee->status === 'active' ? 'inactive' : 'active';
+        $employee->update([
+            'status' => $next,
+            'updated_by' => Auth::guard('admin')->id(),
+        ]);
+
+        return $employee->refresh();
+    }
+
+    /**
+     * Permanently delete the employee and all related records.
+     *
+     * Cascades handle most child rows (attendance, payslips, leave_*,
+     * salary_structures, warnings, penalties, appraisals, documents,
+     * bank_detail_edit_requests, department_feedback). Two FKs need manual
+     * handling:
+     *   - asset_assignments.employee_id is restrictOnDelete → delete first
+     *   - assets.current_custodian_id is nullOnDelete (auto-handled)
+     *   - asset_maintenance_logs.performed_by_employee_id is nullOnDelete (auto)
+     *   - employees.reporting_manager_id is nullOnDelete (auto)
+     */
+    public function hardDelete(Employee $employee): void
+    {
+        DB::transaction(function () use ($employee) {
+            AssetAssignment::where('employee_id', $employee->id)->delete();
+
+            $photo = $employee->profile_photo;
+
+            $employee->forceDelete();
+
+            if ($photo && Storage::disk('public')->exists($photo)) {
+                Storage::disk('public')->delete($photo);
+            }
+        });
     }
 
     public function resetPassword(Employee $employee, ?string $newPassword = null): string
