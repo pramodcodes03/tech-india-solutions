@@ -161,14 +161,17 @@ class PayrollService
 
             $summary = $this->attendance->monthlySummary($employee->id, $month, $year);
             $periodStart = Carbon::createFromDate($year, $month, 1)->startOfMonth();
-            $periodEnd = $periodStart->copy()->endOfMonth();
+            $periodEnd   = $periodStart->copy()->endOfMonth();
             $daysInMonth = $periodStart->daysInMonth;
-            $workingDays = max(1, $summary['working_days']);
-            $paidDays = (float) $summary['paid_days'];
-            $lopDays = (float) $summary['lop_days'];
 
-            // Pro-rate earnings by paid_days / working_days
-            $ratio = $workingDays > 0 ? min(1, $paidDays / $workingDays) : 1;
+            // Total calendar days used as denominator so week-offs + holidays
+            // don't artificially inflate the ratio above 1.
+            $totalCalendarDays = (int) $daysInMonth;
+            $paidDays  = (float) $summary['paid_days'];
+            $lopDays   = (float) $summary['lop_days'];
+
+            // Pro-rate earnings: paidDays / totalCalendarDays, capped at 1
+            $ratio = $totalCalendarDays > 0 ? min(1.0, $paidDays / $totalCalendarDays) : 1.0;
 
             $basic = round($structure->basic * $ratio, 2);
             $hra = round($structure->hra * $ratio, 2);
@@ -195,7 +198,7 @@ class PayrollService
             // double-count it (e.g. 2 paid days out of 30 would zero earnings
             // AND subtract ~28 days of pay, producing a hugely negative net).
             // Track it for display only.
-            $perDay = $workingDays > 0 ? round($structure->gross_monthly / $workingDays, 2) : 0;
+            $perDay = $totalCalendarDays > 0 ? round($structure->gross_monthly / $totalCalendarDays, 2) : 0;
             $lopDeduction = round($perDay * $lopDays, 2);
 
             // Pending penalties for this employee (not yet deducted)
@@ -214,7 +217,7 @@ class PayrollService
                     'payslip_code' => $this->generatePayslipCode(),
                     'period_start' => $periodStart->toDateString(),
                     'period_end' => $periodEnd->toDateString(),
-                    'working_days' => $workingDays,
+                    'working_days' => $totalCalendarDays,
                     'paid_days' => $paidDays,
                     'lop_days' => $lopDays,
                     'basic' => $basic,

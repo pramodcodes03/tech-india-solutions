@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Attendance;
+use App\Models\BusinessWeekOff;
 use App\Models\Employee;
 use App\Models\Holiday;
 use Carbon\Carbon;
@@ -295,15 +296,24 @@ class AttendanceService
     /**
      * Generate a monthly summary for a given employee.
      *
-     * @return array{present:int, absent:int, late:int, half_day:int, on_leave:int, holidays:int, working_days:int, paid_days:float, lop_days:float}
+     * Paid-days formula:
+     *   paidDays = present + paidLeave + fixedWeekOff + dynamicWeekOff + holidays
+     *   unpaidDays = absent + unpaidLeave
+     *
+     * @return array{
+     *   present:int, absent:int, late:int, half_day:int, on_leave:int,
+     *   holidays:int, fixed_week_offs:int, dynamic_week_offs:int,
+     *   working_days:int, paid_days:float, lop_days:float,
+     *   paid_leave_days:float, unpaid_leave_days:float
+     * }
      */
     public function monthlySummary(int $employeeId, int $month, int $year): array
     {
         $start = Carbon::createFromDate($year, $month, 1)->startOfDay();
-        $end = $start->copy()->endOfMonth();
+        $end   = $start->copy()->endOfMonth();
 
-        // For the current month, don't count future days — they're not "absent" yet.
-        $today = Carbon::today();
+        // For the current month, don't count future days.
+        $today   = Carbon::today();
         $loopEnd = $end->isFuture() ? $today : $end;
 
         $records = Attendance::where('employee_id', $employeeId)
@@ -311,26 +321,46 @@ class AttendanceService
             ->get()
             ->keyBy(fn ($a) => $a->date->toDateString());
 
-        $holidays = Holiday::whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->pluck('date')
-            ->map(fn ($d) => Carbon::parse($d)->toDateString())
+        // Business-configured week-off days (e.g. [0,6] = Sun+Sat)
+        $offDayNumbers = BusinessWeekOff::offDays();
+
+        // All holidays for this year (yearly ones expanded to this year)
+        $allHolidays = Holiday::forYear($year);
+
+        // Build lookup maps
+        $publicHolidayDates = $allHolidays
+            ->where('is_dynamic', false)
+            ->map(fn ($h) => $h->date->toDateString())
             ->flip();
 
-        $present = 0;
-        $absent = 0;
-        $late = 0;
-        $halfDay = 0;
-        $onLeave = 0;
-        $holidayCount = 0;
-        $workingDays = 0;
+        // Dynamic week-offs for this employee (worked on a week-off day and swapped it)
+        $dynamicHolidayDates = $allHolidays
+            ->where('is_dynamic', true)
+            ->filter(fn ($h) => $h->employee_id === null || $h->employee_id === $employeeId)
+            ->map(fn ($h) => $h->date->toDateString())
+            ->flip();
+
+        $present         = 0;
+        $absent          = 0;
+        $late            = 0;
+        $halfDay         = 0;
+        $onLeave         = 0;
+        $holidayCount    = 0;
+        $fixedWeekOffs   = 0;
+        $dynamicWeekOffs = 0;
+        $workingDays     = 0;
 
         for ($d = $start->copy(); $d->lte($loopEnd); $d->addDay()) {
-            $key = $d->toDateString();
-            $isWeekend = $d->isSunday(); // simplest assumption: Sunday weekly off
-            $isHoliday = $holidays->has($key);
+            $key       = $d->toDateString();
+            $dow       = (int) $d->dayOfWeek; // 0=Sun ... 6=Sat
+            $isWeekOff = in_array($dow, $offDayNumbers, true);
+            $isHoliday = $publicHolidayDates->has($key);
+            $isDynamic = $dynamicHolidayDates->has($key);
 
-            if (! $isWeekend && ! $isHoliday) {
-                $workingDays++;
+            if ($isDynamic) {
+                // Employee traded their week-off for a weekday leave — counts as paid
+                $dynamicWeekOffs++;
+                continue;
             }
 
             if ($isHoliday) {
@@ -338,55 +368,76 @@ class AttendanceService
                 continue;
             }
 
-            $rec = $records->get($key);
-            if (! $rec) {
-                if (! $isWeekend) {
-                    $absent++;
+            if ($isWeekOff) {
+                $fixedWeekOffs++;
+                // Check if employee actually came in on a week-off (swap scenario handled via dynamic holiday)
+                $rec = $records->get($key);
+                if ($rec && $rec->status === 'present') {
+                    // Worked on week-off — count as present (paid), not week-off
+                    $fixedWeekOffs--;
+                    $present++;
+                    $workingDays++;
                 }
                 continue;
             }
 
+            // Normal working day
+            $workingDays++;
+            $rec = $records->get($key);
+
+            if (! $rec) {
+                $absent++;
+                continue;
+            }
+
             match ($rec->status) {
-                'present' => $present++,
-                'late' => [$late++, $present++],
+                'present'  => $present++,
+                'late'     => [$late++, $present++],
                 'half_day' => $halfDay++,
-                'absent' => $absent++,
+                'absent'   => $absent++,
                 'on_leave' => $onLeave++,
-                default => null,
+                default    => null,
             };
         }
 
-        // Approved leave requests overlapping this month contribute their UNPAID portion to LOP.
-        // paid_days/unpaid_days on the request splits the total days into paid vs. LWP.
-        $unpaidLeaveInMonth = $this->unpaidLeaveDaysInMonth($employeeId, $start, $end);
+        // Split leave days into paid vs unpaid from approved leave requests
+        [$paidLeave, $unpaidLeave] = $this->splitLeaveDaysInMonth($employeeId, $start, $end);
 
-        $paidDays = $present + $late + $onLeave + ($halfDay * 0.5) - $unpaidLeaveInMonth;
-        $paidDays = max(0, $paidDays);
-        $lopDays = max(0, $workingDays - $paidDays);
+        // Core formula as specified
+        $paidDays = $present + $late + $paidLeave + ($halfDay * 0.5)
+                  + $fixedWeekOffs + $dynamicWeekOffs + $holidayCount;
+        $paidDays = max(0.0, round($paidDays, 1));
+
+        $unpaidDays = max(0.0, round($absent + $unpaidLeave, 1));
+        $lopDays    = $unpaidDays;
 
         return [
-            'present' => $present,
-            'absent' => $absent,
-            'late' => $late,
-            'half_day' => $halfDay,
-            'on_leave' => $onLeave,
-            'holidays' => $holidayCount,
-            'working_days' => $workingDays,
-            'paid_days' => round($paidDays, 1),
-            'lop_days' => round($lopDays, 1),
+            'present'           => $present,
+            'absent'            => $absent,
+            'late'              => $late,
+            'half_day'          => $halfDay,
+            'on_leave'          => $onLeave,
+            'holidays'          => $holidayCount,
+            'fixed_week_offs'   => $fixedWeekOffs,
+            'dynamic_week_offs' => $dynamicWeekOffs,
+            'working_days'      => $workingDays,
+            'paid_days'         => $paidDays,
+            'lop_days'          => $lopDays,
+            'paid_leave_days'   => round($paidLeave, 1),
+            'unpaid_leave_days' => round($unpaidLeave, 1),
         ];
     }
 
     /**
-     * Sum of unpaid_days across approved leave requests whose [from_date, to_date]
-     * overlap the given month. We prorate the unpaid portion linearly across the
-     * request span to allocate days that fall inside this month.
+     * Split approved leave days overlapping the given month into [paidDays, unpaidDays].
+     * Prorates each request's paid_days / unpaid_days linearly within the month overlap.
+     *
+     * @return array{0: float, 1: float} [paidLeave, unpaidLeave]
      */
-    private function unpaidLeaveDaysInMonth(int $employeeId, Carbon $monthStart, Carbon $monthEnd): float
+    private function splitLeaveDaysInMonth(int $employeeId, Carbon $monthStart, Carbon $monthEnd): array
     {
         $requests = \App\Models\LeaveRequest::where('employee_id', $employeeId)
             ->where('status', 'approved')
-            ->where('unpaid_days', '>', 0)
             ->where(function ($q) use ($monthStart, $monthEnd) {
                 $q->whereBetween('from_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
                     ->orWhereBetween('to_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
@@ -397,23 +448,28 @@ class AttendanceService
             })
             ->get();
 
-        $total = 0.0;
+        $totalPaid   = 0.0;
+        $totalUnpaid = 0.0;
+
         foreach ($requests as $r) {
             $reqStart = Carbon::parse($r->from_date);
-            $reqEnd = Carbon::parse($r->to_date);
+            $reqEnd   = Carbon::parse($r->to_date);
             $spanDays = max(1, $reqStart->diffInDays($reqEnd) + 1);
 
             $overlapStart = $reqStart->gt($monthStart) ? $reqStart : $monthStart;
-            $overlapEnd = $reqEnd->lt($monthEnd) ? $reqEnd : $monthEnd;
+            $overlapEnd   = $reqEnd->lt($monthEnd) ? $reqEnd : $monthEnd;
             if ($overlapEnd->lt($overlapStart)) {
                 continue;
             }
-            $overlapDays = $overlapStart->diffInDays($overlapEnd) + 1;
 
-            $total += round(((float) $r->unpaid_days) * ($overlapDays / $spanDays), 1);
+            $overlapDays = $overlapStart->diffInDays($overlapEnd) + 1;
+            $ratio       = $overlapDays / $spanDays;
+
+            $totalPaid   += (float) $r->paid_days * $ratio;
+            $totalUnpaid += (float) $r->unpaid_days * $ratio;
         }
 
-        return round($total, 1);
+        return [round($totalPaid, 1), round($totalUnpaid, 1)];
     }
 
     private function calcHours(?string $in, ?string $out): float
