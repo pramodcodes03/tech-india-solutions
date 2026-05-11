@@ -405,7 +405,9 @@ class AttendanceService
         [$paidLeave, $unpaidLeave] = $this->splitLeaveDaysInMonth($employeeId, $start, $end);
 
         // Core formula as specified
-        $paidDays = $present + $late + $paidLeave + ($halfDay * 0.5)
+        // $present already includes late days (match block increments both).
+        // Do NOT add $late again — that would double-count late attendance.
+        $paidDays = $present + $paidLeave + ($halfDay * 0.5)
                   + $fixedWeekOffs + $dynamicWeekOffs + $holidayCount;
         $paidDays = max(0.0, round($paidDays, 1));
 

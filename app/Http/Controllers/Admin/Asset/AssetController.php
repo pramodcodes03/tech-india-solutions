@@ -140,6 +140,7 @@ class AssetController extends Controller
         $asset->load(['category', 'model', 'location', 'custodian.department', 'custodian.designation', 'vendor', 'purchaseOrder']);
         $assignments = $asset->assignments()->with(['employee', 'fromLocation', 'toLocation'])->limit(15)->get();
         $maintenance = $asset->maintenanceLogs()->with('technician')->limit(15)->get();
+        $asset->load(['repairRequests.requester']);
 
         // Depreciation forecast (next 12 months, straight-line preview)
         $forecast = [];
@@ -220,6 +221,19 @@ class AssetController extends Controller
         ]);
 
         return back()->with('success', $asset->is_lost ? 'Asset marked as lost.' : 'Asset marked as found.');
+    }
+
+    public function toggleNonRepairable(Asset $asset)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('assets.edit'), 403);
+        $asset->update([
+            'is_non_repairable' => ! $asset->is_non_repairable,
+            'updated_by'        => Auth::guard('admin')->id(),
+        ]);
+
+        $label = $asset->is_non_repairable ? 'marked as Non-Repairable' : 'marked as Repairable';
+
+        return back()->with('success', "Asset {$label}.");
     }
 
     protected function formData(Request $request): array

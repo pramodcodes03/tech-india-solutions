@@ -348,6 +348,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::resource('assets', \App\Http\Controllers\Admin\Asset\AssetController::class);
             Route::post('assets/{asset}/dispose', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'dispose'])->name('assets.dispose');
             Route::post('assets/{asset}/mark-lost', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'markLost'])->name('assets.mark-lost');
+            Route::post('assets/{asset}/toggle-non-repairable', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'toggleNonRepairable'])->name('assets.toggle-non-repairable');
+
+            // Repair Approval Management
+            Route::get('repair', [\App\Http\Controllers\Admin\Asset\RepairController::class, 'index'])->name('repair.index');
+            Route::get('repair/create', [\App\Http\Controllers\Admin\Asset\RepairController::class, 'create'])->name('repair.create');
+            Route::post('repair', [\App\Http\Controllers\Admin\Asset\RepairController::class, 'store'])->name('repair.store');
+            Route::get('repair/{repair}', [\App\Http\Controllers\Admin\Asset\RepairController::class, 'show'])->name('repair.show');
+            Route::post('repair/{repair}/approve', [\App\Http\Controllers\Admin\Asset\RepairController::class, 'approve'])->name('repair.approve');
+            Route::post('repair/{repair}/reject', [\App\Http\Controllers\Admin\Asset\RepairController::class, 'reject'])->name('repair.reject');
+            Route::post('repair/{repair}/request-costing', [\App\Http\Controllers\Admin\Asset\RepairController::class, 'requestCosting'])->name('repair.request-costing');
+            Route::post('repair/{repair}/approve-costing', [\App\Http\Controllers\Admin\Asset\RepairController::class, 'approveCosting'])->name('repair.approve-costing');
+            Route::post('repair/{repair}/reject-costing', [\App\Http\Controllers\Admin\Asset\RepairController::class, 'rejectCosting'])->name('repair.reject-costing');
 
             Route::get('assignments', [\App\Http\Controllers\Admin\Asset\AssignmentController::class, 'index'])->name('assignments.index');
             Route::get('assignments/export', [\App\Http\Controllers\Admin\Asset\AssignmentController::class, 'export'])->name('assignments.export');

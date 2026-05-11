@@ -23,7 +23,7 @@ class Asset extends Model
         'warranty_expiry_date', 'insurance_expiry_date', 'end_of_life_date',
         'depreciation_method', 'useful_life_years', 'depreciation_start_date',
         'last_depreciation_posted_on', 'accumulated_depreciation', 'current_book_value',
-        'status', 'condition_rating', 'is_lost',
+        'status', 'condition_rating', 'is_lost', 'is_non_repairable',
         'qr_code_path', 'image_path', 'notes',
         'created_by', 'updated_by',
     ];
@@ -41,7 +41,8 @@ class Asset extends Model
             'salvage_value' => 'decimal:2',
             'accumulated_depreciation' => 'decimal:2',
             'current_book_value' => 'decimal:2',
-            'is_lost' => 'boolean',
+            'is_lost'           => 'boolean',
+            'is_non_repairable' => 'boolean',
         ];
     }
 
@@ -89,6 +90,11 @@ class Asset extends Model
     public function maintenanceLogs(): HasMany
     {
         return $this->hasMany(AssetMaintenanceLog::class)->orderByDesc('performed_date');
+    }
+
+    public function repairRequests(): HasMany
+    {
+        return $this->hasMany(AssetRepairRequest::class)->orderByDesc('created_at');
     }
 
     public function getStatusLabelAttribute(): string

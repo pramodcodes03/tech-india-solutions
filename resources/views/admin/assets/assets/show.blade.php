@@ -24,8 +24,28 @@
                     <button class="btn btn-sm {{ $asset->is_lost ? 'btn-outline-success' : 'btn-outline-danger' }}">{{ $asset->is_lost ? 'Mark Found' : 'Mark Lost' }}</button>
                 </form>
             @endcan
+            @can('assets.edit')
+                <form method="POST" action="{{ route('admin.assets.assets.toggle-non-repairable', $asset) }}" class="inline"
+                    onsubmit="return confirm('{{ $asset->is_non_repairable ? 'Mark this asset as Repairable?' : 'Mark this asset as Non-Repairable? Users will no longer be able to raise repair requests for it.' }}')">
+                    @csrf
+                    <button class="btn btn-sm {{ $asset->is_non_repairable ? 'btn-warning' : 'btn-outline-secondary' }}">
+                        {{ $asset->is_non_repairable ? '⚠ Non-Repairable' : 'Set Non-Repairable' }}
+                    </button>
+                </form>
+            @endcan
+            @if(!$asset->is_non_repairable && !in_array($asset->status, ['disposed','retired']))
+                @can('assets.create')
+                    <a href="{{ route('admin.assets.repair.create', ['asset_id' => $asset->id]) }}" class="btn btn-sm btn-outline-primary">🔧 Request Repair</a>
+                @endcan
+            @endif
         </div>
     </div>
+
+    @if($asset->is_non_repairable)
+        <div class="alert alert-warning mb-4 flex items-center gap-2">
+            <span class="font-bold">⚠ Non-Repairable:</span> This asset is marked as non-repairable. Repair requests cannot be raised for it.
+        </div>
+    @endif
 
     {{-- Top metric strip --}}
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
@@ -186,6 +206,55 @@
                     </tr>
                 @empty
                     <tr><td colspan="7" class="text-center text-gray-500 py-6">No maintenance logs.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    {{-- Repair Request History --}}
+    <div class="panel p-0 mt-5 overflow-x-auto">
+        <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <h3 class="font-semibold">Repair Request History</h3>
+            @if(!$asset->is_non_repairable && !in_array($asset->status, ['disposed','retired']))
+                @can('assets.create')
+                    <a href="{{ route('admin.assets.repair.create', ['asset_id' => $asset->id]) }}" class="text-primary text-xs hover:underline">+ Request Repair</a>
+                @endcan
+            @endif
+        </div>
+        <table class="table-striped">
+            <thead>
+                <tr>
+                    <th>Request #</th>
+                    <th>Vendor</th>
+                    <th>Delivery Date</th>
+                    <th class="text-right">Est. Cost</th>
+                    <th class="text-right">Costing Amount</th>
+                    <th>Status</th>
+                    <th>Raised By</th>
+                    <th>Date</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($asset->repairRequests as $rr)
+                    <tr>
+                        <td class="font-mono font-semibold">
+                            <a href="{{ route('admin.assets.repair.show', $rr) }}" class="text-primary hover:underline">{{ $rr->request_code }}</a>
+                        </td>
+                        <td class="text-sm">{{ $rr->vendor_name }}</td>
+                        <td class="text-sm whitespace-nowrap">{{ $rr->repair_delivery_date->format('d M Y') }}</td>
+                        <td class="text-right text-sm">{{ $rr->estimated_cost ? '₹'.number_format($rr->estimated_cost, 2) : '—' }}</td>
+                        <td class="text-right text-sm">{{ $rr->costing_requested_amount ? '₹'.number_format($rr->costing_requested_amount, 2) : '—' }}</td>
+                        <td>
+                            @php $color = $rr->status_color; @endphp
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold bg-{{ $color }}/10 text-{{ $color }}">{{ $rr->status_label }}</span>
+                        </td>
+                        <td class="text-sm">{{ $rr->requester?->name ?? '—' }}</td>
+                        <td class="text-sm text-gray-500 whitespace-nowrap">{{ $rr->created_at->format('d M Y') }}</td>
+                        <td class="text-right"><a href="{{ route('admin.assets.repair.show', $rr) }}" class="text-primary text-xs">View</a></td>
+                    </tr>
+                @empty
+                    <tr><td colspan="9" class="text-center text-gray-500 py-6">No repair requests for this asset.</td></tr>
                 @endforelse
             </tbody>
         </table>

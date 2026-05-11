@@ -18,7 +18,7 @@
 
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 mb-6">
         @foreach([
-            ['Present', $summary['present']+$summary['late'], 'success'],
+            ['Present', $summary['present'], 'success'],
             ['Absent', $summary['absent'], 'danger'],
             ['Half-day', $summary['half_day'], 'warning'],
             ['Late', $summary['late'], 'warning'],

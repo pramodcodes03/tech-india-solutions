@@ -38,7 +38,7 @@
 
     <div class="panel p-0 overflow-x-auto">
         <table class="table-striped">
-            <thead><tr><th>Code</th><th>Asset</th><th>Category / Model</th><th>Location</th><th>Custodian</th><th class="text-right">Cost</th><th class="text-right">Book Value</th><th>Status</th><th>End of Life</th><th></th></tr></thead>
+            <thead><tr><th>Code</th><th>Asset</th><th>Category / Model</th><th>Location</th><th>Custodian</th><th class="text-right">Cost</th><th class="text-right">Book Value</th><th>Status</th><th>End of Life</th><th class="text-center">Repairable</th><th></th></tr></thead>
             <tbody>
                 @forelse($assets as $a)
                     <tr @class(['!bg-danger/5' => $a->is_lost])>
@@ -98,6 +98,25 @@
                             @else
                                 <span class="text-xs text-gray-400">—</span>
                             @endif
+                        </td>
+                        <td class="text-center">
+                            @can('assets.edit')
+                                <form method="POST" action="{{ route('admin.assets.assets.toggle-non-repairable', $a) }}" class="inline">
+                                    @csrf
+                                    <button type="submit"
+                                        title="{{ $a->is_non_repairable ? 'Click to mark as Repairable' : 'Click to mark as Non-Repairable' }}"
+                                        class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none {{ $a->is_non_repairable ? 'bg-danger' : 'bg-success' }}">
+                                        <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 {{ $a->is_non_repairable ? 'translate-x-4' : 'translate-x-0' }}"></span>
+                                    </button>
+                                </form>
+                                @if($a->is_non_repairable)
+                                    <div class="text-[10px] text-danger font-semibold mt-0.5">Non-Rep.</div>
+                                @endif
+                            @else
+                                <span class="text-xs {{ $a->is_non_repairable ? 'text-danger' : 'text-success' }}">
+                                    {{ $a->is_non_repairable ? 'No' : 'Yes' }}
+                                </span>
+                            @endcan
                         </td>
                         <td class="text-right whitespace-nowrap">
                             <a href="{{ route('admin.assets.assets.show', $a) }}" class="text-primary text-xs">View</a>

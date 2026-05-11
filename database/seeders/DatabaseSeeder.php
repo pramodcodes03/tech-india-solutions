@@ -43,6 +43,8 @@ class DatabaseSeeder extends Seeder
                 ServiceCategorySeeder::class,
                 ServiceTicketSeeder::class,
                 EmployeeSeeder::class,
+                AssetSeeder::class,
+                AssetRepairSeeder::class,
             ]);
         }
 
