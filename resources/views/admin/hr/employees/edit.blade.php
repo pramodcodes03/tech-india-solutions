@@ -12,7 +12,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route('admin.hr.employees.update', $employee) }}">
+    <form method="POST" action="{{ route('admin.hr.employees.update', $employee) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
         @include('admin.hr.employees._form', ['employee' => $employee, 'departments' => $departments, 'designations' => $designations, 'shifts' => $shifts, 'managers' => $managers])

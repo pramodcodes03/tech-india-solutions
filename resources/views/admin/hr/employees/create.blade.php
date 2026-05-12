@@ -6,7 +6,7 @@
         <a href="{{ route('admin.hr.employees.index') }}" class="btn btn-outline-secondary">Cancel</a>
     </div>
 
-    <form method="POST" action="{{ route('admin.hr.employees.store') }}">
+    <form method="POST" action="{{ route('admin.hr.employees.store') }}" enctype="multipart/form-data">
         @csrf
         @include('admin.hr.employees._form', ['departments' => $departments, 'designations' => $designations, 'shifts' => $shifts, 'managers' => $managers])
         <div class="flex gap-3 mt-4">

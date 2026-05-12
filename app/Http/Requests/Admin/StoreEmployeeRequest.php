@@ -77,6 +77,8 @@ class StoreEmployeeRequest extends FormRequest
 
             'bgv_status' => ['nullable', Rule::in(['pending', 'in_progress', 'cleared', 'failed'])],
             'status' => ['nullable', Rule::in(['active', 'probation', 'on_notice', 'terminated', 'resigned', 'absconded', 'inactive'])],
+
+            'profile_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
     }
 }

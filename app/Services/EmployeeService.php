@@ -40,6 +40,13 @@ class EmployeeService
                 $data['password'] = $data['employee_code'];
             }
 
+            // Handle profile photo upload
+            if (isset($data['profile_photo']) && $data['profile_photo'] instanceof \Illuminate\Http\UploadedFile) {
+                $data['profile_photo'] = $data['profile_photo']->store('profile-photos', 'public');
+            } else {
+                unset($data['profile_photo']);
+            }
+
             $employee = Employee::create($data);
 
             // Provision leave balances for the current year
@@ -56,6 +63,16 @@ class EmployeeService
         // Only update password if explicitly provided
         if (empty($data['password'])) {
             unset($data['password']);
+        }
+
+        // Handle profile photo upload
+        if (isset($data['profile_photo']) && $data['profile_photo'] instanceof \Illuminate\Http\UploadedFile) {
+            if ($employee->profile_photo) {
+                Storage::disk('public')->delete($employee->profile_photo);
+            }
+            $data['profile_photo'] = $data['profile_photo']->store('profile-photos', 'public');
+        } else {
+            unset($data['profile_photo']);
         }
 
         $employee->update($data);

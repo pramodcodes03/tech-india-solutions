@@ -4,6 +4,38 @@
 
 <div class="space-y-5">
 
+    {{-- ── Profile Photo ─────────────────────────────────────────────────── --}}
+    <div class="panel p-5" x-data="{ preview: null }">
+        <h3 class="font-bold mb-4 text-lg border-b border-gray-200 dark:border-gray-700 pb-2">Profile Photo</h3>
+        <div class="flex items-center gap-5">
+            {{-- Current avatar / live preview --}}
+            <div class="shrink-0">
+                <div x-show="!preview">
+                    @if($emp?->profile_photo)
+                        <img src="{{ asset('storage/'.$emp->profile_photo) }}"
+                             alt="{{ $emp->full_name }}"
+                             class="w-20 h-20 rounded-full object-cover ring-2 ring-primary" />
+                    @else
+                        <div class="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-info text-white flex items-center justify-center text-2xl font-extrabold">
+                            {{ $emp ? strtoupper(substr($emp->first_name,0,1).substr($emp->last_name??'',0,1)) : '?' }}
+                        </div>
+                    @endif
+                </div>
+                <img x-show="preview" :src="preview" x-cloak
+                     class="w-20 h-20 rounded-full object-cover ring-2 ring-primary" alt="Preview" />
+            </div>
+
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase block mb-1">Upload Photo</label>
+                <input type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp"
+                       class="form-input text-sm"
+                       @change="const f=$event.target.files[0]; if(f){ const r=new FileReader(); r.onload=e=>preview=e.target.result; r.readAsDataURL(f); }" />
+                <p class="text-[11px] text-gray-400 mt-1">JPG, PNG or WEBP · max 2 MB · optional</p>
+                @error('profile_photo')<p class="text-danger text-xs mt-1">{{ $message }}</p>@enderror
+            </div>
+        </div>
+    </div>
+
     <div class="panel p-5">
         <h3 class="font-bold mb-4 text-lg border-b border-gray-200 dark:border-gray-700 pb-2">Personal Information</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">

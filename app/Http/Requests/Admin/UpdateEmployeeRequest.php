@@ -84,6 +84,8 @@ class UpdateEmployeeRequest extends FormRequest
             'bgv_completed_at' => ['nullable', 'date'],
             'bgv_notes' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in(['active', 'probation', 'on_notice', 'terminated', 'resigned', 'absconded', 'inactive'])],
+
+            'profile_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
     }
 }
