@@ -3,7 +3,7 @@
 
     <div class="grid grid-cols-12 gap-4">
         <div class="col-span-12 lg:col-span-4 panel p-6 text-center">
-            <div class="mx-auto">
+            <div class="flex justify-center">
                 <x-employee-avatar :employee="$employee" size="w-24 h-24" textSize="text-3xl" />
             </div>
             <div class="mt-3 text-xl font-extrabold">{{ $employee->full_name }}</div>

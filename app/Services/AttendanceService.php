@@ -23,7 +23,7 @@ class AttendanceService
         $data['hours_worked'] = $data['hours_worked'] ?? $this->calcHours($data['check_in'] ?? null, $data['check_out'] ?? null);
         $data['status'] = $data['status'] ?? $this->deriveStatus($data);
 
-        return Attendance::updateOrCreate(
+        return Attendance::withoutGlobalScopes()->updateOrCreate(
             ['employee_id' => $data['employee_id'], 'date' => $data['date']],
             $data
         );
@@ -92,9 +92,9 @@ class AttendanceService
                     continue;
                 }
 
-                $employeeId = $this->resolveEmployeeId($code, $card, $codeCache, $cardCache);
+                $employee = $this->resolveEmployee($code, $card, $codeCache, $cardCache);
 
-                if (! $employeeId) {
+                if (! $employee) {
                     $skipped++;
                     $label = $code !== '' ? "employee_code '{$code}'" : "card_no '{$card}'";
                     $errors[] = "Row {$row}: {$label} not found";
@@ -110,7 +110,8 @@ class AttendanceService
                 }
 
                 $this->upsert([
-                    'employee_id' => $employeeId,
+                    'employee_id' => $employee['id'],
+                    'business_id' => $employee['business_id'],
                     'date' => $parsedDate,
                     'check_in' => $in ?: null,
                     'check_out' => $out ?: null,
@@ -227,8 +228,8 @@ class AttendanceService
                     continue;
                 }
 
-                $employeeId = $this->resolveEmployeeId($code, $card, $codeCache, $cardCache);
-                if (! $employeeId) {
+                $employee = $this->resolveEmployee($code, $card, $codeCache, $cardCache);
+                if (! $employee) {
                     $skipped++;
                     $label = $code !== '' ? "EMP Code '{$code}'" : "Card No '{$card}'";
                     $errors[] = "Row {$rowNumber}: {$label} not found";
@@ -251,9 +252,10 @@ class AttendanceService
                     $hoursWorked = $this->calcHours($checkIn, $checkOut);
                 }
 
-                Attendance::updateOrCreate(
-                    ['employee_id' => $employeeId, 'date' => $currentDate],
+                Attendance::withoutGlobalScopes()->updateOrCreate(
+                    ['employee_id' => $employee['id'], 'date' => $currentDate],
                     [
+                        'business_id' => $employee['business_id'],
                         'check_in' => $checkIn,
                         'check_out' => $checkOut,
                         'hours_worked' => $hoursWorked,
@@ -512,23 +514,33 @@ class AttendanceService
         return strtolower(trim(preg_replace('/[^a-z0-9]+/i', '_', $h)));
     }
 
-    private function resolveEmployeeId(string $code, string $card, array &$codeCache, array &$cardCache): ?int
+    /**
+     * Resolve an importable employee across all businesses (skipping inactive/terminated/absconded).
+     * Returns ['id' => int, 'business_id' => int] or null.
+     */
+    private function resolveEmployee(string $code, string $card, array &$codeCache, array &$cardCache): ?array
     {
         if ($code !== '') {
             if (! array_key_exists($code, $codeCache)) {
-                $codeCache[$code] = Employee::where('employee_code', $code)->value('id');
+                $codeCache[$code] = Employee::withoutGlobalScopes()
+                    ->where('employee_code', $code)
+                    ->whereNotIn('status', ['inactive', 'terminated', 'absconded'])
+                    ->first(['id', 'business_id']);
             }
             if ($codeCache[$code]) {
-                return $codeCache[$code];
+                return ['id' => $codeCache[$code]->id, 'business_id' => $codeCache[$code]->business_id];
             }
         }
 
         if ($card !== '') {
             if (! array_key_exists($card, $cardCache)) {
-                $cardCache[$card] = Employee::where('card_no', $card)->value('id');
+                $cardCache[$card] = Employee::withoutGlobalScopes()
+                    ->where('card_no', $card)
+                    ->whereNotIn('status', ['inactive', 'terminated', 'absconded'])
+                    ->first(['id', 'business_id']);
             }
             if ($cardCache[$card]) {
-                return $cardCache[$card];
+                return ['id' => $cardCache[$card]->id, 'business_id' => $cardCache[$card]->business_id];
             }
         }
 
