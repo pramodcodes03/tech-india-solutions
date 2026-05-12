@@ -393,6 +393,8 @@ Route::prefix('employee')->name('employee.')->group(function () {
         Route::get('profile', [EmpProfileController::class, 'show'])->name('profile.show');
         Route::get('profile/edit', [EmpProfileController::class, 'edit'])->name('profile.edit');
         Route::put('profile', [EmpProfileController::class, 'update'])->name('profile.update');
+        Route::post('profile/photo', [EmpProfileController::class, 'uploadPhoto'])->name('profile.photo.upload');
+        Route::delete('profile/photo', [EmpProfileController::class, 'removePhoto'])->name('profile.photo.remove');
 
         // Attendance
         Route::get('attendance', [EmpAttendanceController::class, 'index'])->name('attendance.index');

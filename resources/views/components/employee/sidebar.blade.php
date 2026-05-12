@@ -25,9 +25,7 @@
             @if($emp)
             <div class="px-4 pb-3">
                 <div class="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-info flex items-center justify-center text-white font-bold shrink-0">
-                        {{ strtoupper(substr($emp->first_name, 0, 1).substr($emp->last_name ?? '', 0, 1)) }}
-                    </div>
+                    <x-employee-avatar :employee="$emp" size="w-10 h-10" textSize="text-sm" />
                     <div class="min-w-0">
                         <div class="font-semibold text-black dark:text-white truncate">{{ $emp->full_name }}</div>
                         <div class="text-xs text-gray-500 truncate">{{ $emp->employee_code }}</div>

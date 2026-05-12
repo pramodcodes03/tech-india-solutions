@@ -3,8 +3,8 @@
 
     <div class="grid grid-cols-12 gap-4">
         <div class="col-span-12 lg:col-span-4 panel p-6 text-center">
-            <div class="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-primary to-info text-white flex items-center justify-center text-3xl font-extrabold">
-                {{ strtoupper(substr($employee->first_name, 0, 1).substr($employee->last_name ?? '', 0, 1)) }}
+            <div class="mx-auto">
+                <x-employee-avatar :employee="$employee" size="w-24 h-24" textSize="text-3xl" />
             </div>
             <div class="mt-3 text-xl font-extrabold">{{ $employee->full_name }}</div>
             <div class="text-sm text-gray-500 font-mono">{{ $employee->employee_code }}</div>

@@ -4,6 +4,48 @@
         <a href="{{ route('employee.profile.show') }}" class="btn btn-outline-secondary">Cancel</a>
     </div>
 
+    {{-- ── Profile Photo Upload ─────────────────────────────────────────── --}}
+    <div class="p-6 rounded-xl bg-white dark:bg-[#1b2e4b] shadow mb-4" x-data="{ preview: null }">
+        <h3 class="font-bold mb-4">Profile Photo</h3>
+        <div class="flex items-center gap-5">
+            {{-- Current / preview avatar --}}
+            <div class="relative shrink-0">
+                <div x-show="!preview">
+                    <x-employee-avatar :employee="$employee" size="w-20 h-20" textSize="text-2xl" />
+                </div>
+                <img x-show="preview" :src="preview" x-cloak
+                     class="w-20 h-20 rounded-full object-cover ring-2 ring-primary" alt="Preview" />
+            </div>
+
+            <div class="flex-1">
+                <form method="POST" action="{{ route('employee.profile.photo.upload') }}"
+                      enctype="multipart/form-data" class="flex flex-col gap-2">
+                    @csrf
+                    <label class="text-xs text-gray-500 font-semibold">Upload new photo</label>
+                    <input type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp"
+                           class="form-input text-sm"
+                           @change="const f=$event.target.files[0]; if(f){ const r=new FileReader(); r.onload=e=>preview=e.target.result; r.readAsDataURL(f); }" />
+                    <p class="text-[11px] text-gray-400">JPG, PNG or WEBP · max 2 MB</p>
+                    <div class="flex gap-2 mt-1">
+                        <button type="submit" class="btn btn-sm btn-primary">Upload Photo</button>
+                        @if($employee->profile_photo)
+                            <button type="button"
+                                onclick="document.getElementById('remove-photo-form').submit()"
+                                class="btn btn-sm btn-outline-danger">Remove Photo</button>
+                        @endif
+                    </div>
+                </form>
+
+                @if($employee->profile_photo)
+                    <form id="remove-photo-form" method="POST"
+                          action="{{ route('employee.profile.photo.remove') }}" class="hidden">
+                        @csrf @method('DELETE')
+                    </form>
+                @endif
+            </div>
+        </div>
+    </div>
+
     <form method="POST" action="{{ route('employee.profile.update') }}" class="space-y-4">
         @csrf
         @method('PUT')

@@ -87,9 +87,7 @@
 
             <div x-data="{ open: false }" class="relative">
                 <button @click="open = !open" type="button" class="flex items-center gap-2 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-dark-light">
-                    <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">
-                        {{ strtoupper(substr($emp->first_name, 0, 1)) }}
-                    </div>
+                    <x-employee-avatar :employee="$emp" size="w-8 h-8" textSize="text-xs" />
                 </button>
                 <div x-show="open" @click.outside="open = false" x-transition class="absolute right-0 mt-2 w-56 bg-white dark:bg-[#1b2e4b] shadow-lg rounded-md border border-gray-200 dark:border-gray-700 z-50" style="display:none">
                     <div class="p-3 border-b border-gray-200 dark:border-gray-700">

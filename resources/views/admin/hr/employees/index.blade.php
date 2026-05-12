@@ -34,9 +34,7 @@
                         <td class="font-mono font-semibold">{{ $e->employee_code }}</td>
                         <td>
                             <div class="flex items-center gap-2">
-                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-info text-white flex items-center justify-center text-xs font-bold">
-                                    {{ strtoupper(substr($e->first_name, 0, 1).substr($e->last_name ?? '', 0, 1)) }}
-                                </div>
+                                <x-employee-avatar :employee="$e" size="w-8 h-8" textSize="text-xs" />
                                 <div>
                                     <a href="{{ route('admin.hr.employees.show', $e) }}" class="font-semibold text-primary hover:underline">{{ $e->full_name }}</a>
                                     <div class="text-xs text-gray-500">{{ $e->email }}</div>
