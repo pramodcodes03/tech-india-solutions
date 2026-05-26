@@ -18,10 +18,14 @@ class AttendanceController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('attendance.view'), 403);
 
-        $date = $request->input('date', now()->toDateString());
+        // If `date` is absent from the query string entirely, default to today so the
+        // page lands on a useful view. If the user explicitly clears it, show every day.
+        $date = $request->has('date')
+            ? ($request->input('date') ?: null)
+            : now()->toDateString();
 
         $records = Attendance::with('employee.department', 'employee.designation')
-            ->whereDate('date', $date)
+            ->when($date, fn ($q) => $q->whereDate('date', $date))
             ->when($request->department_id, fn ($q, $id) => $q->whereHas('employee', fn ($e) => $e->where('department_id', $id)))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->search, fn ($q, $s) => $q->whereHas('employee', fn ($e) => $e->where(function ($q) use ($s) {
@@ -30,6 +34,7 @@ class AttendanceController extends Controller
                     ->orWhere('employee_code', 'like', "%{$s}%")
                     ->orWhere('card_no', 'like', "%{$s}%");
             })))
+            ->orderByDesc('date')
             ->orderBy('employee_id')
             ->paginate(30)
             ->withQueryString();

@@ -10,7 +10,12 @@
     </div>
 
     <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-2 mb-4">
-        <input type="date" name="date" value="{{ $date }}" class="form-input" />
+        <div class="flex gap-1">
+            <input type="date" name="date" value="{{ $date }}" class="form-input flex-1" />
+            @if($date)
+                <a href="{{ route('admin.hr.attendance.index', array_merge(request()->except('date', 'page'), ['date' => ''])) }}" class="btn btn-outline-secondary" title="Show all dates">All</a>
+            @endif
+        </div>
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search employee..." class="form-input md:col-span-2" />
         <select name="department_id" class="form-select">
             <option value="">All Departments</option>
@@ -26,10 +31,11 @@
     </form>
 
     <div class="panel p-0 overflow-x-auto">
-        <table class="table-striped"><thead><tr><th>Employee</th><th>Department</th><th>Check-in</th><th>Check-out</th><th>Hours</th><th>Status</th><th>Source</th></tr></thead>
+        <table class="table-striped"><thead><tr><th>Date</th><th>Employee</th><th>Department</th><th>Check-in</th><th>Check-out</th><th>Hours</th><th>Status</th><th>Source</th></tr></thead>
             <tbody>
                 @forelse($records as $r)
                     <tr>
+                        <td class="whitespace-nowrap">{{ \Carbon\Carbon::parse($r->date)->format('d M Y') }}</td>
                         <td><a href="{{ route('admin.hr.employees.show', $r->employee) }}" class="text-primary font-semibold">{{ $r->employee->full_name }}</a> <span class="text-xs text-gray-500">({{ $r->employee->employee_code }})</span></td>
                         <td>{{ $r->employee->department?->name ?? '—' }}</td>
                         <td>{{ $r->check_in ? \Carbon\Carbon::parse($r->check_in)->format('g:i A') : '—' }}</td>
@@ -46,7 +52,13 @@
                         <td class="text-xs text-gray-500">{{ str_replace('_',' ', $r->source) }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="text-center text-gray-500 py-6">No attendance records for {{ \Carbon\Carbon::parse($date)->format('d M Y') }}.</td></tr>
+                    <tr><td colspan="8" class="text-center text-gray-500 py-6">
+                        @if($date)
+                            No attendance records for {{ \Carbon\Carbon::parse($date)->format('d M Y') }}.
+                        @else
+                            No attendance records found.
+                        @endif
+                    </td></tr>
                 @endforelse
             </tbody>
         </table>
