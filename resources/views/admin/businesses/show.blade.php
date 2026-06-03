@@ -6,6 +6,7 @@
         <div class="flex items-center gap-2">
             <form method="POST" action="{{ route('admin.businesses.switch', $business) }}">
                 @csrf
+                <input type="hidden" name="redirect_to" value="{{ request()->getRequestUri() }}">
                 <button type="submit" class="btn btn-primary">Switch to this business</button>
             </form>
             <a href="{{ route('admin.businesses.edit', $business) }}" class="btn btn-outline-warning">Edit</a>

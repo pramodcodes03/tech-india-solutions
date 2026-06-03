@@ -45,8 +45,12 @@
                 @forelse($compOffs as $c)
                     <tr>
                         <td>
-                            <div class="font-semibold">{{ $c->employee->full_name ?? $c->employee->name }}</div>
-                            <div class="text-xs text-gray-400">{{ $c->employee->employee_code }}</div>
+                            {{-- Null-safe: $c->employee can be null if the employee
+                                 was soft-deleted or moved to another business after
+                                 submitting the comp-off. Without ?->, the page 500s
+                                 the moment one such row exists. --}}
+                            <div class="font-semibold">{{ $c->employee?->full_name ?? '— Deleted employee —' }}</div>
+                            <div class="text-xs text-gray-400">{{ $c->employee?->employee_code ?? '—' }}</div>
                         </td>
                         <td class="text-sm whitespace-nowrap">
                             <div class="font-semibold">{{ $c->worked_on->format('D, d M Y') }}</div>

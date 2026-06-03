@@ -43,8 +43,13 @@ class StoreExpenseRequest extends FormRequest
             'expense_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date'],
 
-            // Recurring-only
-            'due_day_of_month' => ['nullable', 'required_if:type,recurring', 'integer', 'between:1,28'],
+            // Recurring-only: frequency must be one of the supported cadences.
+            'recurrence_frequency' => ['nullable', 'required_if:type,recurring',
+                Rule::in(array_keys(Expense::RECURRENCES))],
+            // due_day_of_month only required for monthly cadence (the others
+            // roll forward from the first due_date by their own offset).
+            'due_day_of_month' => ['nullable', 'required_if:recurrence_frequency,monthly',
+                'integer', 'between:1,28'],
 
             'payment_method' => ['nullable', 'string', 'max:50'],
             'payment_reference' => ['nullable', 'string', 'max:120'],
@@ -55,7 +60,9 @@ class StoreExpenseRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'due_day_of_month.required_if' => 'Day of month is required for recurring expenses.',
+            'recurrence_frequency.required_if' => 'Pick a recurrence frequency for recurring expenses.',
+            'recurrence_frequency.in' => 'Frequency must be one of: '.implode(', ', array_keys(Expense::RECURRENCES)).'.',
+            'due_day_of_month.required_if' => 'Day of month is required for monthly recurring expenses.',
             'due_day_of_month.between' => 'Day of month must be between 1 and 28.',
         ];
     }

@@ -58,16 +58,33 @@ class PayrollController extends Controller
         $data = $request->validate([
             'month' => ['required', 'integer', 'between:1,12'],
             'year' => ['required', 'integer', 'between:2020,2100'],
-            'employee_id' => ['nullable', 'exists:employees,id'],
+            'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
         ]);
 
         $month = (int) $data['month'];
         $year = (int) $data['year'];
         $period = sprintf('%s %d', \Carbon\Carbon::create()->month($month)->format('M'), $year);
 
+        // ─── Single employee ───────────────────────────────────────────────
         if (! empty($data['employee_id'])) {
-            $employee = Employee::findOrFail($data['employee_id']);
-            $payslip = $this->service->generate($employee, $month, $year);
+            $employee = Employee::find($data['employee_id']);
+            if (! $employee) {
+                return back()->withInput()
+                    ->with('error', 'Employee not found in the active business.');
+            }
+
+            try {
+                $payslip = $this->service->generate($employee, $month, $year);
+            } catch (\RuntimeException $e) {
+                // Expected business-rule failure (e.g. no approved salary structure).
+                return back()->withInput()->with('error', $e->getMessage());
+            } catch (\Throwable $e) {
+                report($e);
+                return back()->withInput()->with(
+                    'error',
+                    "Could not generate payslip for {$employee->employee_code}: {$e->getMessage()}",
+                );
+            }
 
             \App\Notifications\NotificationDispatcher::fire(
                 'payslip.generated',
@@ -80,7 +97,21 @@ class PayrollController extends Controller
                 ->with('success', 'Payslip generated.');
         }
 
-        $result = $this->service->generateBulk($month, $year);
+        // ─── Bulk ──────────────────────────────────────────────────────────
+        try {
+            $result = $this->service->generateBulk($month, $year);
+        } catch (\Throwable $e) {
+            report($e);
+            return back()->withInput()->with('error', "Bulk generation failed: {$e->getMessage()}");
+        }
+
+        if (($result['candidates'] ?? 0) === 0) {
+            return back()->withInput()->with(
+                'warning',
+                'No payslips generated — no active employees have an approved current salary structure for this business. '
+                .'Check HR → Payroll → Pending Approvals.',
+            );
+        }
 
         // Send each generated payslip to its employee.
         $newPayslips = \App\Models\Payslip::with('employee')
@@ -104,14 +135,23 @@ class PayrollController extends Controller
             'errors_count' => count($result['errors']),
         ]);
 
-        $msg = "Generated {$result['success']} payslips.";
+        $msg = "Generated {$result['success']} of {$result['candidates']} payslips.";
         if (! empty($result['errors'])) {
-            $msg .= ' Skipped: '.count($result['errors']).' (missing salary structure or other issues).';
+            $sample = collect($result['errors'])
+                ->take(3)
+                ->map(fn ($m, $code) => "{$code}: {$m}")
+                ->implode('; ');
+            $msg .= ' Skipped '.count($result['errors']).' — '.$sample;
+            if (count($result['errors']) > 3) {
+                $msg .= ' (…)';
+            }
         }
+
+        $flashKey = $result['success'] > 0 ? 'success' : 'warning';
 
         return redirect()
             ->route('admin.hr.payroll.index', ['month' => $month, 'year' => $year])
-            ->with('success', $msg);
+            ->with($flashKey, $msg);
     }
 
     public function show(Payslip $payslip)
@@ -260,6 +300,9 @@ class PayrollController extends Controller
         }
 
         $approved->loadMissing('employee', 'submitter');
+        // Clear the original "Pending approval" bell rows so the badge count
+        // doesn't keep pointing at this now-actioned record.
+        \App\Models\AdminNotification::markRelatedAsRead($approved, ['salary_structure.submitted']);
         \App\Notifications\NotificationDispatcher::fire('salary_structure.approved', $approved);
 
         return back()->with('success', "Approved. Structure for {$approved->employee->first_name} is now active.");
@@ -282,6 +325,7 @@ class PayrollController extends Controller
         }
 
         $rejected->loadMissing('employee', 'submitter');
+        \App\Models\AdminNotification::markRelatedAsRead($rejected, ['salary_structure.submitted']);
         \App\Notifications\NotificationDispatcher::fire('salary_structure.rejected', $rejected);
 
         return back()->with('success', 'Salary structure rejected. HR has been notified.');

@@ -16,19 +16,42 @@ class Lead extends Model
 
     /**
      * Canonical lead source list. Keys are stored in DB (lowercase snake_case);
-     * values are the labels shown in dropdowns.
+     * values are the labels shown in dropdowns. Order here = order in UI.
+     *
+     * The top block is the customer's marketing-channel list — covers the
+     * specific portals / ad networks / events they actually use to generate
+     * leads. The bottom block keeps generic catch-alls (website, referral,
+     * walk-in, etc.) for leads that don't fit a specific channel.
      */
     public const SOURCES = [
-        'website' => 'Website',
-        'referral' => 'Referral',
-        'walk_in' => 'Walk-in',
+        // ── Marketplace / B2B portals ─────────────────────────────────────
+        'indiamart'          => 'IndiaMART',
+        'industrybuying'     => 'IndustryBuying',
+        'exportersindia'     => 'ExportersIndia',
+        'google_my_business' => 'Google My Business (GMB)',
+        // ── Paid advertising ──────────────────────────────────────────────
+        'google_ads'    => 'Google Ads',
+        'meta_ads'      => 'Meta Ads',
+        'instagram_ads' => 'Instagram Ads',
+        'youtube_ads'   => 'YouTube Ads',
+        // ── Direct inbound ────────────────────────────────────────────────
+        'whatsapp'     => 'WhatsApp',
+        'contact_form' => 'Contact Form',
+        // ── Events ────────────────────────────────────────────────────────
+        'seminar' => 'Seminar',
+        'webinar' => 'Webinar',
+        // ── Referrals ─────────────────────────────────────────────────────
+        'employee_reference' => 'Employee Reference',
+        // ── Government / institutional ────────────────────────────────────
+        'gem_portal' => 'Government Portal (GeM)',
+        // ── Generic catch-alls (kept for leads that don't fit above) ──────
+        'website'   => 'Website',
+        'referral'  => 'Referral',
+        'walk_in'   => 'Walk-in',
         'cold_call' => 'Cold Call',
-        'email' => 'Email',
-        'social_media' => 'Social Media',
-        'exhibition' => 'Exhibition',
-        'trade_fair' => 'Trade Fair',
-        'partner' => 'Partner',
-        'other' => 'Other',
+        'email'     => 'Email',
+        'partner'   => 'Partner',
+        'other'     => 'Other',
     ];
 
     public static function sourceOptions(): array

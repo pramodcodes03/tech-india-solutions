@@ -21,13 +21,31 @@ class Expense extends Model
     public const STATUS_PAID = 'paid';
     public const STATUS_CANCELLED = 'cancelled';
 
+    public const FREQ_WEEKLY      = 'weekly';
+    public const FREQ_MONTHLY     = 'monthly';
+    public const FREQ_QUARTERLY   = 'quarterly';
+    public const FREQ_HALF_YEARLY = 'half_yearly';
+    public const FREQ_YEARLY      = 'yearly';
+
+    /**
+     * Recurrence frequency label map. Key = DB enum value, value = UI label.
+     * Order here is the order users see in the dropdown.
+     */
+    public const RECURRENCES = [
+        self::FREQ_WEEKLY      => 'Weekly',
+        self::FREQ_MONTHLY     => 'Monthly',
+        self::FREQ_QUARTERLY   => 'Quarterly (every 3 months)',
+        self::FREQ_HALF_YEARLY => 'Half-Yearly (every 6 months)',
+        self::FREQ_YEARLY      => 'Yearly (Annual)',
+    ];
+
     protected $fillable = [
         'business_id', 'expense_code',
         'expense_category_id', 'expense_subcategory_id',
         'type',
         'title', 'description', 'amount',
         'expense_date', 'due_date', 'paid_date',
-        'due_day_of_month', 'recurring_template_id',
+        'due_day_of_month', 'recurrence_frequency', 'recurring_template_id',
         'last_reminder_sent_at', 'last_reminder_stage',
         'status', 'payment_method', 'payment_reference',
         'attachment',
@@ -85,6 +103,23 @@ class Expense extends Model
     public function isRecurring(): bool
     {
         return $this->type === self::TYPE_RECURRING;
+    }
+
+    /**
+     * Human-readable recurrence label, e.g. "Monthly Recurring",
+     * "Weekly Recurring", "Yearly Recurring". Falls back gracefully for
+     * legacy rows that don't have a frequency set.
+     */
+    public function recurrenceLabel(): string
+    {
+        if (! $this->isRecurring()) {
+            return 'One-off';
+        }
+        $freq = $this->recurrence_frequency ?? self::FREQ_MONTHLY;
+        $name = self::RECURRENCES[$freq] ?? ucwords(str_replace('_', ' ', $freq));
+
+        // The map already says "Monthly", "Weekly" etc. — append "Recurring".
+        return $name.' Recurring';
     }
 
     public function isPaid(): bool

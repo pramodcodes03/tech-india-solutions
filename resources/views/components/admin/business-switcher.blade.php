@@ -18,6 +18,8 @@
                     <li>
                         <form method="POST" action="{{ route('admin.businesses.switch', $b) }}">
                             @csrf
+                            <input type="hidden" name="redirect_to" value="{{ request()->getRequestUri() }}">
+
                             <button type="submit" class="w-full text-left px-4 py-2 hover:bg-primary/10 flex items-center gap-2 {{ $current?->id === $b->id ? 'bg-primary/5 text-primary' : '' }}">
                                 <span class="w-7 h-7 rounded bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">{{ strtoupper(substr($b->name, 0, 2)) }}</span>
                                 <span class="flex-1 truncate">{{ $b->name }}</span>

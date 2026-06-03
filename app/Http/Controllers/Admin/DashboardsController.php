@@ -25,7 +25,10 @@ class DashboardsController extends Controller
     // ════════════════════════════════════════════════════════════════════
     public function sales()
     {
-        abort_unless(Auth::guard('admin')->user()->can('leads.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('analytics_sales.view'), 403);
+
+        // Tenant guard for raw queries (Eloquent calls use BelongsToBusiness).
+        $bizId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
 
         $today = Carbon::today();
         $monthStart = $today->copy()->startOfMonth();
@@ -108,6 +111,7 @@ class DashboardsController extends Controller
         // DSO gauge (days sales outstanding = avg days from invoice_date to first payment for paid invoices over last 90 days)
         $dsoRow = DB::table('payments')
             ->join('invoices', 'invoices.id', '=', 'payments.invoice_id')
+            ->where('payments.business_id', $bizId)
             ->where('payments.payment_date', '>=', $today->copy()->subDays(90))
             ->selectRaw('AVG(DATEDIFF(payments.payment_date, invoices.invoice_date)) as dso')
             ->first();
@@ -145,7 +149,10 @@ class DashboardsController extends Controller
     // ════════════════════════════════════════════════════════════════════
     public function service()
     {
-        abort_unless(Auth::guard('admin')->user()->can('service_tickets.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('analytics_service.view'), 403);
+
+        // Tenant guard for raw queries (Eloquent calls use BelongsToBusiness).
+        $bizId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
 
         $today = Carbon::today();
         $monthStart = $today->copy()->startOfMonth();
@@ -199,6 +206,7 @@ class DashboardsController extends Controller
         // Category breakdown
         $byCategory = DB::table('service_tickets')
             ->leftJoin('service_categories', 'service_categories.id', '=', 'service_tickets.category_id')
+            ->where('service_tickets.business_id', $bizId)
             ->select(DB::raw('COALESCE(service_categories.name, "Uncategorized") as name'), DB::raw('COUNT(*) as cnt'))
             ->groupBy('service_categories.id', 'service_categories.name')
             ->orderByDesc('cnt')->limit(8)->get();
@@ -206,6 +214,7 @@ class DashboardsController extends Controller
         // Technician workload heatmap (technician × day of week, last 60 days)
         $technicians = DB::table('service_tickets')
             ->join('admins', 'admins.id', '=', 'service_tickets.assigned_to')
+            ->where('service_tickets.business_id', $bizId)
             ->where('service_tickets.opened_at', '>=', $today->copy()->subDays(60))
             ->select('admins.name', DB::raw('DAYOFWEEK(opened_at) as dow'), DB::raw('COUNT(*) as cnt'))
             ->groupBy('admins.id', 'admins.name', 'dow')->get()
@@ -245,7 +254,10 @@ class DashboardsController extends Controller
     // ════════════════════════════════════════════════════════════════════
     public function inventory()
     {
-        abort_unless(Auth::guard('admin')->user()->can('products.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('analytics_inventory.view'), 403);
+
+        // Tenant guard for raw queries (Eloquent calls use BelongsToBusiness).
+        $bizId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
 
         $stockSum = "COALESCE(SUM(CASE WHEN sm.type IN ('in','adjustment') THEN sm.quantity ELSE -sm.quantity END), 0)";
 
@@ -253,6 +265,7 @@ class DashboardsController extends Controller
         $productStock = DB::table('products as p')
             ->leftJoin('stock_movements as sm', 'sm.product_id', '=', 'p.id')
             ->leftJoin('product_categories as c', 'c.id', '=', 'p.category_id')
+            ->where('p.business_id', $bizId)
             ->where('p.status', 'active')
             ->select('p.id', 'p.name', 'p.code', 'p.purchase_price', 'p.reorder_level',
                 'c.id as cat_id', 'c.name as cat_name',
@@ -275,7 +288,7 @@ class DashboardsController extends Controller
             'out_of_stock'  => $outOfStock,
             'reorder_pct'   => $reorderPct,
             'categories'    => $productStock->pluck('cat_id')->filter()->unique()->count(),
-            'warehouses'    => DB::table('warehouses')->where('is_default', '<=', 1)->count(),
+            'warehouses'    => DB::table('warehouses')->where('business_id', $bizId)->where('is_default', '<=', 1)->count(),
         ];
 
         // Treemap: category value
@@ -293,6 +306,7 @@ class DashboardsController extends Controller
         if (! empty($topProductIds)) {
             $start = Carbon::today()->subMonths(5)->startOfMonth();
             $rows = DB::table('stock_movements')
+                ->where('business_id', $bizId)
                 ->whereIn('product_id', $topProductIds)
                 ->where('created_at', '>=', $start)
                 ->select('product_id',
@@ -329,6 +343,7 @@ class DashboardsController extends Controller
         // Warehouse stock distribution
         $byWarehouse = DB::table('stock_movements as sm')
             ->leftJoin('warehouses as w', 'w.id', '=', 'sm.warehouse_id')
+            ->where('sm.business_id', $bizId)
             ->select(DB::raw('COALESCE(w.name, "Unassigned") as name'),
                 DB::raw("SUM(CASE WHEN sm.type IN ('in','adjustment') THEN sm.quantity ELSE -sm.quantity END) as qty"))
             ->groupBy('w.id', 'w.name')->orderByDesc('qty')->get();
@@ -336,6 +351,7 @@ class DashboardsController extends Controller
         // Top moving products (last 30 days)
         $topMoving = DB::table('stock_movements as sm')
             ->join('products as p', 'p.id', '=', 'sm.product_id')
+            ->where('sm.business_id', $bizId)
             ->where('sm.created_at', '>=', Carbon::today()->subDays(30))
             ->select('p.name', DB::raw('SUM(ABS(sm.quantity)) as qty'))
             ->groupBy('p.id', 'p.name')->orderByDesc('qty')->limit(8)->get();
@@ -346,8 +362,8 @@ class DashboardsController extends Controller
             $d = Carbon::today()->subDays($i);
             $movementTrend[] = [
                 'label' => $d->format('d M'),
-                'in'    => (int) DB::table('stock_movements')->whereDate('created_at', $d)->whereIn('type', ['in', 'adjustment'])->sum('quantity'),
-                'out'   => (int) DB::table('stock_movements')->whereDate('created_at', $d)->where('type', 'out')->sum('quantity'),
+                'in'    => (int) DB::table('stock_movements')->where('business_id', $bizId)->whereDate('created_at', $d)->whereIn('type', ['in', 'adjustment'])->sum('quantity'),
+                'out'   => (int) DB::table('stock_movements')->where('business_id', $bizId)->whereDate('created_at', $d)->where('type', 'out')->sum('quantity'),
             ];
         }
 
@@ -366,7 +382,10 @@ class DashboardsController extends Controller
     // ════════════════════════════════════════════════════════════════════
     public function purchase()
     {
-        abort_unless(Auth::guard('admin')->user()->can('purchase_orders.view') || Auth::guard('admin')->user()->can('vendors.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('analytics_purchase.view'), 403);
+
+        // Tenant guard for raw queries (Eloquent calls use BelongsToBusiness).
+        $bizId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
 
         $today = Carbon::today();
         $yearStart = $today->copy()->startOfYear();
@@ -430,6 +449,7 @@ class DashboardsController extends Controller
         $vendorPerf = DB::table('vendors as v')
             ->join('purchase_orders as po', 'po.vendor_id', '=', 'v.id')
             ->join('goods_receipts as gr', 'gr.purchase_order_id', '=', 'po.id')
+            ->where('v.business_id', $bizId)
             ->whereNotNull('po.expected_date')
             ->select('v.name',
                 DB::raw('COUNT(DISTINCT po.id) as orders'),
@@ -450,7 +470,15 @@ class DashboardsController extends Controller
     // ════════════════════════════════════════════════════════════════════
     public function customers()
     {
-        abort_unless(Auth::guard('admin')->user()->can('customers.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('analytics_customer.view'), 403);
+
+        // Tenant guard. Eloquent queries below use the BelongsToBusiness
+        // global scope, but the raw DB::table queries don't — they need
+        // explicit `business_id` filters. If no business is active (e.g.
+        // a super admin who hasn't picked one), $bizId stays null and the
+        // raw queries return empty, matching the fail-closed behaviour of
+        // the Eloquent calls.
+        $bizId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
 
         $today = Carbon::today();
         $sixMonthsAgo = $today->copy()->subMonths(6);
@@ -498,6 +526,7 @@ class DashboardsController extends Controller
         // Customer purchase-frequency segments (count + total spend per bucket)
         $segRows = DB::table('customers as c')
             ->leftJoin('invoices as i', 'i.customer_id', '=', 'c.id')
+            ->where('c.business_id', $bizId)
             ->select('c.id',
                 DB::raw('COUNT(i.id) as orders'),
                 DB::raw('COALESCE(SUM(i.grand_total), 0) as total'))
@@ -532,6 +561,7 @@ class DashboardsController extends Controller
         // Receivables aging heatmap (top 10 customers × aging buckets)
         $agingRows = DB::table('invoices as i')
             ->join('customers as c', 'c.id', '=', 'i.customer_id')
+            ->where('i.business_id', $bizId)
             ->whereIn('i.status', ['unpaid', 'partial', 'overdue'])
             ->select('c.id', 'c.name', 'i.invoice_date', 'i.balance_due')
             ->get();
@@ -560,6 +590,7 @@ class DashboardsController extends Controller
         // Customer loyalty tiers: bucket customers by months since first invoice
         $tenureRows = DB::table('customers as c')
             ->join('invoices as i', 'i.customer_id', '=', 'c.id')
+            ->where('c.business_id', $bizId)
             ->select('c.id',
                 DB::raw('MIN(i.invoice_date) as first_inv'),
                 DB::raw('SUM(i.grand_total) as total'))
@@ -604,7 +635,10 @@ class DashboardsController extends Controller
     // ════════════════════════════════════════════════════════════════════
     public function executive()
     {
-        abort_unless(Auth::guard('admin')->user()->can('reports.view') || Auth::guard('admin')->user()->can('invoices.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('analytics_executive.view'), 403);
+
+        // Tenant guard for raw queries (Eloquent calls use BelongsToBusiness).
+        $bizId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
 
         $today = Carbon::today();
         $monthStart = $today->copy()->startOfMonth();
@@ -707,6 +741,7 @@ class DashboardsController extends Controller
         // Top products by margin (rough: selling_price - purchase_price × units sold)
         $topMargin = DB::table('sales_order_items as si')
             ->join('products as p', 'p.id', '=', 'si.product_id')
+            ->where('si.business_id', $bizId)
             ->select('p.name',
                 DB::raw('SUM(si.quantity) as qty'),
                 DB::raw('SUM(si.quantity * (p.selling_price - p.purchase_price)) as margin'))

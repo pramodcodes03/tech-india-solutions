@@ -90,7 +90,7 @@
                 <option value="">— All Employees —</option>
                 @foreach($employees as $emp)
                     <option value="{{ $emp->id }}" @selected(old('employee_id', $holiday?->employee_id) == $emp->id)>
-                        {{ $emp->name }} ({{ $emp->employee_code }})
+                        {{ $emp->full_name }} ({{ $emp->employee_code }})
                     </option>
                 @endforeach
             </select>

@@ -95,19 +95,13 @@
     $companyEmail   = $business?->email   ?? $settings['company_email']   ?? '';
     $companyGst     = $business?->gst     ?? ($settings['company_gst'] ?? ($settings['company_gstin'] ?? ''));
     $companyPan     = $business?->pan     ?? $settings['company_pan']     ?? '';
-    // Business logo is on the public storage disk; fall back to the legacy
-    // settings.company_logo (which is a path under public/) only if the
-    // tenant hasn't uploaded its own.
+    // Header logo: use ONLY the business's own uploaded logo. If the tenant
+    // hasn't uploaded one, render the business name as text instead of
+    // falling back to the global settings.company_logo — that fallback was
+    // putting the platform's Tech India logo on every tenant's invoice.
     $logoPath = null;
     if ($business?->logo) {
         $candidate = storage_path('app/public/'.$business->logo);
-        if (file_exists($candidate)) {
-            $logoPath = $candidate;
-        }
-    }
-    $companyLogo    = $business?->logo ?? ($settings['company_logo'] ?? 'assets/images/logo.png');
-    if (! $logoPath) {
-        $candidate = public_path($settings['company_logo'] ?? 'assets/images/logo.png');
         if (file_exists($candidate)) {
             $logoPath = $candidate;
         }

@@ -81,6 +81,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // Protected routes
     Route::middleware(['auth:admin', 'business'])->group(function () {
+        // Common welcome page — every authenticated admin lands here on
+        // login. Doesn't require any module permission, so even users with
+        // very narrow roles can see SOMETHING instead of bouncing into a
+        // dashboard they can't access.
+        Route::get('/welcome', [AuthController::class, 'welcome'])->name('welcome');
         Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
 
         // Business management (Super Admin)
@@ -259,10 +264,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Attendance
             Route::get('attendance', [HrAttendanceController::class, 'index'])->name('attendance.index');
             Route::get('attendance/monthly', [HrAttendanceController::class, 'monthly'])->name('attendance.monthly');
+            Route::get('attendance/monthly/export', [HrAttendanceController::class, 'exportMonthly'])->name('attendance.monthly-export');
             Route::get('attendance/create', [HrAttendanceController::class, 'create'])->name('attendance.create');
             Route::post('attendance', [HrAttendanceController::class, 'store'])->name('attendance.store');
             Route::get('attendance/import', [HrAttendanceController::class, 'importForm'])->name('attendance.import-form');
             Route::post('attendance/import', [HrAttendanceController::class, 'import'])->name('attendance.import');
+            Route::post('attendance/biometric-sync', [\App\Http\Controllers\Admin\Hr\BiometricSyncController::class, 'sync'])->name('attendance.biometric-sync');
+            // Edit a single attendance row. Declared after the specific URLs
+            // above so /attendance/monthly|create|import etc. still resolve.
+            Route::get('attendance/{attendance}/edit', [HrAttendanceController::class, 'edit'])->name('attendance.edit');
+            Route::patch('attendance/{attendance}', [HrAttendanceController::class, 'update'])->name('attendance.update');
 
             // Leaves
             Route::get('leaves', [HrLeaveController::class, 'index'])->name('leaves.index');
@@ -345,6 +356,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('models/{model}/discontinue', [\App\Http\Controllers\Admin\Asset\ModelController::class, 'discontinue'])->name('models.discontinue');
 
             Route::get('assets/export', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'export'])->name('assets.export');
+            Route::get('assets/import', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'importForm'])->name('assets.import-form');
+            Route::post('assets/import', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'import'])->name('assets.import');
+            Route::get('assets/import/template', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'importTemplate'])->name('assets.import-template');
             Route::resource('assets', \App\Http\Controllers\Admin\Asset\AssetController::class);
             Route::post('assets/{asset}/dispose', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'dispose'])->name('assets.dispose');
             Route::post('assets/{asset}/mark-lost', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'markLost'])->name('assets.mark-lost');

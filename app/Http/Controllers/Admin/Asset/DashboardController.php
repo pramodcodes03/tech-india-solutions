@@ -13,7 +13,10 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        abort_unless(Auth::guard('admin')->user()->can('assets.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('analytics_asset.view'), 403);
+
+        // Tenant guard for raw queries (Eloquent calls below use BelongsToBusiness).
+        $bizId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
 
         // KPIs
         $kpi = [
@@ -36,6 +39,7 @@ class DashboardController extends Controller
         // Category treemap (book value)
         $byCategory = DB::table('assets as a')
             ->leftJoin('asset_categories as c', 'c.id', '=', 'a.category_id')
+            ->where('a.business_id', $bizId)
             ->select('c.name', DB::raw('COUNT(*) as cnt'),
                 DB::raw('SUM(a.purchase_cost) as value'),
                 DB::raw('SUM(a.current_book_value) as book_value'))
@@ -44,6 +48,7 @@ class DashboardController extends Controller
         // Location distribution
         $byLocation = DB::table('assets as a')
             ->leftJoin('asset_locations as l', 'l.id', '=', 'a.location_id')
+            ->where('a.business_id', $bizId)
             ->select(DB::raw('COALESCE(l.name, "Unassigned") as name'), DB::raw('COUNT(*) as cnt'))
             ->groupBy('l.id', 'l.name')->orderByDesc('cnt')->limit(10)->get();
 
@@ -77,6 +82,7 @@ class DashboardController extends Controller
         // Top 10 assets by maintenance cost (lifetime)
         $topMaintAssets = DB::table('asset_maintenance_logs as m')
             ->join('assets as a', 'a.id', '=', 'm.asset_id')
+            ->where('a.business_id', $bizId)
             ->select('a.id', 'a.asset_code', 'a.name', DB::raw('SUM(m.total_cost) as cost'),
                 DB::raw('SUM(m.downtime_hours) as downtime'),
                 DB::raw('COUNT(*) as logs'))

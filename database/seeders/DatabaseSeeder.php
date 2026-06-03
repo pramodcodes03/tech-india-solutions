@@ -20,34 +20,34 @@ class DatabaseSeeder extends Seeder
 
         // Phase 2 — per-business data, seeded into every business so each one
         // looks populated when its admin logs in.
-        $current = app(CurrentBusiness::class);
+        // $current = app(CurrentBusiness::class);
 
-        foreach (Business::orderBy('id')->get() as $business) {
-            $current->setWithoutSession($business);
-            $this->command->info("Seeding demo data into: {$business->name}");
+        // foreach (Business::orderBy('id')->get() as $business) {
+        //     $current->setWithoutSession($business);
+        //     $this->command->info("Seeding demo data into: {$business->name}");
 
-            $this->call([
-                HrSeeder::class,
-                WarehouseSeeder::class,
-                CategorySeeder::class,
-                ProductSeeder::class,
-                CustomerSeeder::class,
-                VendorSeeder::class,
-                LeadSeeder::class,
-                QuotationSeeder::class,
-                SalesOrderSeeder::class,
-                InvoiceSeeder::class,
-                PaymentSeeder::class,
-                PurchaseOrderSeeder::class,
-                StockMovementSeeder::class,
-                ServiceCategorySeeder::class,
-                ServiceTicketSeeder::class,
-                EmployeeSeeder::class,
-                AssetSeeder::class,
-                AssetRepairSeeder::class,
-            ]);
-        }
+        //     $this->call([
+        //         HrSeeder::class,
+        //         WarehouseSeeder::class,
+        //         CategorySeeder::class,
+        //         ProductSeeder::class,
+        //         CustomerSeeder::class,
+        //         VendorSeeder::class,
+        //         LeadSeeder::class,
+        //         QuotationSeeder::class,
+        //         SalesOrderSeeder::class,
+        //         InvoiceSeeder::class,
+        //         PaymentSeeder::class,
+        //         PurchaseOrderSeeder::class,
+        //         StockMovementSeeder::class,
+        //         ServiceCategorySeeder::class,
+        //         ServiceTicketSeeder::class,
+        //         EmployeeSeeder::class,
+        //         AssetSeeder::class,
+        //         AssetRepairSeeder::class,
+        //     ]);
+        // }
 
-        $current->clear();
+        // $current->clear();
     }
 }

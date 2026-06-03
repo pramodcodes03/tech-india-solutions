@@ -33,13 +33,26 @@ class ExpenseService
             $data['expense_code'] ??= $this->generateCode();
             $data['created_by'] = Auth::guard('admin')->id();
 
-            // Recurring guards: cap due_day_of_month at 28 to avoid Feb edge case.
+            // Recurring guards: every recurring row carries an explicit frequency.
+            // For backwards compat, missing frequency defaults to monthly.
             if (($data['type'] ?? null) === Expense::TYPE_RECURRING) {
-                $data['due_day_of_month'] = min(28, max(1, (int) ($data['due_day_of_month'] ?? 1)));
+                $data['recurrence_frequency'] ??= Expense::FREQ_MONTHLY;
 
-                // For the first instance: compute due_date from today's month + due_day_of_month.
-                if (empty($data['due_date'])) {
-                    $data['due_date'] = $this->computeDueDate($data['due_day_of_month']);
+                // due_day_of_month is only meaningful for monthly recurrences.
+                // For other frequencies the next-instance generator rolls
+                // forward from the previous due_date by the cadence offset.
+                if ($data['recurrence_frequency'] === Expense::FREQ_MONTHLY) {
+                    $data['due_day_of_month'] = min(28, max(1, (int) ($data['due_day_of_month'] ?? 1)));
+                    if (empty($data['due_date'])) {
+                        $data['due_date'] = $this->computeDueDate($data['due_day_of_month']);
+                    }
+                } else {
+                    // Non-monthly cadences: user provides the first due_date directly.
+                    // Drop due_day_of_month so it doesn't mislead later reads.
+                    $data['due_day_of_month'] = null;
+                    if (empty($data['due_date'])) {
+                        $data['due_date'] = now()->toDateString();
+                    }
                 }
             }
 
@@ -62,8 +75,14 @@ class ExpenseService
         return DB::transaction(function () use ($expense, $data, $attachment) {
             $data['updated_by'] = Auth::guard('admin')->id();
 
-            if (($data['type'] ?? $expense->type) === Expense::TYPE_RECURRING && isset($data['due_day_of_month'])) {
-                $data['due_day_of_month'] = min(28, max(1, (int) $data['due_day_of_month']));
+            if (($data['type'] ?? $expense->type) === Expense::TYPE_RECURRING) {
+                $freq = $data['recurrence_frequency'] ?? $expense->recurrence_frequency ?? Expense::FREQ_MONTHLY;
+                $data['recurrence_frequency'] = $freq;
+                if ($freq === Expense::FREQ_MONTHLY && isset($data['due_day_of_month'])) {
+                    $data['due_day_of_month'] = min(28, max(1, (int) $data['due_day_of_month']));
+                } elseif ($freq !== Expense::FREQ_MONTHLY) {
+                    $data['due_day_of_month'] = null;
+                }
             }
 
             if ($attachment) {
@@ -94,8 +113,13 @@ class ExpenseService
     }
 
     /**
-     * Auto-generate the next month's instance from a recurring template.
-     * Called by the scheduled command.
+     * Auto-generate the next instance from a recurring template, using the
+     * template's `recurrence_frequency` to decide how far ahead to roll the
+     * due date. Called by the scheduled command (daily).
+     *
+     * Idempotent: if an instance already exists for the computed next-due
+     * date, returns null. The "stay one cycle ahead" lookahead also scales
+     * with frequency so we don't spawn yearly rows 11 months early.
      */
     public function generateNextRecurring(Expense $template): ?Expense
     {
@@ -117,13 +141,31 @@ class ExpenseService
             return null;
         }
 
-        $nextDue = $latest->due_date->copy()->addMonthNoOverflow();
-        // Adjust to template's preferred day of month (capped at 28).
-        $day = min(28, max(1, $template->due_day_of_month ?? $nextDue->day));
-        $nextDue->day($day);
+        $frequency = $template->recurrence_frequency ?? Expense::FREQ_MONTHLY;
+        $nextDue   = $this->advanceDueDate($latest->due_date->copy(), $frequency);
 
-        // Don't generate beyond today + ~35 days (we want to stay one cycle ahead).
-        if ($nextDue->isAfter(now()->addDays(35))) {
+        // For monthly, honour the template's preferred day-of-month (capped
+        // at 28 to avoid Feb edge cases). Other frequencies use whatever day
+        // the rolling math produced.
+        $day = null;
+        if ($frequency === Expense::FREQ_MONTHLY) {
+            $day = min(28, max(1, $template->due_day_of_month ?? $nextDue->day));
+            $nextDue->day($day);
+        }
+
+        // Stay roughly one cycle ahead. Lookahead window scales with cadence
+        // so yearly templates aren't generated 11 months early, and weekly
+        // templates aren't blocked because the next due is 7 days away.
+        $lookaheadDays = match ($frequency) {
+            Expense::FREQ_WEEKLY      => 10,    // ~1.5 weeks ahead
+            Expense::FREQ_MONTHLY     => 35,    // ~5 weeks ahead (existing)
+            Expense::FREQ_QUARTERLY   => 100,   // ~3.3 months
+            Expense::FREQ_HALF_YEARLY => 200,   // ~6.5 months
+            Expense::FREQ_YEARLY      => 380,   // ~12.5 months
+            default                   => 35,
+        };
+
+        if ($nextDue->isAfter(now()->addDays($lookaheadDays))) {
             return null;
         }
 
@@ -149,10 +191,26 @@ class ExpenseService
             'expense_date' => $nextDue->copy()->startOfMonth()->toDateString(),
             'due_date' => $nextDue->toDateString(),
             'due_day_of_month' => $day,
+            'recurrence_frequency' => $frequency,
             'recurring_template_id' => $template->id,
             'status' => Expense::STATUS_UNPAID,
             'created_by' => $template->created_by,
         ]);
+    }
+
+    /**
+     * Roll a due-date forward by one cycle of the given frequency.
+     * `addMonthNoOverflow()` keeps Feb edge cases sane for month-based steps.
+     */
+    protected function advanceDueDate(Carbon $from, string $frequency): Carbon
+    {
+        return match ($frequency) {
+            Expense::FREQ_WEEKLY      => $from->addWeek(),
+            Expense::FREQ_QUARTERLY   => $from->addMonthsNoOverflow(3),
+            Expense::FREQ_HALF_YEARLY => $from->addMonthsNoOverflow(6),
+            Expense::FREQ_YEARLY      => $from->addYearNoOverflow(),
+            default                   => $from->addMonthNoOverflow(),
+        };
     }
 
     protected function generateCodeForBusiness(int $businessId): string

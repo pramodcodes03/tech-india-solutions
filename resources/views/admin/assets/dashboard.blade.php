@@ -102,18 +102,24 @@
             <h5 class="text-lg font-semibold mb-3">Warranty Expiring</h5>
             <ul class="space-y-2">
                 @forelse($warranties as $w)
-                    @php $days = $w->warranty_expiry_date->diffInDays(now(), false); @endphp
-                    <li class="flex items-center justify-between p-2 rounded-lg {{ $days < 0 ? 'bg-warning/10' : 'bg-danger/10' }}">
+                    @php
+                        // Carbon 3 returns a float from diffInDays(), so without
+                        // an explicit cast you get "26.463519322975d" in the UI.
+                        // Compare at day boundaries so "today" actually triggers
+                        // the `=== 0` branch instead of stuck on a fractional value.
+                        $days = (int) now()->startOfDay()->diffInDays($w->warranty_expiry_date->startOfDay(), false);
+                    @endphp
+                    <li class="flex items-center justify-between p-2 rounded-lg {{ $days > 0 ? 'bg-warning/10' : 'bg-danger/10' }}">
                         <div class="min-w-0">
                             <a href="{{ route('admin.assets.assets.show', $w) }}" class="text-sm font-semibold text-primary hover:underline truncate block">{{ $w->name }}</a>
                             <div class="text-[11px] text-gray-500">{{ $w->category?->name }} · {{ $w->location?->name ?? '—' }}</div>
                         </div>
                         <div class="text-right ml-2">
                             <div class="text-xs font-semibold">{{ $w->warranty_expiry_date->format('d M Y') }}</div>
-                            <div class="text-[10px] {{ $days < 0 ? 'text-warning' : 'text-danger' }}">
-                                @if($days < 0) in {{ abs($days) }}d
+                            <div class="text-[10px] {{ $days > 0 ? 'text-warning' : 'text-danger' }}">
+                                @if($days > 0) in {{ $days }}d
                                 @elseif($days === 0) today
-                                @else {{ $days }}d ago
+                                @else {{ abs($days) }}d ago
                                 @endif
                             </div>
                         </div>

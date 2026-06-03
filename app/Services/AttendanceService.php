@@ -15,18 +15,186 @@ use Maatwebsite\Excel\Facades\Excel;
 class AttendanceService
 {
     /**
-     * Upsert a single attendance entry (manual).
+     * Upsert a single attendance entry (manual or from biometric sync).
+     *
+     * Returns null when the (employee_id, date) is locked by an approved
+     * comp-off — the day is already credited as a paid day, so no
+     * attendance row should also be recorded.
+     *
+     * Field-level locks: if the existing row has `check_in_locked` or
+     * `check_out_locked` set (HR / Business Admin corrected that field via
+     * the edit page), the corresponding incoming value is dropped and the
+     * existing locked value is preserved. This stops the daily biometric
+     * sync from overwriting manual corrections. The OTHER (unlocked) field
+     * still syncs normally — locks are per-field, per-day.
+     *
+     * Callers that legitimately want to UPDATE a locked field (the manual
+     * edit screen itself) pass `check_in_locked`/`check_out_locked` in
+     * $data; that explicit signal bypasses the preserve logic.
      */
-    public function upsert(array $data): Attendance
+    public function upsert(array $data): ?Attendance
     {
+        if ($this->hasApprovedCompOff((int) $data['employee_id'], (string) $data['date'])) {
+            return null;
+        }
+
+        // Find the existing row (if any) BEFORE we mutate $data, so we can
+        // consult its locks. updateOrCreate looks up by the same key below.
+        $existing = Attendance::withoutGlobalScopes()
+            ->where('employee_id', $data['employee_id'])
+            ->whereDate('date', $data['date'])
+            ->first();
+
+        if ($existing) {
+            // Caller didn't explicitly touch the lock columns → it's an
+            // automated sync. Honor whatever locks are already in place.
+            $callerSetsLocks = array_key_exists('check_in_locked', $data)
+                || array_key_exists('check_out_locked', $data);
+
+            if (! $callerSetsLocks) {
+                // `check_in` / `check_out` are TIME columns without a Carbon
+                // cast on the model — they come back as raw "HH:MM:SS" strings.
+                // Use as-is rather than calling ->format() on them.
+                if ($existing->check_in_locked) {
+                    $data['check_in'] = $existing->check_in;
+                    $data['check_in_locked'] = true;
+                }
+                if ($existing->check_out_locked) {
+                    $data['check_out'] = $existing->check_out;
+                    $data['check_out_locked'] = true;
+                }
+                // Preserve the "+edit" audit marker on source if any lock
+                // is in effect, so the daily sync doesn't erase it.
+                if (($existing->check_in_locked || $existing->check_out_locked)
+                    && str_contains($existing->source ?? '', '+edit')) {
+                    $data['source'] = $existing->source;
+                }
+            }
+        }
+
         $data['created_by'] = Auth::guard('admin')->id();
         $data['hours_worked'] = $data['hours_worked'] ?? $this->calcHours($data['check_in'] ?? null, $data['check_out'] ?? null);
         $data['status'] = $data['status'] ?? $this->deriveStatus($data);
+
+        // If the deriver landed on 'absent' (or any importer wrote 'absent')
+        // but the date is actually a configured business week-off / public
+        // holiday / approved leave, promote the status accordingly. Sundays
+        // and leave days should not be counted against an employee just
+        // because no biometric punch came in.
+        //
+        // Order matters: week-off / holiday first (they're configured
+        // properties of the date), then approved leave. We don't override
+        // 'present' — someone who actually worked stays a worked day.
+        if ($data['status'] === 'absent') {
+            $bizId = (int) ($data['business_id'] ?? 0);
+            if ($this->isBusinessWeekOff($data['date'], $bizId)) {
+                $data['status'] = 'weekend';
+            } elseif ($this->isPublicHoliday($data['date'], $bizId)) {
+                $data['status'] = 'holiday';
+            } elseif ($portion = $this->approvedLeavePortion((int) $data['employee_id'], (string) $data['date'])) {
+                // Full-day leave → 'on_leave' (1 paid leave day).
+                // Half-day leave → 'half_day' (counts as 0.5 in paid_days).
+                $data['status'] = $portion === 'full' ? 'on_leave' : 'half_day';
+            }
+        }
 
         return Attendance::withoutGlobalScopes()->updateOrCreate(
             ['employee_id' => $data['employee_id'], 'date' => $data['date']],
             $data
         );
+    }
+
+    /**
+     * If the employee has an approved leave_request covering the date,
+     * returns the leave's day_portion ('full' / 'first_half' / 'second_half').
+     * Returns null if no approved leave applies — meaning the caller can
+     * fall back to whatever other status logic applies.
+     */
+    public function approvedLeavePortion(int $employeeId, string $date): ?string
+    {
+        return \App\Models\LeaveRequest::where('employee_id', $employeeId)
+            ->where('status', 'approved')
+            ->where('from_date', '<=', $date)
+            ->where('to_date', '>=', $date)
+            ->value('day_portion');
+    }
+
+    /**
+     * True if the given date is a week-off day for the given business.
+     *
+     * $businessId is required because attendance writes (especially the
+     * scheduled biometric sync) process employees from multiple businesses
+     * in one run, and CurrentBusiness may not be hydrated to the row's
+     * business at the moment of write. Passing it explicitly bypasses the
+     * BelongsToBusiness scope and looks up the correct business directly.
+     *
+     * If $businessId is 0 / unknown, we fall back to the session-scoped
+     * lookup (works fine for HR clicking around the admin panel).
+     */
+    public function isBusinessWeekOff(string $date, int $businessId = 0): bool
+    {
+        $dow = (int) Carbon::parse($date)->dayOfWeek; // 0=Sun … 6=Sat
+
+        if ($businessId > 0) {
+            $key = "weekoff.{$businessId}";
+            static $cache = [];
+            if (! isset($cache[$key])) {
+                $rows = BusinessWeekOff::withoutGlobalScopes()
+                    ->where('business_id', $businessId)
+                    ->get(['day_of_week', 'is_off']);
+                // Mirror the model's "no config → Sunday default" fallback
+                // so behaviour is identical to BusinessWeekOff::offDays().
+                $cache[$key] = $rows->isEmpty()
+                    ? [0]
+                    : $rows->where('is_off', true)->pluck('day_of_week')->all();
+            }
+            return in_array($dow, $cache[$key], true);
+        }
+
+        return in_array($dow, BusinessWeekOff::offDays(), true);
+    }
+
+    /**
+     * True if the given date is a configured public holiday for the year.
+     * $businessId scopes the lookup explicitly (same rationale as
+     * isBusinessWeekOff). Cached per (business, year) within the request.
+     */
+    public function isPublicHoliday(string $date, int $businessId = 0): bool
+    {
+        $d = Carbon::parse($date);
+        $cacheKey = "holidays.{$businessId}.{$d->year}";
+
+        static $cache = [];
+        if (! isset($cache[$cacheKey])) {
+            if ($businessId > 0) {
+                $cache[$cacheKey] = Holiday::withoutGlobalScopes()
+                    ->where('business_id', $businessId)
+                    ->where('is_dynamic', false)
+                    ->whereYear('date', $d->year)
+                    ->get()
+                    ->map(fn ($h) => $h->date->toDateString())
+                    ->flip();
+            } else {
+                $cache[$cacheKey] = Holiday::forYear($d->year)
+                    ->where('is_dynamic', false)
+                    ->map(fn ($h) => $h->date->toDateString())
+                    ->flip();
+            }
+        }
+
+        return $cache[$cacheKey]->has($d->toDateString());
+    }
+
+    /**
+     * True if this employee has an approved comp-off whose comp_date is this date.
+     * Attendance writes are blocked on those days to prevent double-counting.
+     */
+    public function hasApprovedCompOff(int $employeeId, string $date): bool
+    {
+        return \App\Models\CompOffRequest::where('employee_id', $employeeId)
+            ->where('status', 'approved')
+            ->whereDate('comp_date', $date)
+            ->exists();
     }
 
     /**
@@ -106,6 +274,12 @@ class AttendanceService
                 } catch (\Throwable) {
                     $skipped++;
                     $errors[] = "Row {$row}: invalid date '{$date}'";
+                    continue;
+                }
+
+                if ($this->hasApprovedCompOff($employee['id'], $parsedDate)) {
+                    $skipped++;
+                    $errors[] = "Row {$row}: {$parsedDate} is an approved comp-off — attendance not recorded";
                     continue;
                 }
 
@@ -236,6 +410,13 @@ class AttendanceService
                     continue;
                 }
 
+                if ($this->hasApprovedCompOff($employee['id'], $currentDate)) {
+                    $skipped++;
+                    $label = $code !== '' ? "EMP Code '{$code}'" : "Card No '{$card}'";
+                    $errors[] = "Row {$rowNumber}: {$label} on {$currentDate} is an approved comp-off — attendance not recorded";
+                    continue;
+                }
+
                 $status = match ($statusRaw) {
                     'P' => 'present',
                     'A' => 'absent',
@@ -246,6 +427,23 @@ class AttendanceService
                     'MIS' => $checkIn || $checkOut ? 'present' : 'absent',
                     default => $checkIn ? 'present' : 'absent',
                 };
+
+                // Biometric XLS files don't know the business's week-off
+                // configuration, public holidays, or approved leaves — they
+                // just mark non-punch days as 'A' (Absent) or blank. Promote
+                // those to the right status here, before insert, so the data
+                // lands correct from the start. Worked weekends (status =
+                // 'present') stay as-is.
+                if ($status === 'absent') {
+                    $bizId = (int) $employee['business_id'];
+                    if ($this->isBusinessWeekOff($currentDate, $bizId)) {
+                        $status = 'weekend';
+                    } elseif ($this->isPublicHoliday($currentDate, $bizId)) {
+                        $status = 'holiday';
+                    } elseif ($portion = $this->approvedLeavePortion($employee['id'], $currentDate)) {
+                        $status = $portion === 'full' ? 'on_leave' : 'half_day';
+                    }
+                }
 
                 $hoursWorked = $this->durationToHours($wrkHours);
                 if ($hoursWorked === 0.0) {
@@ -296,10 +494,154 @@ class AttendanceService
     }
 
     /**
-     * Generate a monthly summary for a given employee.
+     * Per-day derived status for the whole month. The calendar view and the
+     * summary widgets both read from this map, so whatever this method returns
+     * is exactly what the user sees on screen.
+     *
+     * Status values: present, late, half_day, absent, on_leave, holiday,
+     * week_off, comp_off, future.
+     *
+     * @return array<string, string>
+     */
+    public function monthlyDayStatuses(int $employeeId, int $month, int $year): array
+    {
+        $start = Carbon::createFromDate($year, $month, 1)->startOfDay();
+        $end   = $start->copy()->endOfMonth();
+        $today = Carbon::today();
+
+        $records = Attendance::where('employee_id', $employeeId)
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->get()
+            ->keyBy(fn ($a) => $a->date->toDateString());
+
+        $offDayNumbers = BusinessWeekOff::offDays();
+        $allHolidays   = Holiday::forYear($year);
+
+        $publicHolidayDates = $allHolidays
+            ->where('is_dynamic', false)
+            ->map(fn ($h) => $h->date->toDateString())
+            ->flip();
+
+        $dynamicHolidayDates = \App\Models\CompOffRequest::where('employee_id', $employeeId)
+            ->where('status', 'approved')
+            ->whereBetween('comp_date', [$start->toDateString(), $end->toDateString()])
+            ->pluck('comp_date')
+            ->map(fn ($d) => Carbon::parse($d)->toDateString())
+            ->flip();
+
+        // Pre-expand approved leave_requests into a date => day_portion map
+        // for the month. Used as a display backstop for legacy attendance
+        // rows that were imported as 'absent' on dates HR later approved as
+        // leave — they should render as 'on_leave' / 'half_day'.
+        $leaveDatePortions = [];
+        \App\Models\LeaveRequest::where('employee_id', $employeeId)
+            ->where('status', 'approved')
+            ->where('from_date', '<=', $end->toDateString())
+            ->where('to_date', '>=', $start->toDateString())
+            ->get(['from_date', 'to_date', 'day_portion'])
+            ->each(function ($leave) use (&$leaveDatePortions, $start, $end) {
+                $cursor = Carbon::parse($leave->from_date)->max($start);
+                $stop   = Carbon::parse($leave->to_date)->min($end);
+                while ($cursor->lte($stop)) {
+                    // If the same date appears in two overlapping leaves
+                    // (rare), the most-recent-loaded one wins. Acceptable.
+                    $leaveDatePortions[$cursor->toDateString()] = $leave->day_portion;
+                    $cursor->addDay();
+                }
+            });
+
+        $statuses = [];
+
+        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+            $key = $d->toDateString();
+            $isFuture  = $d->gt($today);
+            $isHoliday = $publicHolidayDates->has($key);
+            $isWeekOff = in_array((int) $d->dayOfWeek, $offDayNumbers, true);
+            $isCompOff = $dynamicHolidayDates->has($key);
+
+            // Future dates: render off-days (comp-off / holiday / week-off)
+            // with their actual status so every Sunday looks the same on
+            // the calendar — past or future. Plain future workdays stay
+            // 'future'. The monthly summary skips future dates entirely
+            // (see below), so paid-day counts aren't inflated by upcoming
+            // Sundays.
+            if ($isFuture) {
+                $statuses[$key] = match (true) {
+                    $isCompOff => 'comp_off',
+                    $isHoliday => 'holiday',
+                    $isWeekOff => 'week_off',
+                    default    => 'future',
+                };
+                continue;
+            }
+
+            // Approved comp-off is always a paid day, regardless of whether
+            // an attendance row also exists — avoids double-counting.
+            if ($isCompOff) {
+                $statuses[$key] = 'comp_off';
+                continue;
+            }
+
+            $rec = $records->get($key);
+
+            if ($rec) {
+                $resolved = match ($rec->status) {
+                    'weekend' => 'week_off',
+                    'present', 'late', 'half_day', 'on_leave',
+                    'absent', 'holiday', 'week_off' => $rec->status,
+                    // Any other recorded status (e.g. imported variant) means
+                    // the employee did interact with attendance — treat as present.
+                    default => 'present',
+                };
+
+                // Display-layer backstop: an 'absent' row on a configured
+                // week-off / holiday / approved-leave day is bad data (older
+                // imports didn't consult these settings before writing). Show
+                // the calendar truth instead. The next biometric sync /
+                // re-import will fix the underlying DB row too.
+                if ($resolved === 'absent') {
+                    if ($isWeekOff) {
+                        $resolved = 'week_off';
+                    } elseif ($isHoliday) {
+                        $resolved = 'holiday';
+                    } elseif (isset($leaveDatePortions[$key])) {
+                        $resolved = $leaveDatePortions[$key] === 'full' ? 'on_leave' : 'half_day';
+                    }
+                }
+
+                $statuses[$key] = $resolved;
+                continue;
+            }
+
+            if ($isHoliday) {
+                $statuses[$key] = 'holiday';
+                continue;
+            }
+
+            if ($isWeekOff) {
+                $statuses[$key] = 'week_off';
+                continue;
+            }
+
+            // No attendance row + no week-off / holiday — but if HR approved a
+            // leave covering this date, show that. Otherwise it's a true absent.
+            if (isset($leaveDatePortions[$key])) {
+                $statuses[$key] = $leaveDatePortions[$key] === 'full' ? 'on_leave' : 'half_day';
+                continue;
+            }
+
+            $statuses[$key] = 'absent';
+        }
+
+        return $statuses;
+    }
+
+    /**
+     * Monthly summary derived from {@see monthlyDayStatuses()} so widgets and
+     * the calendar can never disagree — they read the same per-day map.
      *
      * Paid-days formula:
-     *   paidDays = present + paidLeave + fixedWeekOff + dynamicWeekOff + holidays
+     *   paidDays   = present + late + (half_day * 0.5) + week_off + comp_off + holiday + paidLeave
      *   unpaidDays = absent + unpaidLeave
      *
      * @return array{
@@ -314,120 +656,57 @@ class AttendanceService
         $start = Carbon::createFromDate($year, $month, 1)->startOfDay();
         $end   = $start->copy()->endOfMonth();
 
-        // For the current month, don't count future days.
-        $today   = Carbon::today();
-        $loopEnd = $end->isFuture() ? $today : $end;
+        $statuses = $this->monthlyDayStatuses($employeeId, $month, $year);
 
-        $records = Attendance::where('employee_id', $employeeId)
-            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->get()
-            ->keyBy(fn ($a) => $a->date->toDateString());
-
-        // Business-configured week-off days (e.g. [0,6] = Sun+Sat)
-        $offDayNumbers = BusinessWeekOff::offDays();
-
-        // All holidays for this year (yearly ones expanded to this year)
-        $allHolidays = Holiday::forYear($year);
-
-        // Build lookup maps
-        $publicHolidayDates = $allHolidays
-            ->where('is_dynamic', false)
-            ->map(fn ($h) => $h->date->toDateString())
-            ->flip();
-
-        // Comp-off (dynamic week-off): approved comp-off comp_dates count as paid days
-        $dynamicHolidayDates = \App\Models\CompOffRequest::where('employee_id', $employeeId)
-            ->where('status', 'approved')
-            ->whereBetween('comp_date', [$start->toDateString(), $end->toDateString()])
-            ->pluck('comp_date')
-            ->map(fn ($d) => Carbon::parse($d)->toDateString())
-            ->flip();
-
-        $present         = 0;
-        $absent          = 0;
-        $late            = 0;
-        $halfDay         = 0;
-        $onLeave         = 0;
-        $holidayCount    = 0;
-        $fixedWeekOffs   = 0;
-        $dynamicWeekOffs = 0;
-        $workingDays     = 0;
-
-        for ($d = $start->copy(); $d->lte($loopEnd); $d->addDay()) {
-            $key       = $d->toDateString();
-            $dow       = (int) $d->dayOfWeek; // 0=Sun ... 6=Sat
-            $isWeekOff = in_array($dow, $offDayNumbers, true);
-            $isHoliday = $publicHolidayDates->has($key);
-            $isDynamic = $dynamicHolidayDates->has($key);
-
-            if ($isDynamic) {
-                // Employee traded their week-off for a weekday leave — counts as paid
-                $dynamicWeekOffs++;
+        $tally = [
+            'present' => 0, 'late' => 0, 'half_day' => 0, 'on_leave' => 0,
+            'absent' => 0, 'holiday' => 0, 'week_off' => 0, 'comp_off' => 0,
+            'future' => 0,
+        ];
+        // Future off-days (week_off / holiday / comp_off) are coloured the
+        // same as past off-days on the calendar so it doesn't look patchy.
+        // But for the summary they must be excluded — counting upcoming
+        // Sundays as paid would inflate paid_days mid-month.
+        $today = Carbon::today();
+        foreach ($statuses as $date => $s) {
+            if (Carbon::parse($date)->gt($today)) {
                 continue;
             }
-
-            if ($isHoliday) {
-                $holidayCount++;
-                continue;
+            if (isset($tally[$s])) {
+                $tally[$s]++;
             }
-
-            if ($isWeekOff) {
-                $fixedWeekOffs++;
-                // Check if employee actually came in on a week-off (swap scenario handled via dynamic holiday)
-                $rec = $records->get($key);
-                if ($rec && $rec->status === 'present') {
-                    // Worked on week-off — count as present (paid), not week-off
-                    $fixedWeekOffs--;
-                    $present++;
-                    $workingDays++;
-                }
-                continue;
-            }
-
-            // Normal working day
-            $workingDays++;
-            $rec = $records->get($key);
-
-            if (! $rec) {
-                $absent++;
-                continue;
-            }
-
-            match ($rec->status) {
-                'present'  => $present++,
-                'late'     => [$late++, $present++],
-                'half_day' => $halfDay++,
-                'absent'   => $absent++,
-                'on_leave' => $onLeave++,
-                default    => null,
-            };
         }
 
-        // Split leave days into paid vs unpaid from approved leave requests
+        // A 'late' day is still a paid attended day — surface it as both a
+        // distinct count (so the "Late" widget shows it) and as part of present.
+        $presentTotal = $tally['present'] + $tally['late'];
+
+        // Working days = days the employee was expected at work (past, non-holiday,
+        // non-week-off, non-comp-off). Future days are excluded by construction.
+        $workingDays = $tally['present'] + $tally['late'] + $tally['half_day']
+                     + $tally['on_leave'] + $tally['absent'];
+
         [$paidLeave, $unpaidLeave] = $this->splitLeaveDaysInMonth($employeeId, $start, $end);
 
-        // Core formula as specified
-        // $present already includes late days (match block increments both).
-        // Do NOT add $late again — that would double-count late attendance.
-        $paidDays = $present + $paidLeave + ($halfDay * 0.5)
-                  + $fixedWeekOffs + $dynamicWeekOffs + $holidayCount;
+        $paidDays = $presentTotal + ($tally['half_day'] * 0.5)
+                  + $tally['week_off'] + $tally['comp_off'] + $tally['holiday']
+                  + $paidLeave;
         $paidDays = max(0.0, round($paidDays, 1));
 
-        $unpaidDays = max(0.0, round($absent + $unpaidLeave, 1));
-        $lopDays    = $unpaidDays;
+        $unpaidDays = max(0.0, round($tally['absent'] + $unpaidLeave, 1));
 
         return [
-            'present'           => $present,
-            'absent'            => $absent,
-            'late'              => $late,
-            'half_day'          => $halfDay,
-            'on_leave'          => $onLeave,
-            'holidays'          => $holidayCount,
-            'fixed_week_offs'   => $fixedWeekOffs,
-            'dynamic_week_offs' => $dynamicWeekOffs,
+            'present'           => $presentTotal,
+            'absent'            => $tally['absent'],
+            'late'              => $tally['late'],
+            'half_day'          => $tally['half_day'],
+            'on_leave'          => $tally['on_leave'],
+            'holidays'          => $tally['holiday'],
+            'fixed_week_offs'   => $tally['week_off'],
+            'dynamic_week_offs' => $tally['comp_off'],
             'working_days'      => $workingDays,
             'paid_days'         => $paidDays,
-            'lop_days'          => $lopDays,
+            'lop_days'          => $unpaidDays,
             'paid_leave_days'   => round($paidLeave, 1),
             'unpaid_leave_days' => round($unpaidLeave, 1),
         ];
@@ -493,20 +772,35 @@ class AttendanceService
         }
     }
 
+    /**
+     * Derive an attendance status from punch times.
+     *
+     * Rules:
+     *   - no check-in              → absent
+     *   - check-in, no check-out   → present (mid-day; biometric will recompute on punch-out)
+     *   - completed day, ≥ 8 hrs   → present
+     *   - completed day, < 8 hrs   → half_day  (anything short of a full day)
+     *
+     * The previous "≥ 4 hrs → half_day, else → present" was wrong on two
+     * fronts: a 3-hour day silently became "present" (the < 4 hrs fallback),
+     * and a 7h 59m day was demoted to half_day. The new rule treats any
+     * completed under-8-hour day as half_day uniformly.
+     */
     private function deriveStatus(array $data): string
     {
         if (empty($data['check_in'])) {
             return 'absent';
         }
-        $hours = $this->calcHours($data['check_in'] ?? null, $data['check_out'] ?? null);
-        if ($hours >= 8) {
+
+        // Mid-day: punched in but not out yet. The biometric sync (or a later
+        // manual edit) will recompute this once a check-out arrives.
+        if (empty($data['check_out'])) {
             return 'present';
         }
-        if ($hours >= 4) {
-            return 'half_day';
-        }
 
-        return 'present';
+        $hours = $this->calcHours($data['check_in'], $data['check_out']);
+
+        return $hours >= 8 ? 'present' : 'half_day';
     }
 
     private function normalizeHeader(string $h): string

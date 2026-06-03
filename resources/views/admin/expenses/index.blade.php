@@ -92,7 +92,7 @@
                             </td>
                             <td class="px-4 py-2">
                                 @if($exp->type === 'recurring')
-                                    <span class="badge bg-info">Monthly</span>
+                                    <span class="badge bg-info">{{ \App\Models\Expense::RECURRENCES[$exp->recurrence_frequency] ?? 'Monthly' }}</span>
                                 @else
                                     <span class="badge bg-secondary">One-off</span>
                                 @endif

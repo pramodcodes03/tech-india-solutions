@@ -32,6 +32,8 @@ class UpdateSettingsRequest extends FormRequest
             'settings.quotation_prefix' => ['nullable', 'string', 'max:10'],
             'settings.currency_symbol' => ['nullable', 'string', 'max:5'],
             'settings.terms_and_conditions' => ['nullable', 'string'],
+            'settings.biometric_api_url' => ['nullable', 'url', 'max:500'],
+            'settings.biometric_enabled' => ['nullable', 'in:0,1'],
         ];
     }
 

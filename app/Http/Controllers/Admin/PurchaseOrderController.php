@@ -30,6 +30,9 @@ class PurchaseOrderController extends Controller
             }))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->vendor_id, fn ($q, $v) => $q->where('vendor_id', $v))
+            // Date-range filter on po_date — view sends `date_from` / `date_to`.
+            ->when($request->date_from, fn ($q, $d) => $q->whereDate('po_date', '>=', $d))
+            ->when($request->date_to,   fn ($q, $d) => $q->whereDate('po_date', '<=', $d))
             ->latest()
             ->paginate(10);
 

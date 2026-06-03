@@ -104,8 +104,14 @@ class BusinessController extends Controller
 
         session(['business_id' => $business->id]);
 
-        return redirect()->route('admin.dashboard')
-            ->with('success', "Switched to {$business->name}.");
+        $msg = "Switched to {$business->name}.";
+
+        $target = $request->input('redirect_to');
+        if (is_string($target) && str_starts_with($target, '/') && ! str_starts_with($target, '//')) {
+            return redirect($target)->with('success', $msg);
+        }
+
+        return back(fallback: route('admin.dashboard'))->with('success', $msg);
     }
 
     /**

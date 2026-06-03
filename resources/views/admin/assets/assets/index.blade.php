@@ -12,7 +12,13 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 PDF
             </a>
-            @can('assets.create')<a href="{{ route('admin.assets.assets.create') }}" class="btn btn-primary">+ New Asset</a>@endcan
+            @can('assets.create')
+                <a href="{{ route('admin.assets.assets.import-form') }}" class="btn btn-sm btn-outline-info gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5-5 5 5M12 6v12"/></svg>
+                    Import
+                </a>
+                <a href="{{ route('admin.assets.assets.create') }}" class="btn btn-primary">+ New Asset</a>
+            @endcan
         </div>
     </div>
 
@@ -27,6 +33,27 @@
         <div class="panel py-3"><div class="text-[10px] uppercase text-gray-500">Warranty 60d</div><div class="text-xl font-extrabold text-warning">{{ $kpi['warranty_soon'] }}</div></div>
         <div class="panel py-3"><div class="text-[10px] uppercase text-gray-500">EOL 6mo</div><div class="text-xl font-extrabold text-danger">{{ $kpi['eol_soon'] }}</div></div>
     </div>
+
+    {{-- Per-row errors from the latest import (one-shot, flashed only) --}}
+    @if(session('import_errors') && count(session('import_errors')) > 0)
+        <details class="panel mb-5 border-l-4 border-warning" open>
+            <summary class="cursor-pointer font-semibold text-warning">
+                {{ count(session('import_errors')) }} row(s) were skipped during import — click to view
+            </summary>
+            <div class="mt-3 max-h-60 overflow-y-auto text-sm">
+                <table class="min-w-full">
+                    <thead class="text-xs uppercase text-gray-500">
+                        <tr><th class="text-left py-1 pr-4">Row</th><th class="text-left py-1">Reason</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                        @foreach(session('import_errors') as $err)
+                            <tr><td class="py-1.5 pr-4 font-mono text-xs text-gray-500">#{{ $err['row'] }}</td><td class="py-1.5">{{ $err['message'] }}</td></tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </details>
+    @endif
 
     <form method="GET" class="grid grid-cols-1 md:grid-cols-6 gap-2 mb-4">
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search code, name, serial..." class="form-input md:col-span-2" />

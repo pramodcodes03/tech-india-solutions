@@ -22,12 +22,34 @@
             </div>
             <div class="col-span-2">
                 <label class="text-xs font-semibold text-gray-500 uppercase">Specific Employee (optional)</label>
+                @php
+                    // Only show employees who actually have an approved current salary
+                    // structure — otherwise the action will fail with "no current
+                    // salary structure" and the user picked something un-runnable.
+                    $payrollCandidates = \App\Models\Employee::query()
+                        ->whereIn('status', ['active','probation','on_notice'])
+                        ->whereHas('salaryStructures', fn ($q) => $q
+                            ->where('is_current', true)
+                            ->where('status', \App\Models\SalaryStructure::STATUS_APPROVED))
+                        ->orderBy('first_name')
+                        ->get();
+                @endphp
                 <select name="employee_id" class="form-select mt-1">
                     <option value="">All employees</option>
-                    @foreach(\App\Models\Employee::whereIn('status', ['active','probation','on_notice'])->orderBy('first_name')->get() as $e)
+                    @forelse($payrollCandidates as $e)
                         <option value="{{ $e->id }}">{{ $e->employee_code }} · {{ $e->full_name }}</option>
-                    @endforeach
+                    @empty
+                        <option value="" disabled>— No employees with an approved salary structure —</option>
+                    @endforelse
                 </select>
+                @if($payrollCandidates->isEmpty())
+                    <p class="text-xs text-warning mt-2">
+                        No active employees have an approved current salary structure.
+                        Submit one and have it approved from
+                        <a class="underline" href="{{ route('admin.hr.payroll.approvals') }}">Payroll → Pending Approvals</a>
+                        before generating payslips.
+                    </p>
+                @endif
             </div>
         </div>
         <div class="flex gap-3 mt-6">

@@ -18,20 +18,26 @@ class RecipientResolver
     public function resolve(array $roleKeys, ?Model $entity, Business $business, array $context = []): Collection
     {
         $recipients = collect();
-        $hasOnlyAdminRoleRoles = collect($roleKeys)->every(fn ($r) => str_starts_with($r, 'admin.role:'));
 
         foreach ($roleKeys as $role) {
             $resolved = $this->resolveOne($role, $entity, $business, $context);
             $recipients = $recipients->merge($resolved);
         }
 
-        // Fallback: if every requested recipient was an admin-role lookup
-        // (e.g. admin.role:HR Manager) and none of those roles match anyone,
-        // fall back to all active admins of the business. This prevents
-        // events from silently dropping when the business hasn't filled out
-        // the role assignments yet.
-        if ($recipients->isEmpty() && $hasOnlyAdminRoleRoles) {
-            $recipients = $this->allAdmins($business);
+        // Fallback for internal-staff-only events: if none of the requested
+        // recipients are external (customer/vendor/employee), and we ended
+        // up with nobody, fall back to all active admins of the business +
+        // all super admins. This catches the common case where the event
+        // wants HR Manager / reporting_manager but the business hasn't
+        // assigned anyone to that role yet — without the fallback the
+        // notification silently fails with "No recipients resolved".
+        //
+        // External-recipient events (invoice to customer, payslip to
+        // employee, etc.) intentionally do NOT fall back to admins —
+        // we don't want to email the whole staff because one customer
+        // record is missing an email.
+        if ($recipients->isEmpty() && ! $this->hasExternalRecipient($roleKeys)) {
+            $recipients = $this->allAdmins($business)->merge($this->superAdmins());
         }
 
         // De-dupe by email (case-insensitive).
@@ -39,6 +45,20 @@ class RecipientResolver
             ->filter(fn ($r) => ! empty($r['email']))
             ->unique(fn ($r) => strtolower($r['email']))
             ->values();
+    }
+
+    /**
+     * True if any of the requested recipient role keys targets an external
+     * party (the customer, vendor, or employee on the entity) rather than
+     * internal staff. Used by the fallback to decide whether spamming all
+     * admins is the right safety net.
+     */
+    protected function hasExternalRecipient(array $roleKeys): bool
+    {
+        $externalPrefixes = ['customer.', 'vendor.', 'employee.', 'asset_assignment.employee'];
+
+        return collect($roleKeys)->contains(fn ($r) => collect($externalPrefixes)
+            ->contains(fn ($p) => str_starts_with($r, $p)));
     }
 
     protected function resolveOne(string $role, ?Model $entity, Business $business, array $context): Collection

@@ -117,6 +117,40 @@
                     </div>
                 </div>
 
+                {{-- Biometric Device --}}
+                <h6 class="text-base font-semibold mb-4 border-b pb-2 flex items-center gap-2">
+                    Biometric Device
+                    @php $bioOn = ($settings['biometric_enabled'] ?? '0') === '1'; @endphp
+                    <span class="inline-block text-xs px-2 py-0.5 rounded-full {{ $bioOn ? 'bg-success/10 text-success' : 'bg-gray-200 text-gray-600' }}">{{ $bioOn ? 'Enabled' : 'Disabled' }}</span>
+                </h6>
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-2 mb-6">
+                    <div class="md:col-span-2">
+                        <label for="biometric_api_url">API URL</label>
+                        <input id="biometric_api_url" name="settings[biometric_api_url]" type="url" class="form-input"
+                               placeholder="http://device-ip/Service/Attendance/EmployeeAttendance_DateWise"
+                               value="{{ old('settings.biometric_api_url', $settings['biometric_api_url'] ?? '') }}" />
+                        <p class="text-xs text-gray-500 mt-1">Base URL of the vendor endpoint. The sync appends <code class="px-1 bg-gray-100 dark:bg-gray-800 rounded">?Date_Time=YYYY-MM-DD</code> automatically.</p>
+                    </div>
+                    <div>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            {{-- Hidden field ensures "off" is sent when the checkbox is unchecked --}}
+                            <input type="hidden" name="settings[biometric_enabled]" value="0">
+                            <input type="checkbox" name="settings[biometric_enabled]" value="1" class="form-checkbox"
+                                   {{ ($settings['biometric_enabled'] ?? '0') === '1' ? 'checked' : '' }} />
+                            <span>Enable automatic sync (every minute)</span>
+                        </label>
+                        <p class="text-xs text-gray-500 mt-1">When on, the scheduler hits the URL above and writes matched punches as attendance.</p>
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                        @if(! empty($settings['biometric_last_synced_at']))
+                            <strong>Last sync:</strong> {{ \Carbon\Carbon::parse($settings['biometric_last_synced_at'])->diffForHumans() }}
+                            <span class="text-xs">({{ \Carbon\Carbon::parse($settings['biometric_last_synced_at'])->format('d M Y, H:i:s') }})</span>
+                        @else
+                            <em>Not synced yet.</em>
+                        @endif
+                    </div>
+                </div>
+
                 <div class="flex justify-end gap-3 mt-6">
                     <button type="submit" class="btn btn-primary">Save Settings</button>
                 </div>

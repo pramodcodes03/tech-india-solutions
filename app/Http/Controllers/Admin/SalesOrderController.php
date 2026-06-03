@@ -29,6 +29,11 @@ class SalesOrderController extends Controller
             }))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->customer_id, fn ($q, $c) => $q->where('customer_id', $c))
+            // Date-range filter on order_date. Either end is optional —
+            // filter from a date only, up to a date only, or both. The view
+            // sends `date_from` / `date_to`; matching keys here.
+            ->when($request->date_from, fn ($q, $d) => $q->whereDate('order_date', '>=', $d))
+            ->when($request->date_to,   fn ($q, $d) => $q->whereDate('order_date', '<=', $d))
             ->latest()
             ->paginate(10);
 
@@ -43,7 +48,7 @@ class SalesOrderController extends Controller
                     'from' => $salesOrders->firstItem() ?? 0,
                     'to' => $salesOrders->lastItem() ?? 0,
                 ],
-            ]);
+            ])->header('Cache-Control', 'no-store, no-cache, must-revalidate');
         }
 
         $customers = Customer::where('status', 'active')->orderBy('name')->get();

@@ -95,27 +95,44 @@ class TransactionalNotification extends BaseBusinessMailable implements ShouldQu
         $fileNameTemplate = $event['pdf']['name'];
 
         try {
-            // Some PDF templates (quotations, proformas) expect pre-computed
-            // totals that controllers calculate before rendering. Provide them
-            // here so attachment generation matches the on-demand view.
-            $totals = $this->computePdfTotals($this->entity);
+            // 1. Reload the entity with ALL relations the PDF template uses.
+            //    Required because this mailable is queued (ShouldQueue): the
+            //    queue worker deserialises the entity and only the columns +
+            //    the relations explicitly re-loaded survive. Without this,
+            //    invoice items / payments / customer details all render blank
+            //    because the lazy-load attempts return nothing.
+            $entity = $this->reloadEntityWithRelations($this->entity);
+
+            // 2. Pull settings from DB. The hardcoded `[]` here previously
+            //    meant bank details / terms / company defaults rendered blank.
+            $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
+
+            // 3. Tenant identity from the entity's own business when available,
+            //    so a queue worker without an active session still gets the
+            //    right header instead of falling back to a generic default.
+            $business = ($entity && method_exists($entity, 'business') && $entity->business)
+                ? $entity->business
+                : $this->business;
+
+            // 4. Pre-compute totals that quotation/proforma templates expect.
+            $totals = $this->computePdfTotals($entity);
 
             $pdf = Pdf::loadView($viewName, array_merge([
-                $event['related'] ?? 'entity' => $this->entity,
-                'entity' => $this->entity,
-                'business' => $this->business,
-                'context' => $this->context,
+                $event['related'] ?? 'entity' => $entity,
+                'entity'         => $entity,
+                'business'       => $business,
+                'context'        => $this->context,
+                'settings'       => $settings,
                 // Some PDFs expect a fixed variable name (e.g. "invoice"),
                 // others use $entity. Pass both for safety.
-                'invoice' => $this->entity,
-                'quotation' => $this->entity,
-                'purchase_order' => $this->entity,
-                'po' => $this->entity,
-                'proforma' => $this->entity,
-                'payslip' => $this->entity,
-                'appraisal' => $this->entity,
-                'expense' => $this->entity,
-                'settings' => [], // legacy templates expect this
+                'invoice'        => $entity,
+                'quotation'      => $entity,
+                'purchase_order' => $entity,
+                'po'             => $entity,
+                'proforma'       => $entity,
+                'payslip'        => $entity,
+                'appraisal'      => $entity,
+                'expense'        => $entity,
             ], $totals));
 
             $fileName = $this->renderFileName($fileNameTemplate);
@@ -130,6 +147,45 @@ class TransactionalNotification extends BaseBusinessMailable implements ShouldQu
         } catch (Throwable $e) {
             Log::error("[Notifications] PDF attachment failed for {$this->eventKey}: ".$e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Reload the entity from the DB with the relations its PDF template
+     * needs. Without this, the emailed PDF shows headers + business info
+     * but blank line-items / customer / payments — because the queued job
+     * lost the relations that the controller's on-demand path eager-loads.
+     *
+     * Falls back to the original entity if class/relation lookup fails.
+     */
+    protected function reloadEntityWithRelations(?Model $entity): ?Model
+    {
+        if (! $entity || ! method_exists($entity, 'getKey')) {
+            return $entity;
+        }
+
+        // Map model class → relations needed by its PDF template. Keep in
+        // sync with each controller's pdf($id) method's `with([...])` call.
+        $relationsByClass = [
+            \App\Models\Invoice::class          => ['customer', 'items.product', 'creator', 'payments', 'business'],
+            \App\Models\Quotation::class        => ['customer', 'items.product', 'creator', 'business'],
+            \App\Models\ProformaInvoice::class  => ['customer', 'items.product', 'creator', 'business'],
+            \App\Models\PurchaseOrder::class    => ['vendor', 'items.product', 'creator', 'business'],
+            \App\Models\Payslip::class          => ['employee.department', 'employee.designation', 'employee.business', 'penalties.penaltyType'],
+            \App\Models\Expense::class          => ['category', 'subcategory', 'creator', 'paidByAdmin', 'business'],
+            \App\Models\Appraisal::class        => ['employee', 'department', 'designation', 'business'],
+        ];
+
+        $class = get_class($entity);
+        $relations = $relationsByClass[$class] ?? [];
+
+        try {
+            $fresh = $class::withoutGlobalScopes()
+                ->with($relations)
+                ->find($entity->getKey());
+            return $fresh ?: $entity;
+        } catch (Throwable) {
+            return $entity;
         }
     }
 

@@ -143,7 +143,8 @@ class ProformaInvoiceController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('proforma_invoices.view'), 403);
 
-        $proforma = ProformaInvoice::with(['customer', 'items.product', 'creator'])->findOrFail($id);
+        $proforma = ProformaInvoice::with(['customer', 'items.product', 'creator', 'business'])
+            ->findOrFail($id);
 
         $pdfSubtotal = 0;
         foreach ($proforma->items as $item) {
@@ -161,7 +162,12 @@ class ProformaInvoiceController extends Controller
         $pdfGrandTotal = round($pdfAfterDisc + $pdfTaxAmt, 2);
 
         $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
-        $business = app(\App\Support\Tenancy\CurrentBusiness::class)->get();
+
+        // See InvoiceController::pdf — tenant identity must come from the
+        // proforma's own business, not the current session, so a Super Admin
+        // who switched businesses still sees the right header.
+        $business = $proforma->business
+            ?? app(\App\Support\Tenancy\CurrentBusiness::class)->get();
 
         $pdf = Pdf::loadView('admin.proforma-invoices.pdf', compact(
             'proforma', 'pdfSubtotal', 'pdfDiscVal', 'pdfDiscAmt', 'pdfTaxAmt', 'pdfGrandTotal',

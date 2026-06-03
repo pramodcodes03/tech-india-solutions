@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin\Asset;
 
 use App\Exports\AssetRegisterExport;
 use App\Http\Controllers\Controller;
+use App\Services\Asset\AssetImportService;
+use App\Support\Tenancy\CurrentBusiness;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Asset;
 use App\Models\AssetCategory;
@@ -92,6 +94,137 @@ class AssetController extends Controller
         }
 
         return Excel::download(new AssetRegisterExport($assets), "asset-register-{$stamp}.xlsx", ExcelType::XLSX);
+    }
+
+    /**
+     * Bulk-import landing page.
+     */
+    public function importForm()
+    {
+        abort_unless(Auth::guard('admin')->user()->can('assets.create'), 403);
+
+        $business = app(CurrentBusiness::class)->get();
+        $categoryCount = $business ? AssetCategory::where('business_id', $business->id)->count() : 0;
+
+        return view('admin.assets.assets.import', compact('categoryCount'));
+    }
+
+    /**
+     * Process uploaded CSV / XLS / XLSX into assets.
+     */
+    public function import(Request $request, AssetImportService $service)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('assets.create'), 403);
+
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt,xls,xlsx', 'max:10240'],
+        ]);
+
+        $business = app(CurrentBusiness::class)->get();
+        abort_unless($business, 400, 'No active business.');
+
+        $result = $service->import($request->file('file'), $business->id);
+
+        $msg = "Imported {$result['imported']} assets";
+        if ($result['failed'] > 0) {
+            $msg .= ", skipped {$result['failed']} row(s) — see details below.";
+        } else {
+            $msg .= '.';
+        }
+
+        return redirect()->route('admin.assets.assets.index')
+            ->with($result['failed'] > 0 ? 'warning' : 'success', $msg)
+            ->with('import_errors', $result['errors']);
+    }
+
+    /**
+     * Download an import template. ?format=xlsx (default) is a styled Excel
+     * file with both a fully-filled and a minimum-fields-only sample row,
+     * plus reference sheets that drive in-cell dropdowns for Category /
+     * Location / Vendor / Custodian / Depreciation Method.
+     * ?format=csv returns a plain CSV equivalent (no dropdowns possible).
+     *
+     * Pre-flight: if the current business has zero Asset Categories,
+     * the download is blocked and the user is bounced back to the import
+     * form with a link to create one — every imported row must reference
+     * a Category, so a template with an empty Category dropdown is useless.
+     */
+    public function importTemplate(Request $request)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('assets.create'), 403);
+
+        $business = app(CurrentBusiness::class)->get();
+        abort_unless($business, 400, 'No active business.');
+
+        $businessId = $business->id;
+
+        $categories = AssetCategory::where('business_id', $businessId)
+            ->orderBy('name')->pluck('name')->all();
+
+        if (empty($categories)) {
+            return redirect()->route('admin.assets.assets.import-form')
+                ->with('error', 'No Asset Categories exist yet. Add at least one before downloading the template — every imported row must reference a Category.');
+        }
+
+        $format = strtolower($request->input('format', 'xlsx'));
+
+        if ($format === 'xlsx') {
+            $locations = AssetLocation::where('business_id', $businessId)
+                ->orderBy('name')->pluck('name')->all();
+            $vendors = Vendor::where('business_id', $businessId)
+                ->orderBy('name')->pluck('name')->all();
+            $custodians = Employee::where('business_id', $businessId)
+                ->whereNotIn('status', ['inactive', 'terminated', 'absconded'])
+                ->orderBy('first_name')
+                ->get(['first_name', 'last_name'])
+                ->map(fn ($e) => trim(($e->first_name ?? '').' '.($e->last_name ?? '')))
+                ->filter()
+                ->values()
+                ->all();
+
+            return Excel::download(
+                new \App\Exports\AssetImportTemplateExport($categories, $locations, $vendors, $custodians),
+                'asset-import-template.xlsx',
+                ExcelType::XLSX
+            );
+        }
+
+        // CSV fallback
+        $columns = [
+            'Asset Code', 'Name', 'Serial Number', 'Category', 'Model', 'Manufacturer',
+            'Location', 'Custodian', 'Vendor', 'PO Number',
+            'Purchase Date', 'Purchase Cost', 'Salvage Value',
+            'Warranty Expiry', 'Insurance Expiry', 'End of Life',
+            'Depreciation Method', 'Useful Life (yrs)',
+        ];
+
+        $sample = [
+            'AST-0001', 'Dell Latitude 5420', 'DL-12345', 'Electronics', 'Latitude 5420', 'Dell',
+            'Head Office', '', '', '',
+            '2026-01-15', '65000', '5000',
+            '2027-01-15', '', '2031-01-15',
+            'straight_line', '5',
+        ];
+        $minimal = [
+            '', 'Wooden Desk', '', 'Furniture', '', '',
+            '', '', '', '',
+            '', '', '',
+            '', '', '',
+            '', '',
+        ];
+
+        $callback = function () use ($columns, $sample, $minimal) {
+            $f = fopen('php://output', 'w');
+            fputcsv($f, $columns);
+            fputcsv($f, $sample);
+            fputcsv($f, $minimal);
+            fclose($f);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="asset-import-template.csv"',
+        ]);
     }
 
     public function create(Request $request)

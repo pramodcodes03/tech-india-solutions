@@ -63,8 +63,8 @@
                         <input id="expected_value" name="expected_value" type="number" step="0.01" class="form-input" value="{{ old('expected_value', $lead->expected_value) }}" />
                     </div>
                     <div>
-                        <label for="next_follow_up">Next Follow-up Date</label>
-                        <input id="next_follow_up" name="next_follow_up" type="date" class="form-input" value="{{ old('next_follow_up', $lead->next_follow_up?->format('Y-m-d')) }}" />
+                        <label for="next_follow_up_at">Next Follow-up Date</label>
+                        <input id="next_follow_up_at" name="next_follow_up_at" type="date" class="form-input" value="{{ old('next_follow_up_at', $lead->next_follow_up_at?->format('Y-m-d')) }}" />
                     </div>
                     <div class="md:col-span-2">
                         <label for="notes">Notes</label>

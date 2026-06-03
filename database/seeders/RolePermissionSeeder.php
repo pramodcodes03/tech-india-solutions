@@ -19,6 +19,24 @@ class RolePermissionSeeder extends Seeder
         // ── Define all permissions ──────────────────────────────────────
         $modules = [
             'dashboard' => ['view'],
+            // Distinct gate for the global Analytics Dashboard (sales trends,
+            // receivables, etc). Module-specific dashboards (HR, Assets…) have
+            // their own permissions; this one is intentionally narrower so
+            // Admins can grant a role the generic 'dashboard.view' for module
+            // dashboards without exposing the financial Analytics view.
+            'analytics_dashboard' => ['view'],
+            // Per-dashboard permissions for the specialised analytics pages.
+            // Each one is its own module with a single 'view' action so the
+            // Roles & Permissions matrix shows one row per dashboard, and an
+            // admin can toggle exactly which dashboards a role can see.
+            'analytics_sales'     => ['view'],   // /admin/dashboards/sales
+            'analytics_service'   => ['view'],   // /admin/dashboards/service
+            'analytics_inventory' => ['view'],   // /admin/dashboards/inventory
+            'analytics_purchase'  => ['view'],   // /admin/dashboards/purchase
+            'analytics_customer'  => ['view'],   // /admin/dashboards/customers
+            'analytics_executive' => ['view'],   // /admin/dashboards/executive
+            'analytics_hr'        => ['view'],   // /admin/hr/dashboard
+            'analytics_asset'     => ['view'],   // /admin/assets/dashboard
             'businesses' => ['view', 'create', 'edit', 'delete'],
             'users' => ['view', 'create', 'edit', 'delete'],
             'roles' => ['view', 'create', 'edit', 'delete'],
@@ -148,7 +166,11 @@ class RolePermissionSeeder extends Seeder
         );
         $serviceRole->syncPermissions($servicePermissions);
 
-        // HR Manager — full access to HR module + dashboard
+        // HR Manager — full access to HR module + dashboard, EXCEPT punch-time
+        // edits. Editing check_in / check_out changes downstream payroll
+        // (paid_days, LOP, half-day classification), so it's restricted to
+        // Admin / Business Admin only. HR can still mark attendance, import
+        // biometric files, and view everything.
         $hrRole = Role::firstOrCreate(['name' => 'HR Manager', 'guard_name' => $guard]);
         $hrPermissions = array_merge(
             ['dashboard.view'],
@@ -157,7 +179,7 @@ class RolePermissionSeeder extends Seeder
             $this->allActionsFor('designations', $modules),
             $this->allActionsFor('shifts', $modules),
             $this->allActionsFor('holidays', $modules),
-            $this->allActionsFor('attendance', $modules),
+            ['attendance.view', 'attendance.create', 'attendance.import'], // no attendance.edit
             $this->allActionsFor('leaves', $modules),
             $this->allActionsFor('leave_types', $modules),
             $this->allActionsFor('payroll', $modules),
@@ -172,10 +194,16 @@ class RolePermissionSeeder extends Seeder
         // Give Admin role all HR permissions too
         $adminRole->givePermissionTo($hrPermissions);
 
-        // Viewer - dashboard.view + all *.view permissions
+        // Viewer - dashboard.view + all *.view permissions, EXCEPT all the
+        // analytics_* dashboards (financial / operational data). Admins can
+        // grant each specific analytics_*.view explicitly if the Viewer role
+        // should see a particular dashboard.
         $viewerRole = Role::firstOrCreate(['name' => 'Viewer', 'guard_name' => $guard]);
         $viewerPermissions = ['dashboard.view'];
         foreach ($modules as $module => $actions) {
+            if (str_starts_with($module, 'analytics_')) {
+                continue;
+            }
             if (in_array('view', $actions)) {
                 $viewerPermissions[] = "{$module}.view";
             }

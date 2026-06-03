@@ -30,6 +30,9 @@ class QuotationController extends Controller
             }))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->customer_id, fn ($q, $c) => $q->where('customer_id', $c))
+            // Date-range filter on quotation_date — view sends `date_from` / `date_to`.
+            ->when($request->date_from, fn ($q, $d) => $q->whereDate('quotation_date', '>=', $d))
+            ->when($request->date_to,   fn ($q, $d) => $q->whereDate('quotation_date', '<=', $d))
             ->latest()
             ->paginate(10);
 
@@ -139,7 +142,7 @@ class QuotationController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('quotations.view'), 403);
 
-        $quotation = Quotation::with(['customer', 'items.product', 'creator'])->findOrFail($id);
+        $quotation = Quotation::with(['customer', 'items.product', 'creator', 'business'])->findOrFail($id);
 
         $pdfSubtotal = 0;
         foreach ($quotation->items as $item) {
@@ -157,7 +160,11 @@ class QuotationController extends Controller
         $pdfGrandTotal = round($pdfAfterDisc + $pdfTaxAmt, 2);
 
         $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
-        $business = app(\App\Support\Tenancy\CurrentBusiness::class)->get();
+
+        // See InvoiceController::pdf — tenant identity from the quotation's
+        // own business, not the current session.
+        $business = $quotation->business
+            ?? app(\App\Support\Tenancy\CurrentBusiness::class)->get();
 
         $pdf = Pdf::loadView('admin.quotations.pdf', compact(
             'quotation', 'pdfSubtotal', 'pdfDiscVal', 'pdfDiscAmt', 'pdfTaxAmt', 'pdfGrandTotal',

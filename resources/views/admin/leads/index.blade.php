@@ -38,15 +38,24 @@
                         <option value="{{ $admin->id }}">{{ $admin->name }}</option>
                     @endforeach
                 </select>
-                <button type="button" class="btn btn-outline-danger btn-sm" x-show="searchText || filterStatus || filterSource || filterAssignedTo" @click="clearFilters()">Clear</button>
+                {{-- Created-date range. Empty fields = unbounded on that side. --}}
+                <input type="date" class="form-input py-2 w-40" title="Created from"
+                       x-model="filterFromDate" @change="fetchData(1)" />
+                <input type="date" class="form-input py-2 w-40" title="Created to"
+                       x-model="filterToDate" @change="fetchData(1)" />
+                <button type="button" class="btn btn-outline-danger btn-sm"
+                        x-show="searchText || filterStatus || filterSource || filterAssignedTo || filterFromDate || filterToDate"
+                        @click="clearFilters()">Clear</button>
                 <a href="{{ route('admin.leads.kanban') }}" class="btn btn-outline-primary gap-2 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
                     Leads Board
                 </a>
+                @can('leads.create')
                 <a href="{{ route('admin.leads.create') }}" class="btn btn-primary gap-2 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     Add Lead
                 </a>
+                @endcan
             </div>
         </div>
 
@@ -63,6 +72,7 @@
                             <th class="px-4 py-2">Status</th>
                             <th class="px-4 py-2">Assigned To</th>
                             <th class="px-4 py-2">Expected Value</th>
+                            <th class="px-4 py-2">Created</th>
                             <th class="px-4 py-2">Next Follow-up</th>
                             <th class="px-4 py-2 !text-center">Actions</th>
                         </tr>
@@ -95,15 +105,18 @@
                                 </td>
                                 <td class="px-4 py-2" x-text="item.assigned_to_name || '-'"></td>
                                 <td class="px-4 py-2" x-text="item.expected_value ? '₹' + parseFloat(item.expected_value).toLocaleString('en-IN') : '-'"></td>
+                                <td class="px-4 py-2 whitespace-nowrap" x-text="formatDate(item.created_date)"></td>
                                 <td class="px-4 py-2" x-text="formatDate(item.next_follow_up)"></td>
                                 <td class="px-4 py-2">
                                     <div class="flex items-center justify-center gap-2">
                                         <a :href="`{{ url('admin/leads') }}/${item.id}`" class="btn btn-sm btn-outline-info p-1.5" data-tippy-content="View Details"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></a>
-                                        <a :href="`{{ url('admin/leads') }}/${item.id}/edit`" class="btn btn-sm btn-outline-primary p-1.5" data-tippy-content="Edit"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></a>
+                                        @can('leads.edit')<a :href="`{{ url('admin/leads') }}/${item.id}/edit`" class="btn btn-sm btn-outline-primary p-1.5" data-tippy-content="Edit"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></a>@endcan
+                                        @can('leads.convert')
                                         <template x-if="item.status !== 'won' && item.status !== 'lost'">
                                             <button type="button" class="btn btn-sm btn-outline-success p-1.5" data-tippy-content="Convert to Customer" @click="convertToCustomer(item.id)"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg></button>
                                         </template>
-                                        <button type="button" class="btn btn-sm btn-outline-danger p-1.5" @click="deleteItem(item.id)" data-tippy-content="Delete"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                                        @endcan
+                                        @can('leads.delete')<button type="button" class="btn btn-sm btn-outline-danger p-1.5" @click="deleteItem(item.id)" data-tippy-content="Delete"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>@endcan
                                     </div>
                                 </td>
                             </tr>
@@ -115,7 +128,7 @@
                                 description="Start tracking your sales pipeline by adding your first lead."
                                 action-url="{{ route('admin.leads.create') }}"
                                 action-label="Add Lead"
-                                :colspan="10"
+                                :colspan="11"
                             />
                         </tr>
                     </tbody>
@@ -149,7 +162,7 @@
     <script>
         document.addEventListener("alpine:init", () => {
             Alpine.data('leadList', () => ({
-                items: @json($leads->items()),
+                items: @json($items),
                 pagination: {
                     total: {{ $leads->total() }},
                     per_page: {{ $leads->perPage() }},
@@ -162,6 +175,8 @@
                 filterStatus: '',
                 filterSource: '',
                 filterAssignedTo: '',
+                filterFromDate: '',
+                filterToDate: '',
                 sourceMap: @json($sources),
                 sourceLabel(value) {
                     if (!value) return '—';
@@ -174,7 +189,9 @@
                     if (this.filterStatus) url += `&status=${this.filterStatus}`;
                     if (this.filterSource) url += `&source=${encodeURIComponent(this.filterSource)}`;
                     if (this.filterAssignedTo) url += `&assigned_to=${this.filterAssignedTo}`;
-                    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    if (this.filterFromDate) url += `&from_date=${this.filterFromDate}`;
+                    if (this.filterToDate)   url += `&to_date=${this.filterToDate}`;
+                    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, cache: 'no-store' })
                     .then(res => res.json())
                     .then(data => { this.items = data.data; this.pagination = data.pagination; });
                 },
@@ -197,6 +214,8 @@
                     this.filterStatus = '';
                     this.filterSource = '';
                     this.filterAssignedTo = '';
+                    this.filterFromDate = '';
+                    this.filterToDate = '';
                     this.fetchData(1);
                 },
 

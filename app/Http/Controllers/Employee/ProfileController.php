@@ -28,6 +28,10 @@ class ProfileController extends Controller
     public function update(Request $request)
     {
         $employee = Auth::guard('employee')->user();
+        // Bank fields are intentionally NOT in this allow-list. Bank details
+        // can only be changed by HR via the Bank Detail Edit Request approval
+        // flow — even a hand-crafted POST will be dropped by validate()'s
+        // unknown-key behaviour.
         $data = $request->validate([
             'phone' => ['nullable', 'string', 'max:20'],
             'alt_phone' => ['nullable', 'string', 'max:20'],
@@ -39,10 +43,6 @@ class ProfileController extends Controller
             'emergency_contact_name' => ['nullable', 'string', 'max:100'],
             'emergency_contact_relation' => ['nullable', 'string', 'max:50'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:20'],
-            'bank_name' => ['nullable', 'string', 'max:100'],
-            'bank_account_number' => ['nullable', 'string', 'max:30'],
-            'bank_ifsc' => ['nullable', 'string', 'max:20'],
-            'bank_branch' => ['nullable', 'string', 'max:100'],
         ]);
         $employee->update($data);
 

@@ -261,16 +261,30 @@ class NotificationCatalog
                 'recipients' => ['reporting_manager', 'admin.role:HR Manager'],
                 'related' => 'leave_request',
             ],
-            'leave_balance.updated' => [
+            'comp_off.requested' => [
                 'module' => 'HR — Leaves',
-                'name' => 'Leave balance updated',
-                'description' => 'Sent to employee when their leave balance is allocated or adjusted.',
-                'subject' => 'Your leave balance has been updated',
-                'recipients' => ['employee.email'],
-                'related' => 'leave_balance',
-                'default_on' => false,
+                'name' => 'Comp-off request submitted',
+                'description' => 'Sent to the reporting manager, HR Manager, and the admins/super admins who can approve it — so the request lights up in the bell for whoever is empowered to act on it.',
+                'subject' => 'Comp-off request from {entity.employee.first_name}',
+                'recipients' => ['reporting_manager', 'admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin', 'admin.super'],
+                'related' => 'comp_off_request',
             ],
-
+            'comp_off.approved' => [
+                'module' => 'HR — Leaves',
+                'name' => 'Comp-off approved',
+                'description' => 'Sent to the employee when their comp-off request is approved.',
+                'subject' => 'Your comp-off request was approved',
+                'recipients' => ['employee.email'],
+                'related' => 'comp_off_request',
+            ],
+            'comp_off.rejected' => [
+                'module' => 'HR — Leaves',
+                'name' => 'Comp-off rejected',
+                'description' => 'Sent to the employee when their comp-off request is rejected.',
+                'subject' => 'Your comp-off request was rejected',
+                'recipients' => ['employee.email'],
+                'related' => 'comp_off_request',
+            ],
             // ──────────────────────────── 7. HR — PAYROLL ─────────────────────────────
             'payslip.generated' => [
                 'module' => 'HR — Payroll',
@@ -288,14 +302,6 @@ class NotificationCatalog
                 'subject' => 'Salary credited for {context.period}',
                 'recipients' => ['employee.personal'],
                 'related' => 'payslip',
-            ],
-            'salary_structure.changed' => [
-                'module' => 'HR — Payroll',
-                'name' => 'Salary structure changed',
-                'description' => 'Notify employee when their CTC / structure is updated.',
-                'subject' => 'Your salary structure has been updated',
-                'recipients' => ['employee.personal'],
-                'related' => 'salary_structure',
             ],
             'salary_structure.submitted' => [
                 'module' => 'HR — Payroll',

@@ -168,6 +168,26 @@
                         <button type="button" @click="show = false" class="text-danger/70 hover:text-danger">&times;</button>
                     </div>
                 @endif
+                @if(session('warning'))
+                    <div x-data="{ show: true }" x-show="show" x-transition
+                         class="mb-4 px-4 py-3 rounded-lg bg-warning/10 text-warning border border-warning/30 flex items-start gap-2">
+                        <svg class="w-5 h-5 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l6.518 11.59c.75 1.335-.213 2.99-1.742 2.99H3.482c-1.53 0-2.493-1.655-1.743-2.99L8.257 3.1zM11 13a1 1 0 10-2 0 1 1 0 002 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="flex-1">{{ session('warning') }}</span>
+                        <button type="button" @click="show = false" class="text-warning/70 hover:text-warning">&times;</button>
+                    </div>
+                @endif
+                @if(session('info'))
+                    <div x-data="{ show: true }" x-show="show" x-transition
+                         class="mb-4 px-4 py-3 rounded-lg bg-info/10 text-info border border-info/30 flex items-start gap-2">
+                        <svg class="w-5 h-5 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="flex-1">{{ session('info') }}</span>
+                        <button type="button" @click="show = false" class="text-info/70 hover:text-info">&times;</button>
+                    </div>
+                @endif
                 @if($errors->any())
                     <div x-data="{ show: true }" x-show="show" x-transition
                          class="mb-4 px-4 py-3 rounded-lg bg-danger/10 text-danger border border-danger/30">

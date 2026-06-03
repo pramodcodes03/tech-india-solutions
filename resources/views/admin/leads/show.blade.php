@@ -78,7 +78,7 @@
                 </div>
                 <div>
                     <label class="text-sm font-semibold text-gray-500 dark:text-gray-400">Next Follow-up</label>
-                    <p class="text-base dark:text-white-light">{{ $lead->next_follow_up ? \Carbon\Carbon::parse($lead->next_follow_up)->format('d M Y') : '-' }}</p>
+                    <p class="text-base dark:text-white-light">{{ $lead->next_follow_up_at ? \Carbon\Carbon::parse($lead->next_follow_up_at)->format('d M Y') : '-' }}</p>
                 </div>
                 <div>
                     <label class="text-sm font-semibold text-gray-500 dark:text-gray-400">Created At</label>

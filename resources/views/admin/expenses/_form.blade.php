@@ -15,6 +15,7 @@
 <div
     x-data="{
         type: @js(old('type', $expense?->type ?? 'one_off')),
+        frequency: @js(old('recurrence_frequency', $expense?->recurrence_frequency ?? 'monthly')),
         categoryId: @js((int) old('expense_category_id', $expense?->expense_category_id)),
         subcategoryId: @js((int) old('expense_subcategory_id', $expense?->expense_subcategory_id)),
         catSubMap: @js($catSubMap),
@@ -35,7 +36,7 @@
     {{-- Type toggle --}}
     <div class="mb-4">
         <label class="form-label">Payment Type <span class="text-danger">*</span></label>
-        <div class="flex gap-3">
+        <div class="flex gap-3 flex-wrap">
             <label class="flex items-center gap-2 cursor-pointer">
                 <input type="radio" name="type" value="one_off" x-model="type" class="form-radio">
                 <span>One-off</span>
@@ -43,10 +44,23 @@
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
                 <input type="radio" name="type" value="recurring" x-model="type" class="form-radio">
-                <span>Monthly Recurring</span>
-                <span class="text-xs text-gray-500">— fixed day every month, sends reminders</span>
+                <span>Recurring</span>
+                <span class="text-xs text-gray-500">— repeats automatically, sends reminders</span>
             </label>
         </div>
+    </div>
+
+    {{-- Recurrence frequency — only shown when type=recurring --}}
+    <div class="mb-4" x-show="type === 'recurring'" x-cloak>
+        <label class="form-label">Recurrence Frequency <span class="text-danger">*</span></label>
+        <select name="recurrence_frequency" class="form-select" x-model="frequency">
+            @foreach(\App\Models\Expense::RECURRENCES as $key => $label)
+                <option value="{{ $key }}">{{ $label }}</option>
+            @endforeach
+        </select>
+        <p class="text-xs text-gray-500 mt-1">
+            Next instance is auto-generated one cycle ahead of the current due date.
+        </p>
     </div>
 
     @php
@@ -106,11 +120,23 @@
             <p class="text-xs text-gray-500 mt-1">Optional. If set, reminders fire 3 days before.</p>
         </div>
 
-        {{-- Recurring day-of-month --}}
-        <div x-show="type === 'recurring'" x-cloak>
+        {{-- Monthly recurring: day-of-month --}}
+        <div x-show="type === 'recurring' && frequency === 'monthly'" x-cloak>
             <label class="form-label">Due Day of Month <span class="text-danger">*</span></label>
             <input type="number" min="1" max="28" name="due_day_of_month" class="form-input" value="{{ old('due_day_of_month', $expense?->due_day_of_month ?? 1) }}">
             <p class="text-xs text-gray-500 mt-1">1–28. Reminders fire 3 days, 1 day, on the day, then daily until paid.</p>
+        </div>
+
+        {{-- Non-monthly recurring (weekly / quarterly / half-yearly / yearly):
+             user picks the FIRST due date; the generator rolls forward by the
+             cadence offset. Reuses the same `due_date` field. --}}
+        <div x-show="type === 'recurring' && frequency !== 'monthly'" x-cloak>
+            <label class="form-label">First Due Date <span class="text-danger">*</span></label>
+            <input type="date" name="due_date" class="form-input" value="{{ old('due_date', $expense?->due_date?->toDateString() ?? now()->toDateString()) }}">
+            <p class="text-xs text-gray-500 mt-1">
+                The first occurrence. Subsequent instances are spawned automatically
+                one cycle (week / 3 months / 6 months / year) after the previous due date.
+            </p>
         </div>
 
         <div>

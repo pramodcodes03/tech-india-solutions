@@ -34,6 +34,8 @@ class SettingController extends Controller
             'bank_account_holder' => 'bank', 'bank_branch' => 'bank',
             'invoice_prefix' => 'document', 'quotation_prefix' => 'document',
             'currency_symbol' => 'document', 'terms_and_conditions' => 'document',
+            'biometric_api_url' => 'biometric', 'biometric_enabled' => 'biometric',
+            'biometric_last_synced_at' => 'biometric',
         ];
 
         foreach ($settingsData as $key => $value) {

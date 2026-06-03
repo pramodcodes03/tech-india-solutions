@@ -17,7 +17,9 @@ class AuthController extends Controller
     public function showLoginForm()
     {
         if (Auth::guard('admin')->check()) {
-            return redirect()->route('admin.dashboard');
+            // Already authenticated — go straight to the common welcome page
+            // (no role/permission required; everyone sees the same first screen).
+            return redirect()->route('admin.welcome');
         }
 
         return view('admin.auth.login');
@@ -46,7 +48,11 @@ class AuthController extends Controller
                 session()->forget('business_id');
             }
 
-            return redirect()->route('admin.dashboard')->with('success', 'Login successful');
+            // Always land on the common welcome page after login. It is open to
+            // every authenticated admin and renders only the tiles the user can
+            // actually access — so no one gets bounced into a 403'ing dashboard
+            // on their very first screen.
+            return redirect()->route('admin.welcome')->with('success', 'Login successful');
         }
 
         return back()->withInput($request->only('email'))->with('error', 'Invalid credentials!');
@@ -54,6 +60,21 @@ class AuthController extends Controller
 
     public function dashboard()
     {
+        $admin = Auth::guard('admin')->user();
+
+        // The main Analytics Dashboard exposes Sales Trends / Receivables /
+        // top-customer revenue — financial data that should be limited to
+        // Admin + Super Admin. Other roles (HR, Asset, Sales, etc) have
+        // their own module dashboards and bounce there instead of 403'ing
+        // the post-login flow.
+        if (! $admin->can('analytics_dashboard.view')) {
+            $fallback = $this->defaultLandingFor($admin);
+            if ($fallback === route('admin.dashboard')) {
+                abort(403, 'You do not have access to the Analytics Dashboard.');
+            }
+            return redirect()->to($fallback);
+        }
+
         $stats = $this->dashboardService->getStats();
         $leadsByStatus = $this->dashboardService->getLeadsByStatus();
         $salesTrend = $this->dashboardService->getSalesTrend();
@@ -97,5 +118,56 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('admin.login');
+    }
+
+    /**
+     * Common welcome page shown on login. Open to every authenticated admin
+     * regardless of role — even users with very narrow permissions can see
+     * it. Renders shortcut tiles for whichever dashboards / modules they
+     * actually have access to, so they can self-navigate from one safe
+     * landing spot instead of hitting a 403 on a dashboard they can't view.
+     */
+    public function welcome()
+    {
+        $admin = Auth::guard('admin')->user();
+
+        return view('admin.welcome', compact('admin'));
+    }
+
+    /**
+     * Pick the most-relevant landing page for an admin based on which
+     * dashboards they have access to. Now uses the analytics_* permissions
+     * (the per-dashboard gates), not the older module permissions —
+     * those no longer grant dashboard access since per-dashboard perms
+     * were introduced.
+     *
+     * Falls back to the common welcome page if no dashboard is available.
+     */
+    protected function defaultLandingFor(\App\Models\Admin $admin): string
+    {
+        $candidates = [
+            'analytics_dashboard.view' => 'admin.dashboard',
+            'analytics_hr.view'        => 'admin.hr.dashboard',
+            'analytics_asset.view'     => 'admin.assets.dashboard',
+            'analytics_sales.view'     => 'admin.dashboards.sales',
+            'analytics_service.view'   => 'admin.dashboards.service',
+            'analytics_inventory.view' => 'admin.dashboards.inventory',
+            'analytics_purchase.view'  => 'admin.dashboards.purchase',
+            'analytics_customer.view'  => 'admin.dashboards.customers',
+            'analytics_executive.view' => 'admin.dashboards.executive',
+        ];
+
+        foreach ($candidates as $perm => $route) {
+            if ($admin->can($perm) && \Illuminate\Support\Facades\Route::has($route)) {
+                return route($route);
+            }
+        }
+
+        // No dashboard access at all → land on the common welcome page,
+        // which is open to every logged-in admin and offers links to
+        // whatever the user CAN access from the sidebar.
+        return \Illuminate\Support\Facades\Route::has('admin.welcome')
+            ? route('admin.welcome')
+            : route('admin.dashboard');
     }
 }

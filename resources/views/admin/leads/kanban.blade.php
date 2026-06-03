@@ -66,10 +66,10 @@
                                         ₹{{ number_format($lead->expected_value, 2) }}
                                     </p>
                                 @endif
-                                @if($lead->next_follow_up)
+                                @if($lead->next_follow_up_at)
                                     <p class="text-xs text-gray-400">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                        {{ \Carbon\Carbon::parse($lead->next_follow_up)->format('d M Y') }}
+                                        {{ \Carbon\Carbon::parse($lead->next_follow_up_at)->format('d M Y') }}
                                     </p>
                                 @endif
                             </div>

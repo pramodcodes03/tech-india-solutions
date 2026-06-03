@@ -30,3 +30,12 @@ Schedule::command('invoices:send-reminders')->dailyAt('09:30');
 
 // Calendar: holiday-upcoming (T-2) + employee birthdays (today).
 Schedule::command('calendar:send-reminders')->dailyAt('08:00');
+
+// Biometric attendance: pull today's punches every minute from each enabled
+// business's external device API. ->withoutOverlapping() guards against a slow
+// API run colliding with the next tick. ->runInBackground() so the scheduler
+// doesn't wait on the HTTP round-trip.
+Schedule::command('attendance:sync-biometric')
+    ->everyMinute()
+    ->withoutOverlapping(5)
+    ->runInBackground();

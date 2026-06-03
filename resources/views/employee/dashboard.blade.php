@@ -120,20 +120,10 @@
                             ])">{{ ucfirst(str_replace('_', ' ', $todayRecord->status)) }}</span>
                     </div>
                 </div>
-                @if(!$todayRecord->check_out)
-                    <form method="POST" action="{{ route('employee.attendance.punch') }}" class="mt-4">
-                        @csrf
-                        <button type="submit" class="btn btn-primary w-full">Check Out</button>
-                    </form>
-                @endif
             @else
                 <div class="mt-3 text-center py-4">
                     <div class="text-4xl mb-2">⏱</div>
-                    <div class="text-gray-500 mb-3">You haven't checked in yet</div>
-                    <form method="POST" action="{{ route('employee.attendance.punch') }}">
-                        @csrf
-                        <button type="submit" class="btn btn-primary w-full">Check In Now</button>
-                    </form>
+                    <div class="text-gray-500">No attendance recorded for today</div>
                 </div>
             @endif
         </div>

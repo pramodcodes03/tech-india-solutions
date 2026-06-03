@@ -29,25 +29,6 @@
         </div>
 
         <div class="flex items-center gap-2">
-            @php $today = \App\Models\Attendance::where('employee_id', $emp->id)->whereDate('date', today())->first(); @endphp
-            @if(!$today || !$today->check_out)
-                <form method="POST" action="{{ route('employee.attendance.punch') }}">
-                    @csrf
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        @if(!$today)
-                            <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/></svg>
-                            Check In
-                        @else
-                            Check Out
-                        @endif
-                    </button>
-                </form>
-            @else
-                <span class="px-3 py-1.5 rounded-md bg-success/10 text-success text-xs font-semibold">
-                    ✓ Done for today
-                </span>
-            @endif
-
             {{-- Theme toggle (matches admin: light → dark → system) --}}
             <div>
                 <a href="javascript:;" x-cloak x-show="$store.app.theme === 'light'"

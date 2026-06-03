@@ -30,7 +30,10 @@ class HolidayController extends Controller
     public function create()
     {
         abort_unless(Auth::guard('admin')->user()->can('holidays.create'), 403);
-        $employees = Employee::orderBy('name')->get(['id', 'name', 'employee_code']);
+        // employees table has first_name + last_name (not a single 'name' column);
+        // the model exposes a full_name accessor. Pull both name parts so the
+        // view's $emp->full_name works without lazy-loading other columns.
+        $employees = Employee::orderBy('first_name')->get(['id', 'first_name', 'last_name', 'employee_code']);
 
         return view('admin.hr.holidays.create', compact('employees'));
     }
@@ -73,7 +76,10 @@ class HolidayController extends Controller
     public function edit(Holiday $holiday)
     {
         abort_unless(Auth::guard('admin')->user()->can('holidays.edit'), 403);
-        $employees = Employee::orderBy('name')->get(['id', 'name', 'employee_code']);
+        // employees table has first_name + last_name (not a single 'name' column);
+        // the model exposes a full_name accessor. Pull both name parts so the
+        // view's $emp->full_name works without lazy-loading other columns.
+        $employees = Employee::orderBy('first_name')->get(['id', 'first_name', 'last_name', 'employee_code']);
 
         return view('admin.hr.holidays.edit', compact('holiday', 'employees'));
     }

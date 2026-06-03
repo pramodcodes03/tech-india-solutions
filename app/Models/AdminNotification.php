@@ -60,6 +60,30 @@ class AdminNotification extends Model
         return $this->save();
     }
 
+    /**
+     * Mark every UNREAD inbox row for a given related entity (optionally
+     * scoped to specific event keys) as read.
+     *
+     * Approval-queue handlers call this after the underlying record changes
+     * state — otherwise the bell badge keeps pointing at a "Pending approval"
+     * notification whose target has already been approved/rejected/cancelled.
+     *
+     * Returns the number of rows affected.
+     */
+    public static function markRelatedAsRead(Model $entity, array $eventKeys = []): int
+    {
+        $q = static::query()
+            ->whereNull('read_at')
+            ->where('related_type', $entity->getMorphClass())
+            ->where('related_id', $entity->getKey());
+
+        if (! empty($eventKeys)) {
+            $q->whereIn('event_key', $eventKeys);
+        }
+
+        return $q->update(['read_at' => now()]);
+    }
+
     /* ──────────────── Scopes ──────────────── */
 
     public function scopeForAdmin(Builder $q, Admin $admin): Builder

@@ -65,7 +65,7 @@
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Type</p>
                     @if($expense->type === 'recurring')
-                        <span class="badge bg-info">Monthly Recurring</span>
+                        <span class="badge bg-info">{{ $expense->recurrenceLabel() }}</span>
                     @else
                         <span class="badge bg-secondary">One-off</span>
                     @endif
@@ -173,7 +173,7 @@
                 {{-- Generated instances (recurring template only) --}}
                 @if($expense->isRecurring() && ! $expense->recurring_template_id && $expense->generatedInstances->isNotEmpty())
                     <div class="panel">
-                        <h6 class="text-base font-semibold mb-4">Generated Monthly Instances</h6>
+                        <h6 class="text-base font-semibold mb-4">Generated {{ \App\Models\Expense::RECURRENCES[$expense->recurrence_frequency] ?? 'Monthly' }} Instances</h6>
                         <div class="table-responsive">
                             <table class="table-hover">
                                 <thead>

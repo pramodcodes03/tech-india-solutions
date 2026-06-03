@@ -26,8 +26,9 @@ class AttendanceController extends Controller
             ->keyBy(fn ($r) => $r->date->toDateString());
 
         $summary = $this->service->monthlySummary($employee->id, $month, $year);
+        $dayStatuses = $this->service->monthlyDayStatuses($employee->id, $month, $year);
 
-        return view('employee.attendance.index', compact('records', 'summary', 'month', 'year'));
+        return view('employee.attendance.index', compact('records', 'summary', 'dayStatuses', 'month', 'year'));
     }
 
     public function punch(Request $request)

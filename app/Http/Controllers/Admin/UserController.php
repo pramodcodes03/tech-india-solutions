@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -13,6 +14,8 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
+        abort_unless(Auth::guard('admin')->user()->can('users.view'), 403);
+
         $users = User::with('city')
             ->when($request->search, fn ($q, $s) => $q->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
@@ -44,6 +47,7 @@ class UserController extends Controller
 
     public function create()
     {
+        abort_unless(Auth::guard('admin')->user()->can('users.create'), 403);
         $cities = City::where('is_active', true)->orderBy('name')->get();
 
         return view('admin.users.create', compact('cities'));
@@ -51,6 +55,7 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        abort_unless(Auth::guard('admin')->user()->can('users.create'), 403);
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
@@ -76,6 +81,7 @@ class UserController extends Controller
 
     public function edit($id)
     {
+        abort_unless(Auth::guard('admin')->user()->can('users.edit'), 403);
         $user = User::findOrFail($id);
         $cities = City::where('is_active', true)->orderBy('name')->get();
 
@@ -84,6 +90,7 @@ class UserController extends Controller
 
     public function update(Request $request, $id)
     {
+        abort_unless(Auth::guard('admin')->user()->can('users.edit'), 403);
         $user = User::findOrFail($id);
 
         $request->validate([
@@ -108,6 +115,7 @@ class UserController extends Controller
 
     public function destroy(Request $request, $id)
     {
+        abort_unless(Auth::guard('admin')->user()->can('users.delete'), 403);
         $user = User::findOrFail($id);
         $user->delete();
 
@@ -120,6 +128,7 @@ class UserController extends Controller
 
     public function toggleStatus(Request $request, $id)
     {
+        abort_unless(Auth::guard('admin')->user()->can('users.edit'), 403);
         $user = User::findOrFail($id);
         $user->update(['status' => $user->status === 'active' ? 'inactive' : 'active']);
 

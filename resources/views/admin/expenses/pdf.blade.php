@@ -111,7 +111,7 @@
     <tr>
         <td style="width: 65%;">
             <div class="doc-title">{{ $title }}</div>
-            <div class="doc-sub">{{ $expense->isRecurring() ? 'Monthly Recurring Payment' : 'One-off Payment' }}</div>
+            <div class="doc-sub">{{ $expense->isRecurring() ? $expense->recurrenceLabel().' Payment' : 'One-off Payment' }}</div>
             <div class="doc-meta">
                 <div class="row"><span class="label">Voucher No #</span><span class="val">{{ $expense->expense_code }}</span></div>
                 <div class="row"><span class="label">Bill Date</span><span class="val">{{ \Carbon\Carbon::parse($expense->expense_date)->format('d M, Y') }}</span></div>
@@ -166,7 +166,13 @@
                 <div class="party-name">{{ $expense->category->name ?? '—' }}</div>
                 <div class="party-line">
                     @if($expense->subcategory)<strong>Subcategory:</strong> {{ $expense->subcategory->name }}<br>@endif
-                    <strong>Type:</strong> {{ $expense->isRecurring() ? 'Monthly Recurring (day '.$expense->due_day_of_month.')' : 'One-off' }}<br>
+                    <strong>Type:</strong>
+                    @if($expense->isRecurring())
+                        {{ $expense->recurrenceLabel() }}@if($expense->recurrence_frequency === 'monthly' && $expense->due_day_of_month) (day {{ $expense->due_day_of_month }})@endif
+                    @else
+                        One-off
+                    @endif
+                    <br>
                     @if($expense->creator)<strong>Recorded by:</strong> {{ $expense->creator->name }}<br>@endif
                     @if($isPaid && $expense->paidByAdmin)
                         <strong>Paid by:</strong> {{ $expense->paidByAdmin->name }}

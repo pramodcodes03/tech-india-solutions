@@ -2,6 +2,32 @@
     <x-admin.breadcrumb :items="[['label' => 'HR'], ['label' => 'Attendance', 'url' => route('admin.hr.attendance.index')], ['label' => 'Monthly']]" />
     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h1 class="text-2xl font-extrabold">Monthly Summary · {{ \Carbon\Carbon::createFromDate($year, $month, 1)->format('F Y') }}</h1>
+
+        @php
+            // Forward the same filters the user is viewing so the export
+            // matches the on-screen page exactly. Strip 'page' so we always
+            // export the full result set, not just the current page.
+            $exportParams = array_filter(array_merge(
+                request()->except('page', 'format'),
+                ['month' => $month, 'year' => $year],
+            ), fn ($v) => $v !== null && $v !== '');
+        @endphp
+        <div class="flex items-center gap-2">
+            <a href="{{ route('admin.hr.attendance.monthly-export', array_merge($exportParams, ['format' => 'xlsx'])) }}"
+               class="btn btn-success btn-sm inline-flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                Export Excel
+            </a>
+            <a href="{{ route('admin.hr.attendance.monthly-export', array_merge($exportParams, ['format' => 'csv'])) }}"
+               class="btn btn-outline-primary btn-sm inline-flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                Export CSV
+            </a>
+        </div>
     </div>
 
     <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-2 mb-4">

@@ -31,12 +31,37 @@ class LeadController extends Controller
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->source, fn ($q, $s) => $q->where('source', $s))
             ->when($request->assigned_to, fn ($q, $a) => $q->where('assigned_to', $a))
+            // Date-range filter on when the lead was CREATED. Either end is
+            // optional — "from 2026-05-01 only" or "up to 2026-05-15 only"
+            // both work. Times are normalised to start/end of day so an
+            // identical from + to picks up every lead created on that day.
+            ->when($request->from_date, fn ($q, $d) => $q->whereDate('created_at', '>=', $d))
+            ->when($request->to_date,   fn ($q, $d) => $q->whereDate('created_at', '<=', $d))
             ->latest()
             ->paginate(10);
 
+        // Flatten the eager-loaded relation + add a created_at_human field.
+        // Used by BOTH the initial Alpine state (rendered server-side from
+        // the Blade @json) AND the AJAX response below — keeping the two
+        // paths identical so the table doesn't show "-" on first paint
+        // and the correct values only after the user touches a filter.
+        $transform = function ($lead) {
+            $arr = $lead->toArray();
+            $arr['assigned_to_name'] = $lead->assignedTo?->name;
+            $arr['next_follow_up']   = $lead->next_follow_up_at?->toDateString();
+            $arr['created_date']     = $lead->created_at?->toDateString();
+            return $arr;
+        };
+
+        $items = collect($leads->items())->map($transform)->values();
+
         if ($request->ajax()) {
+            // Defensive: tell the browser never to cache this JSON. Without
+            // it, the browser's heuristic caching can serve a pre-fix
+            // response after we deploy a transform change, and the screen
+            // keeps showing "-" until the user does a hard refresh.
             return response()->json([
-                'data' => $leads->items(),
+                'data' => $items,
                 'pagination' => [
                     'total' => $leads->total(),
                     'per_page' => $leads->perPage(),
@@ -45,7 +70,7 @@ class LeadController extends Controller
                     'from' => $leads->firstItem() ?? 0,
                     'to' => $leads->lastItem() ?? 0,
                 ],
-            ]);
+            ])->header('Cache-Control', 'no-store, no-cache, must-revalidate');
         }
 
         $admins = Admin::where('status', 'active')
@@ -54,7 +79,7 @@ class LeadController extends Controller
             ->orderBy('name')->get();
         $sources = Lead::SOURCES;
 
-        return view('admin.leads.index', compact('leads', 'admins', 'sources'));
+        return view('admin.leads.index', compact('leads', 'items', 'admins', 'sources'));
     }
 
     public function kanban()

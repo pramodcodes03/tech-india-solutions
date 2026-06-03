@@ -15,6 +15,7 @@ class Attendance extends Model
     protected $fillable = [
         'business_id',
         'employee_id', 'date', 'check_in', 'check_out',
+        'check_in_locked', 'check_out_locked',
         'hours_worked', 'status', 'source', 'biometric_ref',
         'remarks', 'created_by',
         'shift', 'start_time',
@@ -29,6 +30,8 @@ class Attendance extends Model
             'hours_worked' => 'decimal:2',
             'in_temp' => 'decimal:2',
             'out_temp' => 'decimal:2',
+            'check_in_locked' => 'boolean',
+            'check_out_locked' => 'boolean',
         ];
     }
 

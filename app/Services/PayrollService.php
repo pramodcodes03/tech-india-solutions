@@ -63,13 +63,24 @@ class PayrollService
         return DB::transaction(function () use ($employee, $data) {
             // Cancel any prior pending submissions for this employee — only
             // one in-flight proposal at a time, otherwise the queue gets messy.
-            SalaryStructure::where('employee_id', $employee->id)
+            $superseded = SalaryStructure::where('employee_id', $employee->id)
                 ->where('status', SalaryStructure::STATUS_PENDING)
-                ->update([
-                    'status' => SalaryStructure::STATUS_REJECTED,
-                    'reviewed_at' => now(),
-                    'review_notes' => 'Superseded by a newer submission.',
-                ]);
+                ->get();
+
+            if ($superseded->isNotEmpty()) {
+                SalaryStructure::whereIn('id', $superseded->pluck('id'))
+                    ->update([
+                        'status' => SalaryStructure::STATUS_REJECTED,
+                        'reviewed_at' => now(),
+                        'review_notes' => 'Superseded by a newer submission.',
+                    ]);
+
+                // Clear any "Pending approval" bell rows for the superseded
+                // structures — otherwise they linger as phantom unread items.
+                foreach ($superseded as $old) {
+                    \App\Models\AdminNotification::markRelatedAsRead($old, ['salary_structure.submitted']);
+                }
+            }
 
             $data['employee_id'] = $employee->id;
             $data['is_current'] = false;
@@ -254,7 +265,9 @@ class PayrollService
     public function generateBulk(int $month, int $year): array
     {
         $employees = Employee::whereIn('status', ['active', 'probation', 'on_notice'])
-            ->whereHas('salaryStructures', fn ($q) => $q->where('is_current', true))
+            ->whereHas('salaryStructures', fn ($q) => $q
+                ->where('is_current', true)
+                ->where('status', SalaryStructure::STATUS_APPROVED))
             ->get();
 
         $success = 0;
@@ -265,10 +278,15 @@ class PayrollService
                 $this->generate($employee, $month, $year);
                 $success++;
             } catch (\Throwable $e) {
+                report($e);
                 $errors[$employee->employee_code] = $e->getMessage();
             }
         }
 
-        return ['success' => $success, 'errors' => $errors];
+        return [
+            'candidates' => $employees->count(),
+            'success'    => $success,
+            'errors'     => $errors,
+        ];
     }
 }

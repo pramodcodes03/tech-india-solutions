@@ -173,6 +173,7 @@ class BankEditRequestController extends Controller
         });
 
         $bankEditRequest->loadMissing('employee', 'requester');
+        \App\Models\AdminNotification::markRelatedAsRead($bankEditRequest, ['bank_edit.requested']);
         NotificationDispatcher::fire('bank_edit.approved', $bankEditRequest);
 
         return back()->with('success', 'Approved. New bank details applied to the employee.');
@@ -193,6 +194,7 @@ class BankEditRequestController extends Controller
         ]);
 
         $bankEditRequest->loadMissing('employee', 'requester');
+        \App\Models\AdminNotification::markRelatedAsRead($bankEditRequest, ['bank_edit.requested']);
         NotificationDispatcher::fire('bank_edit.rejected', $bankEditRequest);
 
         return back()->with('success', 'Rejected. HR has been notified.');

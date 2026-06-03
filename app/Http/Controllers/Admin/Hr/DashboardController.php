@@ -19,7 +19,7 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        abort_unless(Auth::guard('admin')->user()->can('employees.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('analytics_hr.view'), 403);
 
         $today = Carbon::today();
         $monthStart = $today->copy()->startOfMonth();

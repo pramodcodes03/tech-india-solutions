@@ -49,7 +49,11 @@
             <ul
                 class="perfect-scrollbar relative font-semibold space-y-0.5 h-[calc(100vh-140px)] overflow-y-auto overflow-x-hidden p-4 py-0">
 
-                {{-- ========== Dashboard ========== --}}
+                {{-- ========== Analytics Dashboard ========== --}}
+                {{-- Distinct from the module dashboards in the submenu below;
+                     gated on its own permission so Admins can hide the global
+                     financial view without affecting HR / Asset / Sales menus. --}}
+                @can('analytics_dashboard.view')
                 <li class="menu nav-item">
                     <a href="{{ route('admin.dashboard') }}" class="nav-link group">
                         <div class="flex items-center">
@@ -67,8 +71,10 @@
                         </div>
                     </a>
                 </li>
+                @endcan
 
                 {{-- Specialised Dashboards --}}
+                @canany(['analytics_executive.view','analytics_sales.view','analytics_customer.view','analytics_inventory.view','analytics_purchase.view','analytics_service.view','analytics_hr.view','analytics_asset.view'])
                 <li class="menu nav-item">
                     <button type="button" class="nav-link group w-full"
                         :class="{ 'active': activeDropdown === 'dashboards' }"
@@ -84,21 +90,31 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'dashboards'" class="sub-menu text-gray-500">
-                        @can('reports.view')<li><a href="{{ route('admin.dashboards.executive') }}">Executive / Finance</a></li>@endcan
-                        @can('leads.view')<li><a href="{{ route('admin.dashboards.sales') }}">Sales</a></li>@endcan
-                        @can('customers.view')<li><a href="{{ route('admin.dashboards.customers') }}">Customer Analytics</a></li>@endcan
-                        @can('products.view')<li><a href="{{ route('admin.dashboards.inventory') }}">Inventory</a></li>@endcan
-                        @can('purchase_orders.view')<li><a href="{{ route('admin.dashboards.purchase') }}">Purchase / Vendor</a></li>@endcan
-                        @can('service_tickets.view')<li><a href="{{ route('admin.dashboards.service') }}">Service / Support</a></li>@endcan
-                        @can('employees.view')<li><a href="{{ route('admin.hr.dashboard') }}">HR</a></li>@endcan
-                        @can('assets.view')<li><a href="{{ route('admin.assets.dashboard') }}">Asset</a></li>@endcan
+                        @can('analytics_executive.view')<li><a href="{{ route('admin.dashboards.executive') }}">Executive / Finance</a></li>@endcan
+                        @can('analytics_sales.view')<li><a href="{{ route('admin.dashboards.sales') }}">Sales</a></li>@endcan
+                        @can('analytics_customer.view')<li><a href="{{ route('admin.dashboards.customers') }}">Customer Analytics</a></li>@endcan
+                        @can('analytics_inventory.view')<li><a href="{{ route('admin.dashboards.inventory') }}">Inventory</a></li>@endcan
+                        @can('analytics_purchase.view')<li><a href="{{ route('admin.dashboards.purchase') }}">Purchase / Vendor</a></li>@endcan
+                        @can('analytics_service.view')<li><a href="{{ route('admin.dashboards.service') }}">Service / Support</a></li>@endcan
+                        @can('analytics_hr.view')<li><a href="{{ route('admin.hr.dashboard') }}">HR</a></li>@endcan
+                        @can('analytics_asset.view')<li><a href="{{ route('admin.assets.dashboard') }}">Asset</a></li>@endcan
                     </ul>
                 </li>
+                @endcanany
 
                 {{-- ========== MANAGEMENT ========== --}}
+                @php
+                    // Super admins always see this section because they get the
+                    // Businesses link, which is super-admin-only. Other admins
+                    // need at least one of the listed view permissions.
+                    $showManagementHeader = \Illuminate\Support\Facades\Auth::guard('admin')->user()?->isSuperAdmin()
+                        || auth('admin')->user()?->canAny(['users.view', 'roles.view', 'settings.view']);
+                @endphp
+                @if($showManagementHeader)
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Management</span>
                 </h2>
+                @endif
 
                 {{-- Businesses (Super Admin only) --}}
                 @if(\Illuminate\Support\Facades\Auth::guard('admin')->user()?->isSuperAdmin())
@@ -135,8 +151,8 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'users'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.admin-users.index') }}">All Users</a></li>
-                        <li><a href="{{ route('admin.admin-users.create') }}">Add User</a></li>
+                        @can('users.view')<li><a href="{{ route('admin.admin-users.index') }}">All Users</a></li>@endcan
+                        @can('users.create')<li><a href="{{ route('admin.admin-users.create') }}">Add User</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -170,7 +186,9 @@
                 </li>
                 @endcan
 
-                {{-- Locations (States & Cities) --}}
+                {{-- Locations (States & Cities) — gated on settings.view since
+                     they're configuration data referenced by user / customer forms. --}}
+                @can('settings.view')
                 <li class="menu nav-item">
                     <button type="button" class="nav-link group w-full"
                         :class="{ 'active': activeDropdown === 'locations' }"
@@ -189,15 +207,18 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'locations'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.states.index') }}">States</a></li>
-                        <li><a href="{{ route('admin.cities.index') }}">Cities</a></li>
+                        @can('settings.view')<li><a href="{{ route('admin.states.index') }}">States</a></li>@endcan
+                        @can('settings.view')<li><a href="{{ route('admin.cities.index') }}">Cities</a></li>@endcan
                     </ul>
                 </li>
+                @endcan
 
                 {{-- ========== CRM ========== --}}
+                @canany(['customers.view', 'leads.view'])
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>CRM</span>
                 </h2>
+                @endcanany
 
                 {{-- Customers --}}
                 @can('customers.view')
@@ -221,8 +242,8 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'customers'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.customers.index') }}">All Customers</a></li>
-                        <li><a href="{{ route('admin.customers.create') }}">Add Customer</a></li>
+                        @can('customers.view')<li><a href="{{ route('admin.customers.index') }}">All Customers</a></li>@endcan
+                        @can('customers.create')<li><a href="{{ route('admin.customers.create') }}">Add Customer</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -247,17 +268,19 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'leads'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.leads.index') }}">All Leads</a></li>
-                        <li><a href="{{ route('admin.leads.kanban') }}">Leads Board</a></li>
-                        <li><a href="{{ route('admin.leads.create') }}">Add Lead</a></li>
+                        @can('leads.view')<li><a href="{{ route('admin.leads.index') }}">All Leads</a></li>@endcan
+                        @can('leads.view')<li><a href="{{ route('admin.leads.kanban') }}">Leads Board</a></li>@endcan
+                        @can('leads.create')<li><a href="{{ route('admin.leads.create') }}">Add Lead</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
 
                 {{-- ========== SALES ========== --}}
+                @canany(['quotations.view', 'proforma_invoices.view', 'sales_orders.view', 'invoices.view', 'payments.view', 'expenses.view'])
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Sales</span>
                 </h2>
+                @endcanany
 
                 {{-- Quotations --}}
                 @can('quotations.view')
@@ -279,8 +302,8 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'quotations'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.quotations.index') }}">All Quotations</a></li>
-                        <li><a href="{{ route('admin.quotations.create') }}">Create Quotation</a></li>
+                        @can('quotations.view')<li><a href="{{ route('admin.quotations.index') }}">All Quotations</a></li>@endcan
+                        @can('quotations.create')<li><a href="{{ route('admin.quotations.create') }}">Create Quotation</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -306,8 +329,8 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'proforma-invoices'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.proforma-invoices.index') }}">All Proformas</a></li>
-                        <li><a href="{{ route('admin.proforma-invoices.create') }}">Create Proforma</a></li>
+                        @can('proforma_invoices.view')<li><a href="{{ route('admin.proforma-invoices.index') }}">All Proformas</a></li>@endcan
+                        @can('proforma_invoices.create')<li><a href="{{ route('admin.proforma-invoices.create') }}">Create Proforma</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -332,8 +355,8 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'sales-orders'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.sales-orders.index') }}">All Orders</a></li>
-                        <li><a href="{{ route('admin.sales-orders.create') }}">Create Order</a></li>
+                        @can('sales_orders.view')<li><a href="{{ route('admin.sales-orders.index') }}">All Orders</a></li>@endcan
+                        @can('sales_orders.create')<li><a href="{{ route('admin.sales-orders.create') }}">Create Order</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -359,8 +382,8 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'invoices'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.invoices.index') }}">All Invoices</a></li>
-                        <li><a href="{{ route('admin.invoices.create') }}">Create Invoice</a></li>
+                        @can('invoices.view')<li><a href="{{ route('admin.invoices.index') }}">All Invoices</a></li>@endcan
+                        @can('invoices.create')<li><a href="{{ route('admin.invoices.create') }}">Create Invoice</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -386,8 +409,8 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'payments'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.payments.index') }}">All Payments</a></li>
-                        <li><a href="{{ route('admin.payments.create') }}">Record Payment</a></li>
+                        @can('payments.view')<li><a href="{{ route('admin.payments.index') }}">All Payments</a></li>@endcan
+                        @can('payments.create')<li><a href="{{ route('admin.payments.create') }}">Record Payment</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -411,7 +434,7 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'expenses'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.expenses.index') }}">All Payments</a></li>
+                        @can('expenses.view')<li><a href="{{ route('admin.expenses.index') }}">All Payments</a></li>@endcan
                         @can('expenses.create')<li><a href="{{ route('admin.expenses.create') }}">Add Payment</a></li>@endcan
                         @can('expense_categories.view')<li><a href="{{ route('admin.expense-categories.index') }}">Categories</a></li>@endcan
                     </ul>
@@ -419,9 +442,11 @@
                 @endcan
 
                 {{-- ========== INVENTORY ========== --}}
+                @canany(['products.view', 'warehouses.view', 'inventory.view'])
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Inventory</span>
                 </h2>
+                @endcanany
 
                 {{-- Products --}}
                 @can('products.view')
@@ -444,9 +469,9 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'products'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.products.index') }}">All Products</a></li>
-                        <li><a href="{{ route('admin.products.create') }}">Add Product</a></li>
-                        <li><a href="{{ route('admin.categories.index') }}">Categories</a></li>
+                        @can('products.view')<li><a href="{{ route('admin.products.index') }}">All Products</a></li>@endcan
+                        @can('products.create')<li><a href="{{ route('admin.products.create') }}">Add Product</a></li>@endcan
+                        @can('categories.view')<li><a href="{{ route('admin.categories.index') }}">Categories</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -491,18 +516,20 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'stock'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.inventory.index') }}">Current Stock</a></li>
-                        <li><a href="{{ route('admin.inventory.movements') }}">Stock Movements</a></li>
-                        <li><a href="{{ route('admin.inventory.low-stock') }}">Low Stock</a></li>
-                        <li><a href="{{ route('admin.inventory.adjust') }}">Stock Adjustment</a></li>
+                        @can('inventory.view')<li><a href="{{ route('admin.inventory.index') }}">Current Stock</a></li>@endcan
+                        @can('inventory.view')<li><a href="{{ route('admin.inventory.movements') }}">Stock Movements</a></li>@endcan
+                        @can('inventory.view')<li><a href="{{ route('admin.inventory.low-stock') }}">Low Stock</a></li>@endcan
+                        @can('inventory.adjust')<li><a href="{{ route('admin.inventory.adjust') }}">Stock Adjustment</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
 
                 {{-- ========== PURCHASE ========== --}}
+                @canany(['vendors.view', 'purchase_orders.view'])
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Purchase</span>
                 </h2>
+                @endcanany
 
                 {{-- Vendors --}}
                 @can('vendors.view')
@@ -525,8 +552,8 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'vendors'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.vendors.index') }}">All Vendors</a></li>
-                        <li><a href="{{ route('admin.vendors.create') }}">Add Vendor</a></li>
+                        @can('vendors.view')<li><a href="{{ route('admin.vendors.index') }}">All Vendors</a></li>@endcan
+                        @can('vendors.create')<li><a href="{{ route('admin.vendors.create') }}">Add Vendor</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -553,8 +580,8 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'purchase-orders'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.purchase-orders.index') }}">All POs</a></li>
-                        <li><a href="{{ route('admin.purchase-orders.create') }}">Create PO</a></li>
+                        @can('purchase_orders.view')<li><a href="{{ route('admin.purchase-orders.index') }}">All POs</a></li>@endcan
+                        @can('purchase_orders.create')<li><a href="{{ route('admin.purchase-orders.create') }}">Create PO</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -566,7 +593,7 @@
                 </h2>
 
                 {{-- HR Dashboard --}}
-                @can('employees.view')
+                @can('analytics_hr.view')
                 <li class="nav-item">
                     <a href="{{ route('admin.hr.dashboard') }}" class="group">
                         <div class="flex items-center">
@@ -669,7 +696,7 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'hr-employees'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.hr.employees.index') }}">All Employees</a></li>
+                        @can('employees.view')<li><a href="{{ route('admin.hr.employees.index') }}">All Employees</a></li>@endcan
                         @can('employees.create')<li><a href="{{ route('admin.hr.employees.create') }}">Add Employee</a></li>@endcan
                         @can('departments.view')<li><a href="{{ route('admin.hr.departments.index') }}">Departments</a></li>@endcan
                         @can('designations.view')<li><a href="{{ route('admin.hr.designations.index') }}">Designations</a></li>@endcan
@@ -696,8 +723,8 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'hr-attendance'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.hr.attendance.index') }}">Daily</a></li>
-                        <li><a href="{{ route('admin.hr.attendance.monthly') }}">Monthly Summary</a></li>
+                        @can('attendance.view')<li><a href="{{ route('admin.hr.attendance.index') }}">Daily</a></li>@endcan
+                        @can('attendance.view')<li><a href="{{ route('admin.hr.attendance.monthly') }}">Monthly Summary</a></li>@endcan
                         @can('attendance.create')<li><a href="{{ route('admin.hr.attendance.create') }}">Mark Attendance</a></li>@endcan
                         @can('attendance.import')<li><a href="{{ route('admin.hr.attendance.import-form') }}">Import Biometric CSV</a></li>@endcan
                         @can('holidays.view')
@@ -797,12 +824,12 @@
                 @endcanany
 
                 {{-- ========== ASSETS ========== --}}
-                @canany(['assets.view','asset_categories.view','asset_models.view','asset_locations.view'])
+                @canany(['assets.view','asset_categories.view','asset_models.view','asset_locations.view','assets.assign','assets.maintenance','assets.depreciate','analytics_asset.view'])
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Asset Management</span>
                 </h2>
 
-                @can('assets.view')
+                @can('analytics_asset.view')
                 <li class="nav-item">
                     <a href="{{ route('admin.assets.dashboard') }}" class="group">
                         <div class="flex items-center">
@@ -887,9 +914,11 @@
                 @endcanany
 
                 {{-- ========== SERVICE ========== --}}
+                @can('service_tickets.view')
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Service</span>
                 </h2>
+                @endcan
 
                 {{-- Service Tickets --}}
                 @can('service_tickets.view')
@@ -922,9 +951,11 @@
                 @endcan
 
                 {{-- ========== REPORTS ========== --}}
+                @can('reports.view')
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Reports</span>
                 </h2>
+                @endcan
 
                 {{-- Reports --}}
                 @can('reports.view')
@@ -956,9 +987,11 @@
                 @endcan
 
                 {{-- ========== SYSTEM ========== --}}
+                @can('settings.view')
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>System</span>
                 </h2>
+                @endcan
 
                 {{-- Settings --}}
                 @can('settings.view')

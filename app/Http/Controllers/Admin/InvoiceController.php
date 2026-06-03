@@ -31,6 +31,10 @@ class InvoiceController extends Controller
             }))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->customer_id, fn ($q, $c) => $q->where('customer_id', $c))
+            // Date-range filter on invoice_date — the view's two date pickers
+            // send `date_from` / `date_to` (either side optional).
+            ->when($request->date_from, fn ($q, $d) => $q->whereDate('invoice_date', '>=', $d))
+            ->when($request->date_to,   fn ($q, $d) => $q->whereDate('invoice_date', '<=', $d))
             ->latest()
             ->paginate(10);
 
@@ -138,9 +142,17 @@ class InvoiceController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('invoices.view'), 403);
 
-        $invoice = Invoice::with(['customer', 'items.product', 'creator', 'payments'])->findOrFail($id);
+        $invoice = Invoice::with(['customer', 'items.product', 'creator', 'payments', 'business'])
+            ->findOrFail($id);
         $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
-        $business = app(\App\Support\Tenancy\CurrentBusiness::class)->get();
+
+        // Tenant identity comes from the invoice's own business — not the
+        // session — so a Super Admin who switched their active business
+        // doesn't get a header that reads someone else's company name.
+        // Falls back to current session and then settings only if the row
+        // somehow has no business linked.
+        $business = $invoice->business
+            ?? app(\App\Support\Tenancy\CurrentBusiness::class)->get();
 
         $pdf = Pdf::loadView('admin.invoices.pdf', compact('invoice', 'settings', 'business'));
 
