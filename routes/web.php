@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\Hr\LeaveController as HrLeaveController;
 use App\Http\Controllers\Admin\Hr\LeaveTypeController as HrLeaveTypeController;
 use App\Http\Controllers\Admin\Hr\PayrollController as HrPayrollController;
 use App\Http\Controllers\Admin\Hr\PenaltyController as HrPenaltyController;
+use App\Http\Controllers\Admin\Hr\RegularizationController as HrRegularizationController;
 use App\Http\Controllers\Admin\Hr\CandidateController as HrCandidateController;
 use App\Http\Controllers\Admin\Hr\RecruitmentStageController as HrRecruitmentStageController;
 use App\Http\Controllers\Admin\Hr\RecruitmentBatchController as HrRecruitmentBatchController;
@@ -308,6 +309,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('attendance/{attendance}/edit', [HrAttendanceController::class, 'edit'])->name('attendance.edit');
             Route::patch('attendance/{attendance}', [HrAttendanceController::class, 'update'])->name('attendance.update');
 
+            // Attendance regularization (employee-raised corrections → HR review)
+            Route::get('regularizations', [HrRegularizationController::class, 'index'])->name('regularizations.index');
+            Route::get('regularizations/{regularization}', [HrRegularizationController::class, 'show'])->name('regularizations.show');
+            Route::post('regularizations/{regularization}/approve', [HrRegularizationController::class, 'approve'])->name('regularizations.approve');
+            Route::post('regularizations/{regularization}/reject', [HrRegularizationController::class, 'reject'])->name('regularizations.reject');
+
             // Leaves
             Route::get('leaves', [HrLeaveController::class, 'index'])->name('leaves.index');
             Route::get('leave-balances', [HrLeaveBalanceController::class, 'index'])->name('leave-balances.index');
@@ -446,6 +453,12 @@ Route::prefix('employee')->name('employee.')->group(function () {
         // Attendance
         Route::get('attendance', [EmpAttendanceController::class, 'index'])->name('attendance.index');
         Route::post('attendance/punch', [EmpAttendanceController::class, 'punch'])->name('attendance.punch');
+
+        // Attendance regularization (self-service correction requests)
+        Route::get('regularizations', [\App\Http\Controllers\Employee\RegularizationController::class, 'index'])->name('regularizations.index');
+        Route::get('regularizations/create', [\App\Http\Controllers\Employee\RegularizationController::class, 'create'])->name('regularizations.create');
+        Route::post('regularizations', [\App\Http\Controllers\Employee\RegularizationController::class, 'store'])->name('regularizations.store');
+        Route::post('regularizations/{regularization}/cancel', [\App\Http\Controllers\Employee\RegularizationController::class, 'cancel'])->name('regularizations.cancel');
 
         // Leaves
         Route::get('leaves', [EmpLeaveController::class, 'index'])->name('leaves.index');

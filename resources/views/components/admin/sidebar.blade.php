@@ -756,6 +756,10 @@
                         @can('attendance.view')<li><a href="{{ route('admin.hr.attendance.monthly') }}">Monthly Summary</a></li>@endcan
                         @can('attendance.create')<li><a href="{{ route('admin.hr.attendance.create') }}">Mark Attendance</a></li>@endcan
                         @can('attendance.import')<li><a href="{{ route('admin.hr.attendance.import-form') }}">Import Biometric CSV</a></li>@endcan
+                        @can('attendance_corrections.view')
+                            @php $pendingReg = \App\Models\AttendanceRegularization::where('status','pending')->count(); @endphp
+                            <li><a href="{{ route('admin.hr.regularizations.index') }}" class="flex items-center justify-between">Corrections @if($pendingReg>0)<span class="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-warning text-white">{{ $pendingReg }}</span>@endif</a></li>
+                        @endcan
                         @can('holidays.view')
                             <li><a href="{{ route('admin.hr.holidays.index') }}">Holiday Calendar</a></li>
                             <li><a href="{{ route('admin.hr.week-off.index') }}">Week-Off Setup</a></li>

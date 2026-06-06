@@ -285,6 +285,40 @@ class NotificationCatalog
                 'recipients' => ['employee.email'],
                 'related' => 'comp_off_request',
             ],
+            // ─────────────────────── HR — ATTENDANCE REGULARIZATION ───────────────────
+            'attendance.regularization_requested' => [
+                'module' => 'HR — Attendance',
+                'name' => 'Attendance correction requested',
+                'description' => 'Sent to the reporting manager + HR when an employee raises a missed/incorrect punch correction.',
+                'subject' => 'Attendance correction request from {entity.employee.first_name}',
+                'recipients' => ['reporting_manager', 'admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin'],
+                'related' => 'attendance_regularization',
+            ],
+            'attendance.regularization_approved' => [
+                'module' => 'HR — Attendance',
+                'name' => 'Attendance correction approved',
+                'description' => 'Sent to the employee when HR approves their attendance correction.',
+                'subject' => 'Your attendance correction was approved',
+                'recipients' => ['employee.email'],
+                'related' => 'attendance_regularization',
+            ],
+            'attendance.regularization_rejected' => [
+                'module' => 'HR — Attendance',
+                'name' => 'Attendance correction rejected',
+                'description' => 'Sent to the employee when HR rejects their attendance correction.',
+                'subject' => 'Your attendance correction was rejected',
+                'recipients' => ['employee.email'],
+                'related' => 'attendance_regularization',
+            ],
+            'attendance.regularization_escalated' => [
+                'module' => 'HR — Attendance',
+                'name' => 'Attendance correction escalated (TAT breach)',
+                'description' => 'Sent to HR + Admin when a correction request stays open past the resolution TAT.',
+                'subject' => 'Attendance correction overdue — {entity.employee.first_name}',
+                'recipients' => ['admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin'],
+                'related' => 'attendance_regularization',
+            ],
+
             // ──────────────────────────── 7. HR — PAYROLL ─────────────────────────────
             'payslip.generated' => [
                 'module' => 'HR — Payroll',

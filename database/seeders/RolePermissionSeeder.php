@@ -76,6 +76,7 @@ class RolePermissionSeeder extends Seeder
             'feedback' => ['view'],
             'appraisals' => ['view', 'create', 'edit', 'finalize', 'acknowledge'],
             'recruitment' => ['view', 'create', 'edit', 'delete', 'manage_stages'],
+            'attendance_corrections' => ['view', 'manage'],
             // Asset Management
             'asset_categories' => ['view', 'create', 'edit', 'delete'],
             'asset_locations' => ['view', 'create', 'edit', 'delete'],
@@ -190,6 +191,7 @@ class RolePermissionSeeder extends Seeder
             $this->allActionsFor('feedback', $modules),
             $this->allActionsFor('appraisals', $modules),
             $this->allActionsFor('recruitment', $modules),
+            $this->allActionsFor('attendance_corrections', $modules),
         );
         $hrRole->syncPermissions($hrPermissions);
 
