@@ -24,6 +24,10 @@ use App\Http\Controllers\Admin\Hr\LeaveController as HrLeaveController;
 use App\Http\Controllers\Admin\Hr\LeaveTypeController as HrLeaveTypeController;
 use App\Http\Controllers\Admin\Hr\PayrollController as HrPayrollController;
 use App\Http\Controllers\Admin\Hr\PenaltyController as HrPenaltyController;
+use App\Http\Controllers\Admin\Hr\CandidateController as HrCandidateController;
+use App\Http\Controllers\Admin\Hr\RecruitmentStageController as HrRecruitmentStageController;
+use App\Http\Controllers\Admin\Hr\RecruitmentBatchController as HrRecruitmentBatchController;
+use App\Http\Controllers\Admin\Hr\RecruitmentReportController as HrRecruitmentReportController;
 use App\Http\Controllers\Admin\Hr\ShiftController as HrShiftController;
 use App\Http\Controllers\Admin\Hr\WarningController as HrWarningController;
 use App\Http\Controllers\Admin\Hr\WeekOffController as HrWeekOffController;
@@ -233,6 +237,35 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('hr')->name('hr.')->group(function () {
             // HR Dashboard
             Route::get('dashboard', [HrDashboardController::class, 'index'])->name('dashboard');
+
+            // ── Recruitment & Hiring ─────────────────────────────────────
+            Route::prefix('recruitment')->name('recruitment.')->group(function () {
+                Route::get('pipeline', [HrCandidateController::class, 'pipeline'])->name('pipeline');
+                Route::get('reports', [HrRecruitmentReportController::class, 'index'])->name('reports');
+                Route::get('reports/export', [HrRecruitmentReportController::class, 'export'])->name('reports.export');
+                Route::get('import', [HrRecruitmentReportController::class, 'importForm'])->name('import.form');
+                Route::post('import', [HrRecruitmentReportController::class, 'import'])->name('import');
+                Route::get('import/template', [HrRecruitmentReportController::class, 'template'])->name('import.template');
+
+                // Stages (configurable pipeline)
+                Route::get('stages', [HrRecruitmentStageController::class, 'index'])->name('stages.index');
+                Route::post('stages', [HrRecruitmentStageController::class, 'store'])->name('stages.store');
+                Route::put('stages/{stage}', [HrRecruitmentStageController::class, 'update'])->name('stages.update');
+                Route::delete('stages/{stage}', [HrRecruitmentStageController::class, 'destroy'])->name('stages.destroy');
+                Route::post('stages/reorder', [HrRecruitmentStageController::class, 'reorder'])->name('stages.reorder');
+
+                // Campus batches
+                Route::get('batches', [HrRecruitmentBatchController::class, 'index'])->name('batches.index');
+                Route::post('batches', [HrRecruitmentBatchController::class, 'store'])->name('batches.store');
+                Route::put('batches/{batch}', [HrRecruitmentBatchController::class, 'update'])->name('batches.update');
+                Route::delete('batches/{batch}', [HrRecruitmentBatchController::class, 'destroy'])->name('batches.destroy');
+
+                // Candidate actions
+                Route::post('{candidate}/move', [HrCandidateController::class, 'move'])->name('move');
+                Route::post('{candidate}/note', [HrCandidateController::class, 'addNote'])->name('note');
+                Route::match(['get', 'post'], '{candidate}/offer-letter', [HrCandidateController::class, 'offerLetter'])->name('offer-letter');
+            });
+            Route::resource('recruitment', HrCandidateController::class)->parameters(['recruitment' => 'candidate']);
 
             // Employees
             Route::resource('employees', HrEmployeeController::class);

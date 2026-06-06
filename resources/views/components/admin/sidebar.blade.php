@@ -677,6 +677,35 @@
                     </li>
                 @endif
 
+                {{-- Recruitment --}}
+                @can('recruitment.view')
+                <li class="menu nav-item">
+                    <button type="button" class="nav-link group w-full"
+                        :class="{ 'active': activeDropdown === 'hr-recruitment' }"
+                        @click="activeDropdown = activeDropdown === 'hr-recruitment' ? null : 'hr-recruitment'">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="10" cy="8" r="3.25" stroke="currentColor" stroke-width="1.5"/>
+                                <path opacity="0.5" d="M4 19c0-2.761 2.686-5 6-5 1.5 0 2.873.46 3.92 1.22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                <path d="M16 14l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Recruitment</span>
+                        </div>
+                        <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'hr-recruitment' }">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                    </button>
+                    <ul x-collapse x-show="activeDropdown === 'hr-recruitment'" class="sub-menu text-gray-500">
+                        <li><a href="{{ route('admin.hr.recruitment.index') }}">All Candidates</a></li>
+                        <li><a href="{{ route('admin.hr.recruitment.pipeline') }}">Pipeline Board</a></li>
+                        @can('recruitment.create')<li><a href="{{ route('admin.hr.recruitment.create') }}">Add Candidate</a></li>@endcan
+                        <li><a href="{{ route('admin.hr.recruitment.batches.index') }}">Campus Batches</a></li>
+                        @can('recruitment.manage_stages')<li><a href="{{ route('admin.hr.recruitment.stages.index') }}">Hiring Stages</a></li>@endcan
+                        <li><a href="{{ route('admin.hr.recruitment.reports') }}">Reports</a></li>
+                    </ul>
+                </li>
+                @endcan
+
                 {{-- Employees --}}
                 @can('employees.view')
                 <li class="menu nav-item">
