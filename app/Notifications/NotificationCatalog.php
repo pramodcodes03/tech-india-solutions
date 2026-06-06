@@ -285,6 +285,32 @@ class NotificationCatalog
                 'recipients' => ['employee.email'],
                 'related' => 'comp_off_request',
             ],
+            // ─────────────────────── HR — EMPLOYEE DOCUMENTS ──────────────────────────
+            'document.uploaded' => [
+                'module' => 'HR — Documents',
+                'name' => 'Employee uploaded a document',
+                'description' => 'Sent to HR / Admin when an employee self-uploads a new document for verification.',
+                'subject' => 'New document uploaded by {entity.employee.first_name}',
+                'recipients' => ['admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin'],
+                'related' => 'employee_document',
+            ],
+            'document.verified' => [
+                'module' => 'HR — Documents',
+                'name' => 'Document verified',
+                'description' => 'Sent to the employee when their document is marked verified.',
+                'subject' => 'Your document "{entity.title}" was verified',
+                'recipients' => ['employee.email'],
+                'related' => 'employee_document',
+            ],
+            'document.rejected' => [
+                'module' => 'HR — Documents',
+                'name' => 'Document rejected',
+                'description' => 'Sent to the employee with remarks when their document is rejected.',
+                'subject' => 'Your document "{entity.title}" needs attention',
+                'recipients' => ['employee.email'],
+                'related' => 'employee_document',
+            ],
+
             // ─────────────────────── HR — ATTENDANCE REGULARIZATION ───────────────────
             'attendance.regularization_requested' => [
                 'module' => 'HR — Attendance',

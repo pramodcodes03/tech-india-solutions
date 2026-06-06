@@ -273,6 +273,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('employees/{employee}/reset-password', [HrEmployeeController::class, 'resetPassword'])->name('employees.reset-password');
             Route::post('employees/{employee}/toggle-status', [HrEmployeeController::class, 'toggleStatus'])->name('employees.toggle-status');
 
+            // Employee documents (upload, verify/reject, audit, bulk ZIP)
+            Route::get('employees/{employee}/documents', [\App\Http\Controllers\Admin\Hr\DocumentController::class, 'index'])->name('employees.documents.index');
+            Route::post('employees/{employee}/documents', [\App\Http\Controllers\Admin\Hr\DocumentController::class, 'store'])->name('employees.documents.store');
+            Route::get('employees/{employee}/documents/download-all', [\App\Http\Controllers\Admin\Hr\DocumentController::class, 'bulkDownload'])->name('employees.documents.bulk-download');
+            Route::get('employee-documents/{document}/download', [\App\Http\Controllers\Admin\Hr\DocumentController::class, 'download'])->name('employee-documents.download');
+            Route::post('employee-documents/{document}/verify', [\App\Http\Controllers\Admin\Hr\DocumentController::class, 'verify'])->name('employee-documents.verify');
+            Route::post('employee-documents/{document}/reject', [\App\Http\Controllers\Admin\Hr\DocumentController::class, 'reject'])->name('employee-documents.reject');
+            Route::delete('employee-documents/{document}', [\App\Http\Controllers\Admin\Hr\DocumentController::class, 'destroy'])->name('employee-documents.destroy');
+
             // Departments & Designations
             Route::resource('departments', HrDepartmentController::class)->except(['show']);
             Route::resource('designations', HrDesignationController::class)->except(['show']);
@@ -453,6 +462,12 @@ Route::prefix('employee')->name('employee.')->group(function () {
         // Attendance
         Route::get('attendance', [EmpAttendanceController::class, 'index'])->name('attendance.index');
         Route::post('attendance/punch', [EmpAttendanceController::class, 'punch'])->name('attendance.punch');
+
+        // My Documents (self-upload + verification status)
+        Route::get('documents', [\App\Http\Controllers\Employee\DocumentController::class, 'index'])->name('documents.index');
+        Route::post('documents', [\App\Http\Controllers\Employee\DocumentController::class, 'store'])->name('documents.store');
+        Route::get('documents/{document}/download', [\App\Http\Controllers\Employee\DocumentController::class, 'download'])->name('documents.download');
+        Route::delete('documents/{document}', [\App\Http\Controllers\Employee\DocumentController::class, 'destroy'])->name('documents.destroy');
 
         // Attendance regularization (self-service correction requests)
         Route::get('regularizations', [\App\Http\Controllers\Employee\RegularizationController::class, 'index'])->name('regularizations.index');
