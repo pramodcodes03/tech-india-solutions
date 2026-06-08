@@ -21,6 +21,8 @@ class StoreLeadRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:20'],
             'email' => ['nullable', 'email'],
             'source' => ['required', Rule::in(array_keys(Lead::SOURCES))],
+            'product_id' => ['nullable', 'exists:products,id'],
+            'lead_date' => ['nullable', 'date'],
             'status' => ['required', 'in:new,contacted,qualified,proposal,won,lost'],
             'assigned_to' => ['nullable', 'exists:admins,id'],
             'expected_value' => ['nullable', 'numeric', 'min:0'],

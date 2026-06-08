@@ -79,7 +79,10 @@ class Lead extends Model
         'phone',
         'email',
         'source',
+        'product_id',
+        'lead_date',
         'status',
+        'last_stage_changed_at',
         'assigned_to',
         'expected_value',
         'next_follow_up_at',
@@ -94,7 +97,35 @@ class Lead extends Model
         return [
             'expected_value' => 'decimal:2',
             'next_follow_up_at' => 'datetime',
+            'lead_date' => 'date',
+            'last_stage_changed_at' => 'datetime',
         ];
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function stageLogs(): HasMany
+    {
+        return $this->hasMany(LeadStageLog::class)->latest();
+    }
+
+    /** Total age of the lead in days since it was received/created. */
+    public function getAgeInDaysAttribute(): int
+    {
+        $start = $this->lead_date ?? $this->created_at;
+
+        return $start ? (int) $start->diffInDays(now()) : 0;
+    }
+
+    /** Time spent in the current stage, human-readable. */
+    public function getTimeInStageAttribute(): string
+    {
+        $since = $this->last_stage_changed_at ?? $this->created_at;
+
+        return $since ? $since->diffForHumans(null, true) : '—';
     }
 
     public function getActivitylogOptions(): LogOptions

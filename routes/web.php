@@ -132,6 +132,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Lead Management
         Route::get('leads/kanban', [LeadController::class, 'kanban'])->name('leads.kanban');
+        Route::get('leads/report', [LeadController::class, 'report'])->name('leads.report');
         Route::resource('leads', LeadController::class);
         Route::post('leads/{lead}/convert', [LeadController::class, 'convertToCustomer'])->name('leads.convert');
         Route::patch('leads/{lead}/status', [LeadController::class, 'updateStatus'])->name('leads.update-status');

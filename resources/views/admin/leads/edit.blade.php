@@ -44,6 +44,17 @@
                         <x-admin.searchable-select name="source" :options="$sources" :selected="$lead->source" placeholder="-- Select Source --" required />
                     </div>
                     <div>
+                        <label for="product_id">Product</label>
+                        <select id="product_id" name="product_id" class="form-select">
+                            <option value="">-- Select Product --</option>
+                            @foreach($products as $p)<option value="{{ $p->id }}" {{ old('product_id', $lead->product_id) == $p->id ? 'selected' : '' }}>{{ $p->name }}</option>@endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label for="lead_date">Lead Received Date</label>
+                        <input id="lead_date" name="lead_date" type="date" class="form-input" value="{{ old('lead_date', optional($lead->lead_date)->format('Y-m-d')) }}" />
+                    </div>
+                    <div>
                         <label for="status">Status</label>
                         <select id="status" name="status" class="form-select">
                             <option value="new" {{ old('status', $lead->status) === 'new' ? 'selected' : '' }}>New</option>

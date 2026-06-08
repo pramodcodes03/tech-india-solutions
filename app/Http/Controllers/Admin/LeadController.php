@@ -21,7 +21,7 @@ class LeadController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('leads.view'), 403);
 
-        $leads = Lead::with(['assignedTo'])
+        $leads = Lead::with(['assignedTo', 'product'])
             ->when($request->search, fn ($q, $s) => $q->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
                     ->orWhere('company', 'like', "%{$s}%")
@@ -30,6 +30,7 @@ class LeadController extends Controller
             }))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->source, fn ($q, $s) => $q->where('source', $s))
+            ->when($request->product_id, fn ($q, $p) => $q->where('product_id', $p))
             ->when($request->assigned_to, fn ($q, $a) => $q->where('assigned_to', $a))
             // Date-range filter on when the lead was CREATED. Either end is
             // optional — "from 2026-05-01 only" or "up to 2026-05-15 only"
@@ -78,8 +79,50 @@ class LeadController extends Controller
             ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'Super Admin'))
             ->orderBy('name')->get();
         $sources = Lead::SOURCES;
+        $products = \App\Models\Product::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.leads.index', compact('leads', 'items', 'admins', 'sources'));
+        return view('admin.leads.index', compact('leads', 'items', 'admins', 'sources', 'products'));
+    }
+
+    /**
+     * Product-wise lead report with filters + Excel export.
+     */
+    public function report(Request $request)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('leads.view'), 403);
+
+        $filters = $request->only(['product_id', 'source', 'status', 'assigned_to', 'from_date', 'to_date']);
+
+        $base = Lead::query()
+            ->when($filters['product_id'] ?? null, fn ($q, $v) => $q->where('product_id', $v))
+            ->when($filters['source'] ?? null, fn ($q, $v) => $q->where('source', $v))
+            ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
+            ->when($filters['assigned_to'] ?? null, fn ($q, $v) => $q->where('assigned_to', $v))
+            ->when($filters['from_date'] ?? null, fn ($q, $v) => $q->whereDate('lead_date', '>=', $v))
+            ->when($filters['to_date'] ?? null, fn ($q, $v) => $q->whereDate('lead_date', '<=', $v));
+
+        if ($request->get('export') === 'excel') {
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\LeadProductReportExport($filters),
+                'lead-product-report-'.date('Y-m-d').'.xlsx'
+            );
+        }
+
+        // Product-wise summary: count, won, value, avg age.
+        $byProduct = (clone $base)
+            ->selectRaw('product_id, count(*) as total,
+                sum(case when status = "won" then 1 else 0 end) as won,
+                sum(case when status = "lost" then 1 else 0 end) as lost,
+                sum(expected_value) as value')
+            ->groupBy('product_id')
+            ->with('product')
+            ->get();
+
+        $products = \App\Models\Product::orderBy('name')->get(['id', 'name']);
+        $admins = Admin::where('status', 'active')->orderBy('name')->get(['id', 'name']);
+        $sources = Lead::SOURCES;
+
+        return view('admin.leads.report', compact('byProduct', 'products', 'admins', 'sources', 'filters'));
     }
 
     public function kanban()
@@ -103,8 +146,9 @@ class LeadController extends Controller
             ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'Super Admin'))
             ->orderBy('name')->get();
         $sources = Lead::sourceOptions();
+        $products = \App\Models\Product::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.leads.create', compact('admins', 'sources'));
+        return view('admin.leads.create', compact('admins', 'sources', 'products'));
     }
 
     public function store(StoreLeadRequest $request)
@@ -127,7 +171,7 @@ class LeadController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('leads.view'), 403);
 
-        $lead = Lead::with(['assignedTo', 'activities.creator', 'creator'])->findOrFail($id);
+        $lead = Lead::with(['assignedTo', 'activities.creator', 'creator', 'product', 'stageLogs.changedBy'])->findOrFail($id);
 
         return view('admin.leads.show', compact('lead'));
     }
@@ -142,8 +186,9 @@ class LeadController extends Controller
             ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'Super Admin'))
             ->orderBy('name')->get();
         $sources = Lead::sourceOptions();
+        $products = \App\Models\Product::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.leads.edit', compact('lead', 'admins', 'sources'));
+        return view('admin.leads.edit', compact('lead', 'admins', 'sources', 'products'));
     }
 
     public function update(UpdateLeadRequest $request, $id)
@@ -207,11 +252,12 @@ class LeadController extends Controller
 
         $request->validate([
             'status' => 'required|in:new,contacted,qualified,proposal,won,lost',
+            'remarks' => 'nullable|string|max:1000',
         ]);
 
         $lead = Lead::findOrFail($id);
         $oldStatus = $lead->status;
-        $this->leadService->update($lead, ['status' => $request->status]);
+        $this->leadService->changeStatus($lead, $request->status, $request->remarks);
 
         if ($oldStatus !== $request->status) {
             \App\Notifications\NotificationDispatcher::fire(

@@ -270,6 +270,7 @@
                     <ul x-collapse x-show="activeDropdown === 'leads'" class="sub-menu text-gray-500">
                         @can('leads.view')<li><a href="{{ route('admin.leads.index') }}">All Leads</a></li>@endcan
                         @can('leads.view')<li><a href="{{ route('admin.leads.kanban') }}">Leads Board</a></li>@endcan
+                        @can('leads.view')<li><a href="{{ route('admin.leads.report') }}">Product Report</a></li>@endcan
                         @can('leads.create')<li><a href="{{ route('admin.leads.create') }}">Add Lead</a></li>@endcan
                     </ul>
                 </li>
