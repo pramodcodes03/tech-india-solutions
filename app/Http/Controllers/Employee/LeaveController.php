@@ -49,11 +49,21 @@ class LeaveController extends Controller
 
         $data = $request->validate([
             'leave_type_id' => ['required', 'exists:leave_types,id'],
-            'from_date' => ['required', 'date', 'after_or_equal:today'],
+            'from_date' => ['required', 'date'],
             'to_date' => ['required', 'date', 'after_or_equal:from_date'],
             'day_portion' => ['required', 'in:full,first_half,second_half'],
             'reason' => ['required', 'string', 'min:5'],
         ]);
+
+        // Backdated-application restriction: applications for a date older than
+        // the configurable window (default 72h) are auto-rejected up front.
+        $windowHours = \App\Support\HrSettings::int('leave_application_window_hours', 72);
+        $earliest = now()->subHours($windowHours)->startOfDay();
+        if (\Carbon\Carbon::parse($data['from_date'])->startOfDay()->lt($earliest)) {
+            return back()->withInput()->with('error',
+                "Leave cannot be applied for dates older than {$windowHours} hours. Please contact HR for older corrections.");
+        }
+
         $data['employee_id'] = $employee->id;
 
         try {
@@ -91,5 +101,15 @@ class LeaveController extends Controller
         $leaveRequest->load('leaveType', 'approver');
 
         return view('employee.leaves.show', ['request' => $leaveRequest]);
+    }
+
+    /**
+     * Company leave-policy document (admin-configurable) shown to the employee.
+     */
+    public function policy()
+    {
+        $policy = \App\Support\HrSettings::get('leave_policy_document', '');
+
+        return view('employee.leaves.policy', compact('policy'));
     }
 }

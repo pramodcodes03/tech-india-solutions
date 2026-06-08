@@ -112,18 +112,23 @@ class LeaveBalanceController extends Controller
 
         $data = $request->validate([
             'year' => ['required', 'integer', 'between:2020,2100'],
+            'department_id' => ['nullable', 'exists:departments,id'],
         ]);
         $year = (int) $data['year'];
 
-        $employees = Employee::whereIn('status', ['active', 'probation', 'on_notice'])->get();
+        $employees = Employee::whereIn('status', ['active', 'probation', 'on_notice'])
+            ->when($data['department_id'] ?? null, fn ($q, $id) => $q->where('department_id', $id))
+            ->get();
         $count = 0;
         foreach ($employees as $emp) {
             $this->employeeService->allocateAnnualLeaves($emp, $year);
             $count++;
         }
 
+        $scope = ($data['department_id'] ?? null) ? 'the selected department' : 'all active employees';
+
         return redirect()
             ->route('admin.hr.leave-balances.index', ['year' => $year])
-            ->with('success', "Allocated {$year} leave balances for {$count} employees.");
+            ->with('success', "Allocated {$year} leave balances for {$count} employees in {$scope}.");
     }
 }

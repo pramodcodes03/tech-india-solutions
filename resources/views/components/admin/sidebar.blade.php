@@ -797,6 +797,7 @@
                         <li><a href="{{ route('admin.hr.leaves.index', ['status' => 'pending']) }}">Pending @if($pendingLeaves > 0)({{ $pendingLeaves }})@endif</a></li>
                         <li><a href="{{ route('admin.hr.leave-balances.index') }}">Leave Balances</a></li>
                         @can('leave_types.view')<li><a href="{{ route('admin.hr.leave-types.index') }}">Leave Types</a></li>@endcan
+                        @can('leave_types.view')<li><a href="{{ route('admin.hr.leave-settings.index') }}">Leave Settings</a></li>@endcan
                     </ul>
                 </li>
                 @endcan

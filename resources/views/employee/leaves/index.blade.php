@@ -1,7 +1,10 @@
 <x-layout.employee title="My Leaves">
     <div class="flex items-center justify-between mb-4">
         <h1 class="text-2xl font-extrabold">My Leaves</h1>
-        <a href="{{ route('employee.leaves.create') }}" class="btn btn-primary">Apply for Leave</a>
+        <div class="flex gap-2">
+            <a href="{{ route('employee.leaves.policy') }}" class="btn btn-outline-secondary">Leave Policy</a>
+            <a href="{{ route('employee.leaves.create') }}" class="btn btn-primary">Apply for Leave</a>
+        </div>
     </div>
 
     {{-- Balances --}}

@@ -325,6 +325,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('regularizations/{regularization}/approve', [HrRegularizationController::class, 'approve'])->name('regularizations.approve');
             Route::post('regularizations/{regularization}/reject', [HrRegularizationController::class, 'reject'])->name('regularizations.reject');
 
+            // Leave settings (probation, accrual, backdated window, policy doc)
+            Route::get('leave-settings', [\App\Http\Controllers\Admin\Hr\LeaveSettingsController::class, 'index'])->name('leave-settings.index');
+            Route::post('leave-settings', [\App\Http\Controllers\Admin\Hr\LeaveSettingsController::class, 'update'])->name('leave-settings.update');
+            Route::post('leave-settings/run', [\App\Http\Controllers\Admin\Hr\LeaveSettingsController::class, 'run'])->name('leave-settings.run');
+
             // Leaves
             Route::get('leaves', [HrLeaveController::class, 'index'])->name('leaves.index');
             Route::get('leave-balances', [HrLeaveBalanceController::class, 'index'])->name('leave-balances.index');
@@ -488,6 +493,7 @@ Route::prefix('employee')->name('employee.')->group(function () {
 
         // Leaves
         Route::get('leaves', [EmpLeaveController::class, 'index'])->name('leaves.index');
+        Route::get('leaves/policy', [EmpLeaveController::class, 'policy'])->name('leaves.policy');
         Route::get('leaves/apply', [EmpLeaveController::class, 'create'])->name('leaves.create');
         Route::post('leaves', [EmpLeaveController::class, 'store'])->name('leaves.store');
         Route::get('leaves/{leaveRequest}', [EmpLeaveController::class, 'show'])->name('leaves.show');

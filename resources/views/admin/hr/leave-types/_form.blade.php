@@ -10,6 +10,24 @@
         <label class="flex items-center gap-2"><input type="hidden" name="carry_forward" value="0" /><input type="checkbox" name="carry_forward" value="1" @checked(old('carry_forward', $leaveType?->carry_forward ?? false))> Carry forward</label>
         <label class="flex items-center gap-2"><input type="hidden" name="encashable" value="0" /><input type="checkbox" name="encashable" value="1" @checked(old('encashable', $leaveType?->encashable ?? false))> Encashable</label>
     </div>
+    {{-- ── Automated accrual ───────────────────────────────────────────── --}}
+    <div class="md:col-span-3 border-t pt-4 mt-1">
+        <div class="text-xs font-semibold text-gray-600 uppercase mb-3">Automated Accrual (optional)</div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <label class="flex items-center gap-2 pt-6"><input type="hidden" name="accrual_enabled" value="0" /><input type="checkbox" name="accrual_enabled" value="1" @checked(old('accrual_enabled', $leaveType?->accrual_enabled ?? false))> Enable accrual</label>
+            <div><label class="text-xs font-semibold text-gray-500 uppercase">Rate (days / period)</label><input type="number" step="0.1" name="accrual_rate" value="{{ old('accrual_rate', $leaveType?->accrual_rate ?? 0) }}" class="form-input mt-1" /></div>
+            <div><label class="text-xs font-semibold text-gray-500 uppercase">Frequency</label>
+                <select name="accrual_frequency" class="form-select mt-1">
+                    @foreach(['monthly'=>'Monthly','half_yearly'=>'Half-yearly','annual'=>'Annual'] as $v=>$l)
+                        <option value="{{ $v }}" @selected(old('accrual_frequency', $leaveType?->accrual_frequency ?? 'monthly')===$v)>{{ $l }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div><label class="text-xs font-semibold text-gray-500 uppercase">Min working days (EL rule)</label><input type="number" name="min_working_days" value="{{ old('min_working_days', $leaveType?->min_working_days) }}" placeholder="e.g. 240" class="form-input mt-1" /></div>
+            <label class="flex items-center gap-2"><input type="hidden" name="accrue_after_probation" value="0" /><input type="checkbox" name="accrue_after_probation" value="1" @checked(old('accrue_after_probation', $leaveType?->accrue_after_probation ?? true))> Only after probation</label>
+        </div>
+    </div>
+
     <div class="md:col-span-3"><label class="text-xs font-semibold text-gray-500 uppercase">Description</label><textarea name="description" rows="2" class="form-input mt-1">{{ old('description', $leaveType?->description) }}</textarea></div>
     <div><label class="text-xs font-semibold text-gray-500 uppercase">Status *</label>
         <select name="status" required class="form-select mt-1">
