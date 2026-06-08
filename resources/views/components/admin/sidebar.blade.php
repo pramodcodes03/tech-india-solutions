@@ -898,6 +898,9 @@
                     <ul x-collapse x-show="activeDropdown === 'asset-register'" class="sub-menu text-gray-500">
                         <li><a href="{{ route('admin.assets.assets.index') }}">All Assets</a></li>
                         @can('assets.create')<li><a href="{{ route('admin.assets.assets.create') }}">Add Asset</a></li>@endcan
+                        @can('assets.edit')<li><a href="{{ route('admin.assets.bulk.index') }}">Bulk Operations</a></li>@endcan
+                        @can('assets.view')<li><a href="{{ route('admin.assets.reports.dimension') }}">Reports</a></li>@endcan
+                        @can('assets.view')<li><a href="{{ route('admin.assets.reports.employee-assets') }}">Employee Assets</a></li>@endcan
                         @can('asset_categories.view')<li><a href="{{ route('admin.assets.categories.index') }}">Categories</a></li>@endcan
                         @can('asset_models.view')<li><a href="{{ route('admin.assets.models.index') }}">Models</a></li>@endcan
                         @can('asset_locations.view')<li><a href="{{ route('admin.assets.locations.index') }}">Locations</a></li>@endcan

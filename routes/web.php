@@ -409,6 +409,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('assets/import', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'importForm'])->name('assets.import-form');
             Route::post('assets/import', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'import'])->name('assets.import');
             Route::get('assets/import/template', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'importTemplate'])->name('assets.import-template');
+
+            // Bulk operations (multi-select assign / change / transfer / delete)
+            Route::get('bulk', [\App\Http\Controllers\Admin\Asset\BulkController::class, 'index'])->name('bulk.index');
+            Route::post('bulk/apply', [\App\Http\Controllers\Admin\Asset\BulkController::class, 'apply'])->name('bulk.apply');
+
+            // Extended reports
+            Route::get('reports/employee-assets', [\App\Http\Controllers\Admin\Asset\ReportController::class, 'employeeAssets'])->name('reports.employee-assets');
+            Route::get('reports/dimension', [\App\Http\Controllers\Admin\Asset\ReportController::class, 'dimension'])->name('reports.dimension');
+            Route::get('reports/asset/{asset}/history', [\App\Http\Controllers\Admin\Asset\ReportController::class, 'assetHistory'])->name('reports.asset-history');
+
             Route::resource('assets', \App\Http\Controllers\Admin\Asset\AssetController::class);
             Route::post('assets/{asset}/dispose', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'dispose'])->name('assets.dispose');
             Route::post('assets/{asset}/mark-lost', [\App\Http\Controllers\Admin\Asset\AssetController::class, 'markLost'])->name('assets.mark-lost');
