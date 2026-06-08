@@ -201,6 +201,25 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('expenses', ExpenseController::class);
         Route::post('expenses/{expense}/mark-paid', [ExpenseController::class, 'markPaid'])->name('expenses.mark-paid');
 
+        // Employee reimbursement claims (admin review)
+        Route::get('reimbursements', [\App\Http\Controllers\Admin\ReimbursementController::class, 'index'])->name('reimbursements.index');
+        Route::get('reimbursements/{reimbursement}', [\App\Http\Controllers\Admin\ReimbursementController::class, 'show'])->name('reimbursements.show');
+        Route::get('reimbursements/{reimbursement}/bill', [\App\Http\Controllers\Admin\ReimbursementController::class, 'bill'])->name('reimbursements.bill');
+        Route::post('reimbursements/{reimbursement}/review', [\App\Http\Controllers\Admin\ReimbursementController::class, 'review'])->name('reimbursements.review');
+
+        // Expense budgets
+        Route::get('budgets', [\App\Http\Controllers\Admin\BudgetController::class, 'index'])->name('budgets.index');
+        Route::post('budgets', [\App\Http\Controllers\Admin\BudgetController::class, 'store'])->name('budgets.store');
+        Route::put('budgets/{budget}', [\App\Http\Controllers\Admin\BudgetController::class, 'update'])->name('budgets.update');
+        Route::delete('budgets/{budget}', [\App\Http\Controllers\Admin\BudgetController::class, 'destroy'])->name('budgets.destroy');
+
+        // Requisitions (purchase requests with approval chain)
+        Route::get('requisitions/report', [\App\Http\Controllers\Admin\RequisitionController::class, 'report'])->name('requisitions.report');
+        Route::resource('requisitions', \App\Http\Controllers\Admin\RequisitionController::class)->except(['edit', 'update', 'destroy']);
+        Route::post('requisitions/{requisition}/approve', [\App\Http\Controllers\Admin\RequisitionController::class, 'approve'])->name('requisitions.approve');
+        Route::post('requisitions/{requisition}/reject', [\App\Http\Controllers\Admin\RequisitionController::class, 'reject'])->name('requisitions.reject');
+        Route::post('requisitions/{requisition}/disburse', [\App\Http\Controllers\Admin\RequisitionController::class, 'disburse'])->name('requisitions.disburse');
+
         // Email Notification Settings
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::put('notifications', [NotificationController::class, 'update'])->name('notifications.update');
@@ -478,6 +497,12 @@ Route::prefix('employee')->name('employee.')->group(function () {
         // Attendance
         Route::get('attendance', [EmpAttendanceController::class, 'index'])->name('attendance.index');
         Route::post('attendance/punch', [EmpAttendanceController::class, 'punch'])->name('attendance.punch');
+
+        // Reimbursement claims (self-service)
+        Route::get('reimbursements', [\App\Http\Controllers\Employee\ReimbursementController::class, 'index'])->name('reimbursements.index');
+        Route::get('reimbursements/create', [\App\Http\Controllers\Employee\ReimbursementController::class, 'create'])->name('reimbursements.create');
+        Route::post('reimbursements', [\App\Http\Controllers\Employee\ReimbursementController::class, 'store'])->name('reimbursements.store');
+        Route::get('reimbursements/{reimbursement}', [\App\Http\Controllers\Employee\ReimbursementController::class, 'show'])->name('reimbursements.show');
 
         // My Documents (self-upload + verification status)
         Route::get('documents', [\App\Http\Controllers\Employee\DocumentController::class, 'index'])->name('documents.index');

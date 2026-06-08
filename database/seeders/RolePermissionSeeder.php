@@ -59,6 +59,9 @@ class RolePermissionSeeder extends Seeder
             'settings' => ['view', 'edit'],
             'expense_categories' => ['view', 'create', 'edit', 'delete'],
             'expenses' => ['view', 'create', 'edit', 'delete', 'mark_paid'],
+            'reimbursements' => ['view', 'review'],
+            'budgets' => ['view', 'manage'],
+            'requisitions' => ['view', 'create', 'approve', 'disburse'],
 
             // ── HR Module ────────────────────────────────────────────────
             'employees' => ['view', 'create', 'edit', 'delete', 'export'],
@@ -154,6 +157,9 @@ class RolePermissionSeeder extends Seeder
             $this->allActionsFor('payments', $modules),
             $this->allActionsFor('expenses', $modules),
             $this->allActionsFor('expense_categories', $modules),
+            $this->allActionsFor('reimbursements', $modules),
+            $this->allActionsFor('budgets', $modules),
+            $this->allActionsFor('requisitions', $modules),
             ['customers.view'],
             $this->allActionsFor('reports', $modules),
             ['settings.view']

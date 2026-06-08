@@ -438,6 +438,9 @@
                         @can('expenses.view')<li><a href="{{ route('admin.expenses.index') }}">All Payments</a></li>@endcan
                         @can('expenses.create')<li><a href="{{ route('admin.expenses.create') }}">Add Payment</a></li>@endcan
                         @can('expense_categories.view')<li><a href="{{ route('admin.expense-categories.index') }}">Categories</a></li>@endcan
+                        @can('reimbursements.view')<li><a href="{{ route('admin.reimbursements.index') }}">Reimbursements</a></li>@endcan
+                        @can('budgets.view')<li><a href="{{ route('admin.budgets.index') }}">Budgets</a></li>@endcan
+                        @can('requisitions.view')<li><a href="{{ route('admin.requisitions.index') }}">Requisitions</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
