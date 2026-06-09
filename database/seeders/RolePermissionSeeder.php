@@ -82,6 +82,7 @@ class RolePermissionSeeder extends Seeder
             'attendance_corrections' => ['view', 'manage'],
             'employee_documents' => ['view', 'upload', 'verify', 'delete'],
             'internal_tickets' => ['view', 'manage', 'configure'],
+            'bulk_imports' => ['run'],
             'salary_templates' => ['view', 'manage'],
             'payroll_adjustments' => ['view', 'manage'],
             'statutory' => ['view', 'manage'],
@@ -208,6 +209,7 @@ class RolePermissionSeeder extends Seeder
             $this->allActionsFor('salary_templates', $modules),
             $this->allActionsFor('payroll_adjustments', $modules),
             $this->allActionsFor('statutory', $modules),
+            $this->allActionsFor('bulk_imports', $modules),
         );
         $hrRole->syncPermissions($hrPermissions);
 

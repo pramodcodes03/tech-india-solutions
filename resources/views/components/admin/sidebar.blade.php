@@ -1049,6 +1049,18 @@
                 </h2>
                 @endcan
 
+                {{-- Bulk Imports --}}
+                @can('bulk_imports.run')
+                <li class="menu nav-item">
+                    <a href="{{ route('admin.imports.index') }}" class="nav-link group">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 12l-4-4m4 4l4-4M4 18v1a2 2 0 002 2h12a2 2 0 002-2v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Bulk Imports</span>
+                        </div>
+                    </a>
+                </li>
+                @endcan
+
                 {{-- Settings --}}
                 @can('settings.view')
                 <li class="menu nav-item">

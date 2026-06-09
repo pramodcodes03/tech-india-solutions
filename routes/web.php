@@ -201,6 +201,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('expenses', ExpenseController::class);
         Route::post('expenses/{expense}/mark-paid', [ExpenseController::class, 'markPaid'])->name('expenses.mark-paid');
 
+        // Standardized bulk import framework (validate → preview → confirm → log)
+        Route::get('imports', [\App\Http\Controllers\Admin\BulkImportController::class, 'index'])->name('imports.index');
+        Route::get('imports/log/{log}/errors', [\App\Http\Controllers\Admin\BulkImportController::class, 'errorReport'])->name('imports.errors');
+        Route::get('imports/{key}', [\App\Http\Controllers\Admin\BulkImportController::class, 'form'])->name('imports.form');
+        Route::get('imports/{key}/template', [\App\Http\Controllers\Admin\BulkImportController::class, 'template'])->name('imports.template');
+        Route::post('imports/{key}/preview', [\App\Http\Controllers\Admin\BulkImportController::class, 'preview'])->name('imports.preview');
+        Route::post('imports/{key}/confirm', [\App\Http\Controllers\Admin\BulkImportController::class, 'confirm'])->name('imports.confirm');
+
         // Employee reimbursement claims (admin review)
         Route::get('reimbursements', [\App\Http\Controllers\Admin\ReimbursementController::class, 'index'])->name('reimbursements.index');
         Route::get('reimbursements/{reimbursement}', [\App\Http\Controllers\Admin\ReimbursementController::class, 'show'])->name('reimbursements.show');
