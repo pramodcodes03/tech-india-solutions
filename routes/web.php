@@ -371,6 +371,30 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('leaves/{leaveRequest}/approve', [HrLeaveController::class, 'approve'])->name('leaves.approve');
             Route::post('leaves/{leaveRequest}/reject', [HrLeaveController::class, 'reject'])->name('leaves.reject');
 
+            // ── Payroll add-ons: templates, adjustments, statutory ──────────
+            // Salary templates (dept / category level) + bulk assignment
+            Route::get('salary-templates', [\App\Http\Controllers\Admin\Hr\SalaryTemplateController::class, 'index'])->name('salary-templates.index');
+            Route::post('salary-templates', [\App\Http\Controllers\Admin\Hr\SalaryTemplateController::class, 'store'])->name('salary-templates.store');
+            Route::put('salary-templates/{template}', [\App\Http\Controllers\Admin\Hr\SalaryTemplateController::class, 'update'])->name('salary-templates.update');
+            Route::delete('salary-templates/{template}', [\App\Http\Controllers\Admin\Hr\SalaryTemplateController::class, 'destroy'])->name('salary-templates.destroy');
+            Route::get('salary-templates/{template}/assign', [\App\Http\Controllers\Admin\Hr\SalaryTemplateController::class, 'assignForm'])->name('salary-templates.assign-form');
+            Route::post('salary-templates/{template}/assign', [\App\Http\Controllers\Admin\Hr\SalaryTemplateController::class, 'assign'])->name('salary-templates.assign');
+
+            // Payroll adjustments (incentive / arrears / bonus / extra deduction)
+            Route::get('payroll-adjustments', [\App\Http\Controllers\Admin\Hr\PayrollAdjustmentController::class, 'index'])->name('payroll-adjustments.index');
+            Route::post('payroll-adjustments', [\App\Http\Controllers\Admin\Hr\PayrollAdjustmentController::class, 'store'])->name('payroll-adjustments.store');
+            Route::delete('payroll-adjustments/{adjustment}', [\App\Http\Controllers\Admin\Hr\PayrollAdjustmentController::class, 'destroy'])->name('payroll-adjustments.destroy');
+
+            // Statutory: compliance registers, challans, bank export, TDS slabs, Form 16
+            Route::get('statutory', [\App\Http\Controllers\Admin\Hr\StatutoryController::class, 'register'])->name('statutory.register');
+            Route::get('statutory/export', [\App\Http\Controllers\Admin\Hr\StatutoryController::class, 'export'])->name('statutory.export');
+            Route::get('statutory/bank-transfer', [\App\Http\Controllers\Admin\Hr\StatutoryController::class, 'bankTransfer'])->name('statutory.bank-transfer');
+            Route::get('statutory/settings', [\App\Http\Controllers\Admin\Hr\StatutoryController::class, 'settings'])->name('statutory.settings');
+            Route::post('statutory/settings', [\App\Http\Controllers\Admin\Hr\StatutoryController::class, 'saveSettings'])->name('statutory.settings.save');
+            Route::post('statutory/slabs', [\App\Http\Controllers\Admin\Hr\StatutoryController::class, 'storeSlab'])->name('statutory.slabs.store');
+            Route::delete('statutory/slabs/{slab}', [\App\Http\Controllers\Admin\Hr\StatutoryController::class, 'destroySlab'])->name('statutory.slabs.destroy');
+            Route::get('statutory/form16', [\App\Http\Controllers\Admin\Hr\StatutoryController::class, 'form16'])->name('statutory.form16');
+
             // Payroll
             Route::get('payroll', [HrPayrollController::class, 'index'])->name('payroll.index');
             Route::get('payroll/generate', [HrPayrollController::class, 'generateForm'])->name('payroll.generate-form');

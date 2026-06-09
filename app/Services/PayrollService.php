@@ -219,7 +219,20 @@ class PayrollService
                 ->get();
             $penaltyDeduction = round($pendingPenalties->sum('amount'), 2);
 
-            $totalDeductions = round($pf + $esi + $pt + $tds + $penaltyDeduction, 2);
+            // Per-month payroll overrides (incentive / arrears / bonus / extra
+            // deduction) entered for this employee, applied without creating a
+            // new salary-structure version.
+            $adjustments = \App\Models\PayrollAdjustment::where('employee_id', $employee->id)
+                ->where('month', $month)->where('year', $year)
+                ->where('applied', false)
+                ->get();
+            $bonus = round($adjustments->whereIn('component', \App\Models\PayrollAdjustment::EARNINGS)->sum('amount'), 2);
+            $otherDeductions = round($adjustments->where('component', 'extra_deduction')->sum('amount'), 2);
+
+            // Bonus/incentive/arrears add to gross (not pro-rated).
+            $grossEarnings = round($grossEarnings + $bonus, 2);
+
+            $totalDeductions = round($pf + $esi + $pt + $tds + $penaltyDeduction + $otherDeductions, 2);
             $netPay = round($grossEarnings - $totalDeductions, 2);
 
             $payslip = Payslip::updateOrCreate(
@@ -237,7 +250,7 @@ class PayrollService
                     'medical' => $medical,
                     'special' => $special,
                     'other_allowance' => $otherAllowance,
-                    'bonus' => 0,
+                    'bonus' => $bonus,
                     'gross_earnings' => $grossEarnings,
                     'pf' => $pf,
                     'esi' => $esi,
@@ -245,7 +258,7 @@ class PayrollService
                     'tds' => $tds,
                     'penalty_deduction' => $penaltyDeduction,
                     'lop_deduction' => $lopDeduction,
-                    'other_deductions' => 0,
+                    'other_deductions' => $otherDeductions,
                     'total_deductions' => $totalDeductions,
                     'net_pay' => $netPay,
                     'status' => 'generated',
@@ -256,6 +269,11 @@ class PayrollService
             // Link and mark penalties as deducted
             foreach ($pendingPenalties as $p) {
                 $p->update(['status' => 'deducted', 'payslip_id' => $payslip->id]);
+            }
+
+            // Link the applied payroll adjustments to this payslip.
+            foreach ($adjustments as $adj) {
+                $adj->update(['applied' => true, 'payslip_id' => $payslip->id]);
             }
 
             return $payslip;

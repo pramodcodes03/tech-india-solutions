@@ -840,9 +840,10 @@
                     <ul x-collapse x-show="activeDropdown === 'hr-payroll'" class="sub-menu text-gray-500">
                         <li><a href="{{ route('admin.hr.payroll.index') }}">Payslips</a></li>
                         @can('payroll.generate')<li><a href="{{ route('admin.hr.payroll.generate-form') }}">Generate Payroll</a></li>@endcan
-                        {{-- Salary Approvals + Bank Change Requests promoted to the
-                             top-level "Approvals" menu (above), so removed from here
-                             to avoid duplicate sidebar entries. --}}
+                        @can('salary_templates.view')<li><a href="{{ route('admin.hr.salary-templates.index') }}">Salary Templates</a></li>@endcan
+                        @can('payroll_adjustments.view')<li><a href="{{ route('admin.hr.payroll-adjustments.index') }}">Adjustments</a></li>@endcan
+                        @can('statutory.view')<li><a href="{{ route('admin.hr.statutory.register') }}">Statutory Register</a></li>@endcan
+                        @can('statutory.view')<li><a href="{{ route('admin.hr.statutory.form16') }}">Form 16</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
