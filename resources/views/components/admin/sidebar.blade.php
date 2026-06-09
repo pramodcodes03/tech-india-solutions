@@ -1038,6 +1038,8 @@
                         <li><a href="{{ route('admin.reports.customers') }}">Customer Report</a></li>
                         <li><a href="{{ route('admin.reports.purchases') }}">Purchase Report</a></li>
                         <li><a href="{{ route('admin.reports.payments') }}">Payment Report</a></li>
+                        <li><a href="{{ route('admin.hr.reports.index') }}">HR &amp; Payroll Reports</a></li>
+                        <li><a href="{{ route('admin.report-builder.index') }}">Custom Report Builder</a></li>
                     </ul>
                 </li>
                 @endcan

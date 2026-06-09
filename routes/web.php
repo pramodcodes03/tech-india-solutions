@@ -256,6 +256,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('reports/{type}/export-excel', [ReportController::class, 'exportExcel'])->name('reports.export-excel');
         Route::get('reports/{type}/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
 
+        // Custom report builder
+        Route::get('report-builder', [\App\Http\Controllers\Admin\ReportBuilderController::class, 'index'])->name('report-builder.index');
+        Route::post('report-builder/build', [\App\Http\Controllers\Admin\ReportBuilderController::class, 'build'])->name('report-builder.build');
+        Route::post('report-builder/save', [\App\Http\Controllers\Admin\ReportBuilderController::class, 'save'])->name('report-builder.save');
+        Route::get('report-builder/saved/{template}', [\App\Http\Controllers\Admin\ReportBuilderController::class, 'runSaved'])->name('report-builder.run');
+        Route::delete('report-builder/saved/{template}', [\App\Http\Controllers\Admin\ReportBuilderController::class, 'destroy'])->name('report-builder.destroy');
+
         // Settings
         Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
         Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
@@ -266,6 +273,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('hr')->name('hr.')->group(function () {
             // HR Dashboard
             Route::get('dashboard', [HrDashboardController::class, 'index'])->name('dashboard');
+
+            // HR Reports hub (employee master, payroll, leave, attendance, expense claims)
+            Route::get('reports', [\App\Http\Controllers\Admin\Hr\ReportController::class, 'index'])->name('reports.index');
+            Route::get('reports/employee-master', [\App\Http\Controllers\Admin\Hr\ReportController::class, 'employeeMaster'])->name('reports.employee-master');
+            Route::get('reports/payroll', [\App\Http\Controllers\Admin\Hr\ReportController::class, 'payroll'])->name('reports.payroll');
+            Route::get('reports/leave', [\App\Http\Controllers\Admin\Hr\ReportController::class, 'leave'])->name('reports.leave');
+            Route::get('reports/attendance', [\App\Http\Controllers\Admin\Hr\ReportController::class, 'attendance'])->name('reports.attendance');
+            Route::get('reports/expense-claims', [\App\Http\Controllers\Admin\Hr\ReportController::class, 'expenseClaims'])->name('reports.expense-claims');
 
             // ── Recruitment & Hiring ─────────────────────────────────────
             Route::prefix('recruitment')->name('recruitment.')->group(function () {
