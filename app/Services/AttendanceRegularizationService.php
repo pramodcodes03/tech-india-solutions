@@ -11,8 +11,10 @@ use Illuminate\Support\Facades\DB;
 
 class AttendanceRegularizationService
 {
-    public function __construct(private AttendanceService $attendance)
-    {
+    public function __construct(
+        private AttendanceService $attendance,
+        private InternalTicketService $tickets,
+    ) {
     }
 
     /**
@@ -34,6 +36,24 @@ class AttendanceRegularizationService
         ]));
 
         NotificationDispatcher::fire('attendance.regularization_requested', $reg);
+
+        // Optionally route the correction as an internal HR ticket so it also
+        // appears in the helpdesk queue (admin-configurable; default off).
+        if (HrSettings::get('route_regularization_as_ticket', '0') === '1') {
+            try {
+                $this->tickets->create([
+                    'business_id' => $reg->business_id,
+                    'employee_id' => $reg->employee_id,
+                    'department' => 'hr',
+                    'subject' => 'Attendance correction — '.$reg->date->format('d M Y'),
+                    'description' => $reg->type_label.': '.$reg->reason,
+                    'priority' => 'medium',
+                    'source' => 'attendance_regularization',
+                ], $reg);
+            } catch (\Throwable $e) {
+                // Never let ticket routing break the regularization request.
+            }
+        }
 
         return $reg;
     }

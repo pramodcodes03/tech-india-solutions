@@ -710,6 +710,20 @@
                 </li>
                 @endcan
 
+                {{-- Internal Helpdesk --}}
+                @can('internal_tickets.view')
+                @php $openTickets = \App\Models\InternalTicket::whereNotIn('status', ['resolved','closed'])->count(); @endphp
+                <li class="menu nav-item">
+                    <a href="{{ route('admin.hr.internal-tickets.index') }}" class="nav-link group w-full">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.5"/></svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Helpdesk</span>
+                            @if($openTickets > 0)<span class="ml-auto mr-1 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-warning text-white">{{ $openTickets > 99 ? '99+' : $openTickets }}</span>@endif
+                        </div>
+                    </a>
+                </li>
+                @endcan
+
                 {{-- Employees --}}
                 @can('employees.view')
                 <li class="menu nav-item">

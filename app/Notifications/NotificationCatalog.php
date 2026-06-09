@@ -285,6 +285,48 @@ class NotificationCatalog
                 'recipients' => ['employee.email'],
                 'related' => 'comp_off_request',
             ],
+            // ─────────────────────── INTERNAL HELPDESK ────────────────────────────────
+            'internal_ticket.created' => [
+                'module' => 'Internal Helpdesk',
+                'name' => 'Internal ticket raised',
+                'description' => 'Sent to HR / Admin when an employee raises an internal helpdesk ticket.',
+                'subject' => 'New {entity.department} ticket {entity.ticket_number}: {entity.subject}',
+                'recipients' => ['admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin'],
+                'related' => 'internal_ticket',
+            ],
+            'internal_ticket.assigned' => [
+                'module' => 'Internal Helpdesk',
+                'name' => 'Internal ticket assigned',
+                'description' => 'Sent to the assignee when an internal ticket is assigned to them.',
+                'subject' => 'Ticket {entity.ticket_number} assigned to you',
+                'recipients' => ['ticket.assignee'],
+                'related' => 'internal_ticket',
+            ],
+            'internal_ticket.status_changed' => [
+                'module' => 'Internal Helpdesk',
+                'name' => 'Internal ticket status changed',
+                'description' => 'Sent to the raiser when their ticket status changes.',
+                'subject' => 'Ticket {entity.ticket_number} is now {context.new_status}',
+                'recipients' => ['employee.email'],
+                'related' => 'internal_ticket',
+            ],
+            'internal_ticket.escalated' => [
+                'module' => 'Internal Helpdesk',
+                'name' => 'Internal ticket escalated',
+                'description' => 'Sent to HR / Admin when a ticket breaches TAT and escalates.',
+                'subject' => 'Ticket {entity.ticket_number} escalated to level {context.level}',
+                'recipients' => ['admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin'],
+                'related' => 'internal_ticket',
+            ],
+            'internal_ticket.closed' => [
+                'module' => 'Internal Helpdesk',
+                'name' => 'Internal ticket closed',
+                'description' => 'Sent to the raiser when their ticket is closed.',
+                'subject' => 'Ticket {entity.ticket_number} has been closed',
+                'recipients' => ['employee.email'],
+                'related' => 'internal_ticket',
+            ],
+
             // ─────────────────────── EXPENSE — REIMBURSEMENTS & REQUISITIONS ──────────
             'reimbursement.submitted' => [
                 'module' => 'Expense — Reimbursements',

@@ -43,6 +43,9 @@ Schedule::command('attendance:sync-biometric')
 // Attendance regularization: flag requests past their TAT window every hour.
 Schedule::command('attendance:escalate-regularizations')->hourly();
 
+// Internal helpdesk: escalate overdue tickets per the escalation matrix.
+Schedule::command('tickets:escalate-internal')->hourly();
+
 // Leave: daily accrual credit + year-end lapse / carry-forward on Dec 31.
 Schedule::command('leave:accrue')->dailyAt('01:00');
 Schedule::command('leave:year-end')->yearlyOn(12, 31, '23:30');

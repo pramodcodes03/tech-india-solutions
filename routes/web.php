@@ -338,6 +338,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('attendance/{attendance}/edit', [HrAttendanceController::class, 'edit'])->name('attendance.edit');
             Route::patch('attendance/{attendance}', [HrAttendanceController::class, 'update'])->name('attendance.update');
 
+            // Internal helpdesk (employee tickets → department workflow)
+            Route::get('helpdesk', [\App\Http\Controllers\Admin\Hr\InternalTicketController::class, 'index'])->name('internal-tickets.index');
+            Route::get('helpdesk/config', [\App\Http\Controllers\Admin\Hr\HelpdeskConfigController::class, 'index'])->name('internal-tickets.config');
+            Route::post('helpdesk/config/categories', [\App\Http\Controllers\Admin\Hr\HelpdeskConfigController::class, 'storeCategory'])->name('internal-tickets.categories.store');
+            Route::delete('helpdesk/config/categories/{category}', [\App\Http\Controllers\Admin\Hr\HelpdeskConfigController::class, 'destroyCategory'])->name('internal-tickets.categories.destroy');
+            Route::post('helpdesk/config/levels', [\App\Http\Controllers\Admin\Hr\HelpdeskConfigController::class, 'storeLevel'])->name('internal-tickets.levels.store');
+            Route::delete('helpdesk/config/levels/{level}', [\App\Http\Controllers\Admin\Hr\HelpdeskConfigController::class, 'destroyLevel'])->name('internal-tickets.levels.destroy');
+            Route::get('helpdesk/{internalTicket}', [\App\Http\Controllers\Admin\Hr\InternalTicketController::class, 'show'])->name('internal-tickets.show');
+            Route::post('helpdesk/{internalTicket}/assign', [\App\Http\Controllers\Admin\Hr\InternalTicketController::class, 'assign'])->name('internal-tickets.assign');
+            Route::post('helpdesk/{internalTicket}/status', [\App\Http\Controllers\Admin\Hr\InternalTicketController::class, 'status'])->name('internal-tickets.status');
+            Route::post('helpdesk/{internalTicket}/comment', [\App\Http\Controllers\Admin\Hr\InternalTicketController::class, 'comment'])->name('internal-tickets.comment');
+
             // Attendance regularization (employee-raised corrections → HR review)
             Route::get('regularizations', [HrRegularizationController::class, 'index'])->name('regularizations.index');
             Route::get('regularizations/{regularization}', [HrRegularizationController::class, 'show'])->name('regularizations.show');
@@ -497,6 +509,13 @@ Route::prefix('employee')->name('employee.')->group(function () {
         // Attendance
         Route::get('attendance', [EmpAttendanceController::class, 'index'])->name('attendance.index');
         Route::post('attendance/punch', [EmpAttendanceController::class, 'punch'])->name('attendance.punch');
+
+        // Internal helpdesk tickets (self-service)
+        Route::get('tickets', [\App\Http\Controllers\Employee\TicketController::class, 'index'])->name('tickets.index');
+        Route::get('tickets/create', [\App\Http\Controllers\Employee\TicketController::class, 'create'])->name('tickets.create');
+        Route::post('tickets', [\App\Http\Controllers\Employee\TicketController::class, 'store'])->name('tickets.store');
+        Route::get('tickets/{ticket}', [\App\Http\Controllers\Employee\TicketController::class, 'show'])->name('tickets.show');
+        Route::post('tickets/{ticket}/comment', [\App\Http\Controllers\Employee\TicketController::class, 'comment'])->name('tickets.comment');
 
         // Reimbursement claims (self-service)
         Route::get('reimbursements', [\App\Http\Controllers\Employee\ReimbursementController::class, 'index'])->name('reimbursements.index');
