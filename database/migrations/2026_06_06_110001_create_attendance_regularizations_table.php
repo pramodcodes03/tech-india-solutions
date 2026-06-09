@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
             // The attendance row being corrected (may be null for a fully missed day).
-            $table->foreignId('attendance_id')->nullable()->constrained('attendances')->nullOnDelete();
+            $table->foreignId('attendance_id')->nullable()->constrained('attendance')->nullOnDelete();
             $table->date('date');
             $table->enum('request_type', ['missed_punch', 'wrong_punch', 'forgot_checkout', 'missed_day', 'other'])->default('missed_punch');
             $table->time('expected_in')->nullable();
