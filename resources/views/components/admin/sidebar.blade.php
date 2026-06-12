@@ -877,7 +877,7 @@
                 @endcanany
 
                 {{-- ========== ASSETS ========== --}}
-                @canany(['assets.view','asset_categories.view','asset_models.view','asset_locations.view','assets.assign','assets.maintenance','assets.depreciate','analytics_asset.view'])
+                @canany(['assets.view','asset_categories.view','asset_models.view','asset_locations.view','asset_statuses.view','asset_maintenance_types.view','assets.assign','assets.maintenance','assets.depreciate','analytics_asset.view'])
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Asset Management</span>
                 </h2>
@@ -923,6 +923,8 @@
                         @can('asset_categories.view')<li><a href="{{ route('admin.assets.categories.index') }}">Categories</a></li>@endcan
                         @can('asset_models.view')<li><a href="{{ route('admin.assets.models.index') }}">Models</a></li>@endcan
                         @can('asset_locations.view')<li><a href="{{ route('admin.assets.locations.index') }}">Locations</a></li>@endcan
+                        @can('asset_statuses.view')<li><a href="{{ route('admin.assets.statuses.index') }}">Statuses</a></li>@endcan
+                        @can('asset_maintenance_types.view')<li><a href="{{ route('admin.assets.maintenance-types.index') }}">Maintenance Types</a></li>@endcan
                     </ul>
                 </li>
                 @endcan

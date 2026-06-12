@@ -47,6 +47,12 @@ class BusinessService
             ]);
             $admin->assignRole('Business Admin');
 
+            // Seed default asset statuses + maintenance types for this
+            // new business so the Asset / Maintenance dropdowns are
+            // populated from day one (instead of forcing every fresh
+            // tenant to add them manually).
+            \Database\Seeders\AssetLookupSeeder::seedForBusiness($business->id);
+
             return $business;
         });
     }

@@ -61,8 +61,12 @@ class AssetController extends Controller
         $models = AssetModel::orderBy('name')->get();
         $locations = AssetLocation::orderBy('name')->get();
         $employees = Employee::whereIn('status', ['active', 'probation'])->orderBy('first_name')->get();
+        // Filter dropdown surfaces every configured status — including
+        // disabled ones — so admins can still find legacy assets tagged
+        // with a status they've since retired.
+        $assetStatuses = \App\Models\AssetStatus::orderBy('sort_order')->orderBy('label')->get();
 
-        return view('admin.assets.assets.index', compact('assets', 'kpi', 'categories', 'models', 'locations', 'employees'));
+        return view('admin.assets.assets.index', compact('assets', 'kpi', 'categories', 'models', 'locations', 'employees', 'assetStatuses'));
     }
 
     public function export(Request $request)
@@ -385,6 +389,11 @@ class AssetController extends Controller
             'vendors'    => Vendor::where('status', 'active')->orderBy('name')->get(),
             'purchaseOrders' => PurchaseOrder::with('vendor')->latest('po_date')->limit(200)->get(),
             'autofill'   => $autofill,
+            // Status dropdown is admin-configurable — see asset_statuses
+            // table. Only active rows are surfaced so disabling a status
+            // hides it from create/edit without losing historical assets
+            // that still reference its slug.
+            'assetStatuses' => \App\Models\AssetStatus::where('is_active', true)->orderBy('sort_order')->orderBy('label')->get(),
         ];
     }
 
@@ -420,7 +429,11 @@ class AssetController extends Controller
             'depreciation_method' => ['required', 'in:straight_line,declining_balance,sum_of_years_digits,units_of_production,none'],
             'useful_life_years' => ['required', 'integer', 'min:0', 'max:60'],
             'depreciation_start_date' => ['nullable', 'date'],
-            'status' => ['required', 'in:draft,in_storage,assigned,in_maintenance,retired,disposed'],
+            // Validate against the active configured statuses for this
+            // business. Inactive / soft-deleted statuses are rejected so
+            // disabling an option in the admin panel actually blocks new
+            // assets from being saved with it.
+            'status' => ['required', 'string', 'exists:asset_statuses,key'],
             'condition_rating' => ['required', 'in:excellent,good,fair,poor,damaged'],
             'notes' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'max:4096'],

@@ -45,6 +45,17 @@
                 <input name="note" placeholder="Note" class="form-input">
                 <button class="btn btn-primary w-full">Add</button>
             </form>
+
+            <div class="border-t mt-4 pt-4">
+                <div class="text-xs font-semibold text-gray-500 uppercase mb-2">Auto-compute Arrears</div>
+                <p class="text-[11px] text-gray-400 mb-2">For a backdated salary revision — books the gross difference for elapsed months.</p>
+                <form method="POST" action="{{ route('admin.hr.payroll-adjustments.arrears') }}" class="space-y-2">
+                    @csrf
+                    <input type="hidden" name="month" value="{{ $month }}"><input type="hidden" name="year" value="{{ $year }}">
+                    <select name="employee_id" class="form-select" required><option value="">— Employee —</option>@foreach($employees as $e)<option value="{{ $e->id }}">{{ $e->full_name }}</option>@endforeach</select>
+                    <button class="btn btn-outline-primary w-full">Compute &amp; Book Arrears</button>
+                </form>
+            </div>
             @endcan
         </div>
     </div>

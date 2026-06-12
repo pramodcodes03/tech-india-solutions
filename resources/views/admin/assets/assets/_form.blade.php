@@ -68,8 +68,11 @@
         <div>
             <label class="form-label">Status <span class="text-danger">*</span></label>
             <select name="status" class="form-select" required>
-                @foreach(['draft','in_storage','assigned','in_maintenance','retired','disposed'] as $s)
-                    <option value="{{ $s }}" @selected(old('status', $a?->status ?? 'in_storage') === $s)>{{ ucwords(str_replace('_',' ', $s)) }}</option>
+                {{-- $assetStatuses comes from AssetController::create()/edit(),
+                     a collection of active AssetStatus rows. The dropdown is
+                     fully admin-configurable from Asset Management → Statuses. --}}
+                @foreach($assetStatuses as $s)
+                    <option value="{{ $s->key }}" @selected(old('status', $a?->status ?? 'in_storage') === $s->key)>{{ $s->label }}</option>
                 @endforeach
             </select>
         </div>

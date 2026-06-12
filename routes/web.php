@@ -406,6 +406,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Payroll adjustments (incentive / arrears / bonus / extra deduction)
             Route::get('payroll-adjustments', [\App\Http\Controllers\Admin\Hr\PayrollAdjustmentController::class, 'index'])->name('payroll-adjustments.index');
             Route::post('payroll-adjustments', [\App\Http\Controllers\Admin\Hr\PayrollAdjustmentController::class, 'store'])->name('payroll-adjustments.store');
+            Route::post('payroll-adjustments/arrears', [\App\Http\Controllers\Admin\Hr\PayrollAdjustmentController::class, 'generateArrears'])->name('payroll-adjustments.arrears');
             Route::delete('payroll-adjustments/{adjustment}', [\App\Http\Controllers\Admin\Hr\PayrollAdjustmentController::class, 'destroy'])->name('payroll-adjustments.destroy');
 
             // Statutory: compliance registers, challans, bank export, TDS slabs, Form 16
@@ -485,6 +486,21 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::resource('categories', \App\Http\Controllers\Admin\Asset\CategoryController::class)->except(['show']);
             Route::resource('locations', \App\Http\Controllers\Admin\Asset\LocationController::class)->except(['show']);
 
+            // Dynamic dropdown lookups — admins can add their own values
+            // beyond the seeded defaults. Each list is a single-page CRUD
+            // (no separate create/edit screens); the index view does it all.
+            Route::get('statuses', [\App\Http\Controllers\Admin\Asset\StatusController::class, 'index'])->name('statuses.index');
+            Route::post('statuses', [\App\Http\Controllers\Admin\Asset\StatusController::class, 'store'])->name('statuses.store');
+            Route::patch('statuses/{status}', [\App\Http\Controllers\Admin\Asset\StatusController::class, 'update'])->name('statuses.update');
+            Route::patch('statuses/{status}/toggle', [\App\Http\Controllers\Admin\Asset\StatusController::class, 'toggle'])->name('statuses.toggle');
+            Route::delete('statuses/{status}', [\App\Http\Controllers\Admin\Asset\StatusController::class, 'destroy'])->name('statuses.destroy');
+
+            Route::get('maintenance-types', [\App\Http\Controllers\Admin\Asset\MaintenanceTypeController::class, 'index'])->name('maintenance-types.index');
+            Route::post('maintenance-types', [\App\Http\Controllers\Admin\Asset\MaintenanceTypeController::class, 'store'])->name('maintenance-types.store');
+            Route::patch('maintenance-types/{type}', [\App\Http\Controllers\Admin\Asset\MaintenanceTypeController::class, 'update'])->name('maintenance-types.update');
+            Route::patch('maintenance-types/{type}/toggle', [\App\Http\Controllers\Admin\Asset\MaintenanceTypeController::class, 'toggle'])->name('maintenance-types.toggle');
+            Route::delete('maintenance-types/{type}', [\App\Http\Controllers\Admin\Asset\MaintenanceTypeController::class, 'destroy'])->name('maintenance-types.destroy');
+
             Route::resource('models', \App\Http\Controllers\Admin\Asset\ModelController::class)->parameters(['models' => 'model']);
             Route::post('models/{model}/discontinue', [\App\Http\Controllers\Admin\Asset\ModelController::class, 'discontinue'])->name('models.discontinue');
 
@@ -556,6 +572,9 @@ Route::prefix('employee')->name('employee.')->group(function () {
         // Attendance
         Route::get('attendance', [EmpAttendanceController::class, 'index'])->name('attendance.index');
         Route::post('attendance/punch', [EmpAttendanceController::class, 'punch'])->name('attendance.punch');
+
+        // My referrals (candidates this employee referred + status)
+        Route::get('referrals', [\App\Http\Controllers\Employee\ReferralController::class, 'index'])->name('referrals.index');
 
         // Internal helpdesk tickets (self-service)
         Route::get('tickets', [\App\Http\Controllers\Employee\TicketController::class, 'index'])->name('tickets.index');

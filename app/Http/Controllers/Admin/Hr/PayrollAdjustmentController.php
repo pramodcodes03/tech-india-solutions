@@ -44,6 +44,29 @@ class PayrollAdjustmentController extends Controller
         return back()->with('success', 'Adjustment added. It will apply on the next payroll run for that month.');
     }
 
+    /**
+     * Auto-compute arrears for a backdated salary revision and book it as an
+     * arrears adjustment for the selected month.
+     */
+    public function generateArrears(Request $request, \App\Services\ArrearsService $service)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('payroll_adjustments.manage'), 403);
+        $data = $request->validate([
+            'employee_id' => ['required', 'exists:employees,id'],
+            'month' => ['required', 'integer', 'between:1,12'],
+            'year' => ['required', 'integer', 'between:2020,2100'],
+        ]);
+
+        $employee = Employee::findOrFail($data['employee_id']);
+        $result = $service->generate($employee, (int) $data['month'], (int) $data['year']);
+
+        if (! $result['applicable']) {
+            return back()->with('warning', "No arrears booked: {$result['reason']}");
+        }
+
+        return back()->with('success', "Arrears of {$result['arrears']} booked for {$employee->full_name} ({$result['reason']}).");
+    }
+
     public function destroy(PayrollAdjustment $adjustment)
     {
         abort_unless(Auth::guard('admin')->user()->can('payroll_adjustments.manage'), 403);

@@ -38,8 +38,9 @@ class BulkController extends Controller
         $categories = AssetCategory::orderBy('name')->get();
         $locations = AssetLocation::orderBy('name')->get();
         $employees = Employee::whereIn('status', ['active', 'probation'])->orderBy('first_name')->get();
+        $assetStatuses = \App\Models\AssetStatus::where('is_active', true)->orderBy('sort_order')->orderBy('label')->get();
 
-        return view('admin.assets.bulk.index', compact('assets', 'categories', 'locations', 'employees'));
+        return view('admin.assets.bulk.index', compact('assets', 'categories', 'locations', 'employees', 'assetStatuses'));
     }
 
     public function apply(Request $request)
@@ -55,7 +56,7 @@ class BulkController extends Controller
             'employee_id' => ['nullable', 'exists:employees,id'],
             'category_id' => ['nullable', 'exists:asset_categories,id'],
             'location_id' => ['nullable', 'exists:asset_locations,id'],
-            'status' => ['nullable', 'in:draft,in_storage,assigned,in_maintenance,retired,disposed'],
+            'status' => ['nullable', 'string', 'exists:asset_statuses,key'],
             'condition_rating' => ['nullable', 'in:excellent,good,fair,poor,damaged'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);

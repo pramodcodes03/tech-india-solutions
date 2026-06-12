@@ -59,7 +59,7 @@
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search code, name, serial..." class="form-input md:col-span-2" />
         <select name="category_id" class="form-select"><option value="">All categories</option>@foreach($categories as $c)<option value="{{ $c->id }}" @selected(request('category_id') == $c->id)>{{ $c->name }}</option>@endforeach</select>
         <select name="location_id" class="form-select"><option value="">All locations</option>@foreach($locations as $l)<option value="{{ $l->id }}" @selected(request('location_id') == $l->id)>{{ $l->name }}</option>@endforeach</select>
-        <select name="status" class="form-select"><option value="">All status</option>@foreach(['draft','in_storage','assigned','in_maintenance','retired','disposed'] as $s)<option value="{{ $s }}" @selected(request('status') === $s)>{{ ucwords(str_replace('_',' ', $s)) }}</option>@endforeach</select>
+        <select name="status" class="form-select"><option value="">All status</option>@foreach($assetStatuses as $s)<option value="{{ $s->key }}" @selected(request('status') === $s->key)>{{ $s->label }}</option>@endforeach</select>
         <button class="btn btn-primary">Filter</button>
     </form>
 
@@ -92,14 +92,17 @@
                         <td class="text-right">&#8377;{{ number_format($a->purchase_cost, 2) }}</td>
                         <td class="text-right text-success font-semibold">&#8377;{{ number_format($a->current_book_value, 2) }}</td>
                         <td>
-                            <span @class([
-                                'px-2 py-0.5 rounded text-xs font-semibold',
-                                'bg-success/10 text-success' => $a->status === 'assigned',
-                                'bg-info/10 text-info' => $a->status === 'in_storage',
-                                'bg-warning/10 text-warning' => $a->status === 'in_maintenance',
-                                'bg-danger/10 text-danger' => in_array($a->status, ['retired','disposed']),
-                                'bg-gray-200 text-gray-600' => $a->status === 'draft',
-                            ])>{{ $a->status_label }}</span>
+                            @php
+                                // Resolve the configured colour + label for
+                                // this asset's status from the lookup list
+                                // pre-loaded above. Falls back to a neutral
+                                // chip if the slug is unknown (e.g. a
+                                // legacy row whose status was deleted).
+                                $statusRow = $assetStatuses->firstWhere('key', $a->status);
+                                $statusColor = $statusRow?->color ?? 'secondary';
+                                $statusLabel = $statusRow?->label ?? $a->status_label;
+                            @endphp
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold bg-{{ $statusColor }}/15 text-{{ $statusColor }}">{{ $statusLabel }}</span>
                             @if($a->is_lost)<span class="ml-1 text-[10px] text-danger font-bold">⚠ LOST</span>@endif
                         </td>
                         <td class="whitespace-nowrap">

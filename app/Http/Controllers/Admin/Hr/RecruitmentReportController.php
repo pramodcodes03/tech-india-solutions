@@ -58,7 +58,28 @@ class RecruitmentReportController extends Controller
     public function export(Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('recruitment.view'), 403);
-        $filters = $request->only(['source', 'stage_id', 'status', 'from', 'to']);
+        $filters = $request->only(['source', 'stage_id', 'status', 'from', 'to', 'batch_id']);
+
+        // PDF summary (funnel + source conversion) when ?format=pdf.
+        if ($request->get('format') === 'pdf') {
+            $businessId = $this->businessId();
+            $funnel = $this->service->funnel($businessId, $filters);
+            $base = Candidate::where('business_id', $businessId)
+                ->when($filters['batch_id'] ?? null, fn ($q, $v) => $q->where('batch_id', $v))
+                ->when($filters['from'] ?? null, fn ($q, $v) => $q->whereDate('applied_at', '>=', $v))
+                ->when($filters['to'] ?? null, fn ($q, $v) => $q->whereDate('applied_at', '<=', $v));
+            $bySource = (clone $base)->select('source',
+                DB::raw('count(*) as total'),
+                DB::raw("sum(case when status='hired' then 1 else 0 end) as hired"),
+                DB::raw("sum(case when status='rejected' then 1 else 0 end) as rejected"))
+                ->groupBy('source')->get();
+            $sources = Candidate::SOURCES;
+            $business = app(CurrentBusiness::class)->get();
+
+            return \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.hr.recruitment.report-pdf',
+                compact('funnel', 'bySource', 'sources', 'business'))
+                ->stream('recruitment-report-'.date('Y-m-d').'.pdf');
+        }
 
         return Excel::download(new CandidateReportExport($filters), 'recruitment-candidates-'.date('Y-m-d').'.xlsx');
     }

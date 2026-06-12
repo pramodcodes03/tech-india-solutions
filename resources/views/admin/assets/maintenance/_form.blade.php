@@ -10,7 +10,13 @@
     <div>
         <label class="form-label">Type <span class="text-danger">*</span></label>
         <select name="type" class="form-select" required>
-            @foreach(['corrective','preventive','inspection','audit'] as $t)<option value="{{ $t }}" @selected(old('type', $l?->type ?? 'corrective') === $t)>{{ ucfirst($t) }}</option>@endforeach
+            {{-- $maintenanceTypes is passed from the controller; admin-
+                 configurable lookup. Only is_active rows are surfaced for
+                 create/edit so deactivating an option immediately hides
+                 it from new logs. --}}
+            @foreach($maintenanceTypes as $t)
+                <option value="{{ $t->key }}" @selected(old('type', $l?->type ?? 'corrective') === $t->key)>{{ $t->label }}</option>
+            @endforeach
         </select>
     </div>
     <div>

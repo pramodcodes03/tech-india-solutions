@@ -3,7 +3,10 @@
 
     <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
         <h1 class="text-2xl font-extrabold">Recruitment Reports</h1>
-        <a href="{{ route('admin.hr.recruitment.reports.export', request()->query()) }}" class="btn btn-primary">Export Excel</a>
+        <div class="flex gap-2">
+            <a href="{{ route('admin.hr.recruitment.reports.export', request()->query()) }}" class="btn btn-primary">Export Excel</a>
+            <a href="{{ route('admin.hr.recruitment.reports.export', array_merge(request()->query(), ['format'=>'pdf'])) }}" target="_blank" class="btn btn-outline-primary">Export PDF</a>
+        </div>
     </div>
 
     <form method="GET" class="panel p-4 mb-5 grid grid-cols-2 md:grid-cols-5 gap-3">
