@@ -31,7 +31,18 @@ class EmployeeImporter implements RowImporter
 
     public function sampleRow(): array
     {
-        return ['Asha', 'Verma', 'asha@example.com', '9876543210', 'Engineering', 'Software Engineer', '2026-06-01', 'permanent'];
+        return ['Asha', 'Verma', 'asha@example.com', '9876543210', 'Engineering', 'Software Engineer', '2026-06-01', 'full_time'];
+    }
+
+    /** Map free-text employment type to the employees enum, default full_time. */
+    private function normalizeEmploymentType(?string $value): string
+    {
+        $v = strtolower(trim((string) $value));
+        $v = str_replace([' ', '-'], '_', $v);
+        $map = ['permanent' => 'full_time', 'fulltime' => 'full_time', 'parttime' => 'part_time', 'temp' => 'contract', 'temporary' => 'contract', 'trainee' => 'intern'];
+        $v = $map[$v] ?? $v;
+
+        return in_array($v, ['full_time', 'part_time', 'contract', 'intern'], true) ? $v : 'full_time';
     }
 
     public function validateRow(array $row, int $businessId): array
@@ -69,7 +80,7 @@ class EmployeeImporter implements RowImporter
             'department_id' => $deptId,
             'designation_id' => $desigId,
             'joining_date' => ! empty($row['joining date']) ? date('Y-m-d', strtotime($row['joining date'])) : null,
-            'employment_type' => trim($row['employment type'] ?? '') ?: 'permanent',
+            'employment_type' => $this->normalizeEmploymentType($row['employment type'] ?? null),
             'status' => 'active',
         ]);
     }

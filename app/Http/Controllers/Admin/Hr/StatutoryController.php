@@ -64,7 +64,7 @@ class StatutoryController extends Controller
     public function settings()
     {
         abort_unless(Auth::guard('admin')->user()->can('statutory.view'), 403);
-        $keys = ['lwf_employee', 'lwf_employer', 'lwf_frequency', 'pf_wage_cap', 'tds_standard_deduction', 'professional_tax_default'];
+        $keys = ['lwf_employee', 'lwf_employer', 'lwf_frequency', 'pf_wage_cap', 'tds_standard_deduction', 'professional_tax_default', 'break_half_day_minutes'];
         $settings = [];
         foreach ($keys as $k) {
             $settings[$k] = HrSettings::get($k);
@@ -87,6 +87,7 @@ class StatutoryController extends Controller
             'pf_wage_cap' => ['required', 'numeric', 'min:0'],
             'tds_standard_deduction' => ['required', 'numeric', 'min:0'],
             'professional_tax_default' => ['nullable', 'numeric', 'min:0'],
+            'break_half_day_minutes' => ['nullable', 'integer', 'min:0', 'max:480'],
         ]);
         foreach ($data as $k => $v) {
             HrSettings::set($k, $v ?? 0, 'statutory');

@@ -18,6 +18,7 @@
                 <div><label class="text-xs text-gray-500">PF Wage Cap (EPS)</label><input type="number" step="0.01" name="pf_wage_cap" value="{{ $settings['pf_wage_cap'] }}" class="form-input"></div>
                 <div><label class="text-xs text-gray-500">TDS Standard Deduction</label><input type="number" step="0.01" name="tds_standard_deduction" value="{{ $settings['tds_standard_deduction'] }}" class="form-input"></div>
                 <div><label class="text-xs text-gray-500">Default Professional Tax</label><input type="number" step="0.01" name="professional_tax_default" value="{{ $settings['professional_tax_default'] }}" class="form-input"></div>
+                <div><label class="text-xs text-gray-500">Excess-break → ½-day LOP (mins)</label><input type="number" name="break_half_day_minutes" value="{{ $settings['break_half_day_minutes'] }}" class="form-input"></div>
             </div>
             <button class="btn btn-primary">Save Settings</button>
         </form>

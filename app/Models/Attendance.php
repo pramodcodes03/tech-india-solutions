@@ -19,7 +19,7 @@ class Attendance extends Model
         'hours_worked', 'status', 'source', 'biometric_ref',
         'remarks', 'created_by',
         'shift', 'start_time',
-        'late_hours', 'early_hours', 'over_time',
+        'late_hours', 'early_hours', 'over_time', 'break_minutes',
         'in_temp', 'out_temp', 'card_no',
     ];
 

@@ -98,6 +98,16 @@ class AttendanceService
             }
         }
 
+        // Configurable break policy: a worked day whose break exceeds the
+        // threshold becomes a half-day, which flows into payroll as 0.5-day
+        // loss of pay through the existing paid-days proration.
+        if ($data['status'] === 'present' && ! empty($data['break_minutes'])) {
+            $threshold = \App\Support\HrSettings::int('break_half_day_minutes', 60);
+            if ($threshold > 0 && (int) $data['break_minutes'] > $threshold) {
+                $data['status'] = 'half_day';
+            }
+        }
+
         return Attendance::withoutGlobalScopes()->updateOrCreate(
             ['employee_id' => $data['employee_id'], 'date' => $data['date']],
             $data

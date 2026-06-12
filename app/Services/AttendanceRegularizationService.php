@@ -59,17 +59,40 @@ class AttendanceRegularizationService
     }
 
     /**
+     * Normalise a time value (Carbon | "HH:MM" | "HH:MM:SS" | null) to H:i:s.
+     */
+    private function toTime($value): ?string
+    {
+        if (empty($value)) {
+            return null;
+        }
+        if ($value instanceof \Carbon\CarbonInterface) {
+            return $value->format('H:i:s');
+        }
+
+        return \Carbon\Carbon::createFromFormat(
+            strlen((string) $value) === 5 ? 'H:i' : 'H:i:s',
+            (string) $value
+        )->format('H:i:s');
+    }
+
+    /**
      * HR approves and (optionally) writes the corrected punches into attendance.
      */
     public function approve(AttendanceRegularization $reg, ?string $remarks = null): AttendanceRegularization
     {
         return DB::transaction(function () use ($reg, $remarks) {
             // Apply the correction to the attendance record.
+            // expected_in / expected_out and the attendance time columns are
+            // plain TIME strings (no Carbon cast) — normalise to H:i:s strings.
+            $checkIn = $this->toTime($reg->expected_in) ?? $this->toTime(optional($reg->attendance)->check_in);
+            $checkOut = $this->toTime($reg->expected_out) ?? $this->toTime(optional($reg->attendance)->check_out);
+
             $this->attendance->upsert([
                 'employee_id' => $reg->employee_id,
                 'date' => $reg->date->toDateString(),
-                'check_in' => $reg->expected_in?->format('H:i:s') ?? optional($reg->attendance)->check_in?->format('H:i:s'),
-                'check_out' => $reg->expected_out?->format('H:i:s') ?? optional($reg->attendance)->check_out?->format('H:i:s'),
+                'check_in' => $checkIn,
+                'check_out' => $checkOut,
                 'source' => 'regularization',
                 'status' => 'present',
                 'remarks' => 'Regularized: '.$reg->type_label,
