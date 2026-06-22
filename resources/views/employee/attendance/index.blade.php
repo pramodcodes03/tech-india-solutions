@@ -16,13 +16,14 @@
         </form>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
         @foreach([
             ['Present', $summary['present'], 'success'],
             ['Absent', $summary['absent'], 'danger'],
             ['Half-day', $summary['half_day'], 'warning'],
-            ['Late', $summary['late'], 'warning'],
-            ['On Leave', $summary['on_leave'], 'info'],
+            // Total leave days taken (paid + unpaid) — includes half-day leaves,
+            // so a 0.5 half-day leave is reflected here instead of showing 0.
+            ['On Leave', $summary['paid_leave_days'] + $summary['unpaid_leave_days'], 'info'],
             ['Holidays', $summary['holidays'], 'primary'],
             ['Paid Days', $summary['paid_days'], 'success'],
             ['LOP Days', $summary['lop_days'], 'danger'],
@@ -63,7 +64,6 @@
                     // Matches the legend swatches below (also /30).
                     $bg = match($status) {
                         'present'  => 'bg-success/30 text-success',
-                        'late'     => 'bg-warning/40 text-warning',
                         'half_day' => 'bg-warning/30 text-warning',
                         'absent'   => 'bg-danger/30 text-danger',
                         'on_leave' => 'bg-info/30 text-info',
@@ -88,7 +88,7 @@
         </div>
         <div class="flex flex-wrap gap-3 mt-4 text-xs">
             <span><span class="inline-block w-3 h-3 rounded bg-success/30 mr-1"></span>Present</span>
-            <span><span class="inline-block w-3 h-3 rounded bg-warning/30 mr-1"></span>Half/Late</span>
+            <span><span class="inline-block w-3 h-3 rounded bg-warning/30 mr-1"></span>Half-day</span>
             <span><span class="inline-block w-3 h-3 rounded bg-danger/30 mr-1"></span>Absent</span>
             <span><span class="inline-block w-3 h-3 rounded bg-info/30 mr-1"></span>On Leave</span>
             <span><span class="inline-block w-3 h-3 rounded bg-primary/30 mr-1"></span>Holiday</span>

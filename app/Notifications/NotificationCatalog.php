@@ -682,6 +682,16 @@ class NotificationCatalog
                 'recipients' => ['admin.all'],
                 'related' => 'expense',
             ],
+
+            // ─────────────────────── EXPENSES — BUDGETS ───────────────────────
+            'budget.assigned' => [
+                'module' => 'Expenses — Budgets',
+                'name' => 'Budget assigned to employee',
+                'description' => 'Sent to the employee when a budget is sanctioned to them.',
+                'subject' => 'A budget of ₹{entity.amount} has been assigned to you',
+                'recipients' => ['employee.email'],
+                'related' => 'expense_budget',
+            ],
         ];
     }
 

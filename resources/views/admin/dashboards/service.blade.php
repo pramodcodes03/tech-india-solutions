@@ -6,7 +6,10 @@
             <h1 class="text-2xl font-extrabold">Service & Support Dashboard</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400">Tickets, SLA compliance, workload & response times.</p>
         </div>
-        <a href="{{ route('admin.service-tickets.create') }}" class="btn btn-sm btn-primary">+ New Ticket</a>
+        <div class="flex items-center gap-2 flex-wrap">
+            @include('admin.dashboards._daterange')
+            <a href="{{ route('admin.service-tickets.create') }}" class="btn btn-sm btn-primary">+ New Ticket</a>
+        </div>
     </div>
 
     {{-- KPI Row --}}

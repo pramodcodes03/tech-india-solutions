@@ -86,9 +86,9 @@ class LeaveService
      * If $paidDays is null, the full request is approved as paid against the chosen type.
      * Any unpaid portion is recorded as unpaid_days and shows up as LOP on payroll.
      */
-    public function approve(LeaveRequest $request, ?int $approverId, ?string $remarks = null, ?float $paidDays = null): LeaveRequest
+    public function approve(LeaveRequest $request, ?int $approverId, ?string $remarks = null, ?float $paidDays = null, ?int $approverEmployeeId = null): LeaveRequest
     {
-        return DB::transaction(function () use ($request, $approverId, $remarks, $paidDays) {
+        return DB::transaction(function () use ($request, $approverId, $remarks, $paidDays, $approverEmployeeId) {
             if ($request->status !== 'pending') {
                 return $request;
             }
@@ -117,6 +117,7 @@ class LeaveService
                 'paid_days' => $paid,
                 'unpaid_days' => $unpaid,
                 'approver_id' => $approverId,
+                'approver_employee_id' => $approverEmployeeId,
                 'actioned_at' => now(),
                 'approver_remarks' => $remarks,
             ]);
@@ -135,9 +136,9 @@ class LeaveService
         });
     }
 
-    public function reject(LeaveRequest $request, ?int $approverId, ?string $remarks = null): LeaveRequest
+    public function reject(LeaveRequest $request, ?int $approverId, ?string $remarks = null, ?int $approverEmployeeId = null): LeaveRequest
     {
-        return DB::transaction(function () use ($request, $approverId, $remarks) {
+        return DB::transaction(function () use ($request, $approverId, $remarks, $approverEmployeeId) {
             if ($request->status !== 'pending') {
                 return $request;
             }
@@ -150,6 +151,7 @@ class LeaveService
             $request->update([
                 'status' => 'rejected',
                 'approver_id' => $approverId,
+                'approver_employee_id' => $approverEmployeeId,
                 'actioned_at' => now(),
                 'approver_remarks' => $remarks,
             ]);

@@ -3,6 +3,14 @@
     $sidebarOpenTickets = \App\Models\ServiceTicket::whereNotIn('status', ['closed', 'resolved'])->count();
 @endphp
 
+<style>
+    /* Highlight the link(s) matched by the sidebar search box. */
+    .sidebar a.search-match {
+        background-color: rgba(67, 97, 238, 0.12);
+        color: #4361ee !important;
+        border-radius: 6px;
+    }
+</style>
 <div :class="{ 'dark text-white-dark': $store.app.semidark }">
     <nav x-data="sidebar"
         class="sidebar fixed min-h-screen h-full top-0 bottom-0 shadow-[5px_0_25px_0_rgba(94,92,154,0.1)] z-50 transition-all duration-300"
@@ -441,6 +449,7 @@
                         @can('reimbursements.view')<li><a href="{{ route('admin.reimbursements.index') }}">Reimbursements</a></li>@endcan
                         @can('budgets.view')<li><a href="{{ route('admin.budgets.index') }}">Budgets</a></li>@endcan
                         @can('requisitions.view')<li><a href="{{ route('admin.requisitions.index') }}">Requisitions</a></li>@endcan
+                        @can('requisition_categories.view')<li><a href="{{ route('admin.requisition-categories.index') }}">Requisition Categories</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -1141,24 +1150,45 @@
                 const currentPath = window.location.pathname.replace(/\/$/, '');
                 const scrollEl    = this.$el.querySelector('.perfect-scrollbar');
 
-                // Mark active links
+                // Mark active links — exact match first, then best prefix match
+                // so a deep page (e.g. /admin/leads/5/edit) still lights up its
+                // menu link (/admin/leads).
+                let activeLink = null;
+                let bestLen = -1;
                 this.$el.querySelectorAll('a[href]').forEach(link => {
                     let lp = link.getAttribute('href').replace(/\/$/, '');
                     if (lp.startsWith('http')) {
                         try { lp = new URL(lp).pathname.replace(/\/$/, ''); } catch(e) {}
                     }
-                    if (lp === currentPath) link.classList.add('active');
+                    if (!lp || lp === '/admin') return;
+                    const isExact  = lp === currentPath;
+                    const isPrefix = currentPath === lp || currentPath.startsWith(lp + '/');
+                    if (isExact || isPrefix) {
+                        if (isExact) link.classList.add('active');
+                        if (lp.length > bestLen) { bestLen = lp.length; activeLink = link; }
+                    }
                 });
 
-                // Scroll after x-collapse finishes expanding (its default duration is ~300ms)
-                if (scrollEl) {
-                    setTimeout(() => {
-                        const activeLink = scrollEl.querySelector('ul.sub-menu a.active')
-                                       || scrollEl.querySelector('a.active');
-                        if (!activeLink) return;
+                if (activeLink && !activeLink.classList.contains('active')) {
+                    activeLink.classList.add('active');
+                }
 
-                        // Walk up to the parent <li class="menu nav-item"> so we scroll to
-                        // the dropdown button, not just the sub-link buried inside
+                // Open the dropdown that contains the active link — derive the
+                // key straight from the parent menu button's @click expression so
+                // this works for EVERY menu without a hand-maintained map.
+                if (activeLink) {
+                    const parentItem = activeLink.closest('li.menu.nav-item');
+                    const btn = parentItem?.querySelector(':scope > button');
+                    const expr = (btn?.getAttribute('@click') || btn?.getAttribute('x-on:click') || '');
+                    const m = expr.match(/===\s*'([^']+)'/);
+                    if (m && m[1]) {
+                        this.activeDropdown = m[1];
+                    }
+                }
+
+                // Scroll after x-collapse finishes expanding (its default duration is ~300ms)
+                if (scrollEl && activeLink) {
+                    setTimeout(() => {
                         const parentItem = activeLink.closest('li.menu.nav-item') || activeLink;
 
                         const containerRect = scrollEl.getBoundingClientRect();
@@ -1197,12 +1227,53 @@
         const ul = document.querySelector('.sidebar .perfect-scrollbar');
         if (!ul) return;
 
-        // Show/hide each menu item
         ul.querySelectorAll('li.menu.nav-item').forEach(li => {
-            li.style.display = (!q || li.textContent.toLowerCase().includes(q)) ? '' : 'none';
+            const subMenu = li.querySelector('ul.sub-menu');
+
+            // ── No query: restore everything to its normal (Alpine-driven) state.
+            if (!q) {
+                li.style.display = '';
+                if (subMenu) {
+                    subMenu.style.removeProperty('display');
+                    subMenu.style.removeProperty('height');
+                    subMenu.querySelectorAll(':scope > li').forEach(child => {
+                        child.style.display = '';
+                    });
+                }
+                li.querySelectorAll('a').forEach(a => a.classList.remove('search-match'));
+                return;
+            }
+
+            // ── Query present.
+            // The label is the FIRST link/button text inside this nav item.
+            const headEl    = li.querySelector(':scope > a, :scope > button');
+            const headText  = (headEl ? headEl.textContent : '').toLowerCase();
+            const parentHit = headText.includes(q);
+
+            let childHit = false;
+            if (subMenu) {
+                subMenu.querySelectorAll(':scope > li').forEach(child => {
+                    const hit = child.textContent.toLowerCase().includes(q);
+                    // Show the whole submenu when the parent label matches,
+                    // otherwise show only matching child links.
+                    child.style.display = (parentHit || hit) ? '' : 'none';
+                    child.querySelectorAll('a').forEach(a => a.classList.toggle('search-match', hit));
+                    if (hit) childHit = true;
+                });
+            }
+
+            const visible = parentHit || childHit;
+            li.style.display = visible ? '' : 'none';
+
+            // Force-expand the dropdown so matches inside a collapsed submenu
+            // are actually visible (overrides Alpine's x-show=false inline style).
+            if (visible && subMenu) {
+                subMenu.style.setProperty('display', 'block', 'important');
+                subMenu.style.removeProperty('height');
+            }
         });
 
-        // Show/hide section headers: hide if no visible li follows before the next h2
+        // Section headers: hide if no visible nav item follows before the next h2.
         ul.querySelectorAll('h2').forEach(h2 => {
             if (!q) { h2.style.display = ''; return; }
             let sibling = h2.nextElementSibling;

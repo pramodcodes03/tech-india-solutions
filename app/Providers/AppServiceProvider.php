@@ -8,6 +8,7 @@ use App\Support\Tenancy\CurrentBusiness;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
@@ -32,6 +33,13 @@ class AppServiceProvider extends ServiceProvider
         Auth::provider('tenant-aware-eloquent', function ($app, array $config) {
             return new TenantAwareUserProvider($app['hash'], $config['model']);
         });
+
+        // Numbered pagination ("1 2 3 … last") everywhere. The framework's
+        // default Tailwind view hides its number block behind sm:* classes that
+        // our build never compiles (vendor/ isn't scanned), so it only showed
+        // Prev/Next. This custom view lives under resources/ and always renders
+        // the page numbers.
+        Paginator::defaultView('vendor.pagination.numbered');
 
         Relation::morphMap([
             'sales_order'       => \App\Models\SalesOrder::class,

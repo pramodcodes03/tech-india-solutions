@@ -6,7 +6,8 @@
             <h1 class="text-2xl font-extrabold">Sales Dashboard</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400">Leads, quotations, orders, invoices & receivables.</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+            @include('admin.dashboards._daterange')
             <a href="{{ route('admin.leads.create') }}" class="btn btn-sm btn-outline-primary">+ Lead</a>
             <a href="{{ route('admin.quotations.create') }}" class="btn btn-sm btn-outline-info">+ Quotation</a>
             <a href="{{ route('admin.invoices.create') }}" class="btn btn-sm btn-primary">+ Invoice</a>

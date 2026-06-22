@@ -12,7 +12,7 @@
     <p>Good news — your leave request has been approved. Enjoy your time off and please ensure handovers are in place before you leave.</p>
 
     <table class="meta-table">
-        <tr><td class="label">Leave Type</td><td class="val">{{ $entity?->leave_type ?? '—' }}</td></tr>
+        <tr><td class="label">Leave Type</td><td class="val">{{ $entity?->leaveType?->name ?? '—' }}</td></tr>
         <tr><td class="label">From</td><td class="val">{{ \Carbon\Carbon::parse($entity?->from_date)->format('d M Y') }}</td></tr>
         <tr><td class="label">To</td><td class="val">{{ \Carbon\Carbon::parse($entity?->to_date)->format('d M Y') }}</td></tr>
         <tr><td class="label">Days</td><td class="val">{{ $entity?->days ?? '—' }}</td></tr>

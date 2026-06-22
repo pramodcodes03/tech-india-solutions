@@ -16,15 +16,15 @@
                 <div><dt class="text-gray-500">Department</dt><dd>{{ $regularization->employee->department?->name ?? '—' }}</dd></div>
                 <div><dt class="text-gray-500">Date</dt><dd>{{ $regularization->date->format('d M Y') }}</dd></div>
                 <div><dt class="text-gray-500">Request Type</dt><dd>{{ $regularization->type_label }}</dd></div>
-                <div><dt class="text-gray-500">Expected Check-in</dt><dd>{{ $regularization->expected_in ? $regularization->expected_in->format('H:i') : '—' }}</dd></div>
-                <div><dt class="text-gray-500">Expected Check-out</dt><dd>{{ $regularization->expected_out ? $regularization->expected_out->format('H:i') : '—' }}</dd></div>
+                <div><dt class="text-gray-500">Expected Check-in</dt><dd>{{ $regularization->expected_in_time ?? '—' }}</dd></div>
+                <div><dt class="text-gray-500">Expected Check-out</dt><dd>{{ $regularization->expected_out_time ?? '—' }}</dd></div>
             </dl>
             <div>
                 <dt class="text-gray-500 text-sm">Reason</dt>
                 <dd class="mt-1 p-3 bg-gray-50 dark:bg-[#0e1726] rounded-lg text-sm whitespace-pre-line">{{ $regularization->reason }}</dd>
             </div>
             @if($regularization->attendance)
-                <div class="text-sm text-gray-500">Current record: in {{ $regularization->attendance->check_in?->format('H:i') ?? '—' }}, out {{ $regularization->attendance->check_out?->format('H:i') ?? '—' }} ({{ $regularization->attendance->status }})</div>
+                <div class="text-sm text-gray-500">Current record: in {{ $regularization->attendance->check_in ? \Carbon\Carbon::parse($regularization->attendance->check_in)->format('H:i') : '—' }}, out {{ $regularization->attendance->check_out ? \Carbon\Carbon::parse($regularization->attendance->check_out)->format('H:i') : '—' }} ({{ $regularization->attendance->status }})</div>
             @endif
             @if($regularization->reviewed_at)
                 <div class="text-sm text-gray-500 border-t pt-3">Reviewed by {{ $regularization->reviewer?->name }} on {{ $regularization->reviewed_at->format('d M Y H:i') }}. {{ $regularization->review_remarks }}</div>
@@ -40,6 +40,17 @@
                 @can('attendance_corrections.manage')
                     <form method="POST" action="{{ route('admin.hr.regularizations.approve', $regularization) }}" class="space-y-2 mb-3">
                         @csrf
+                        <div>
+                            <label class="text-[11px] font-semibold text-gray-500 uppercase">Mark Attendance As</label>
+                            <select name="resulting_status" class="form-select mt-1">
+                                <option value="">Auto (from corrected times)</option>
+                                <option value="present">Present</option>
+                                <option value="half_day">Half-day</option>
+                                <option value="on_leave">On Leave</option>
+                                <option value="absent">Absent</option>
+                            </select>
+                            <p class="text-[10px] text-gray-400 mt-1">"Auto" derives the status from the corrected check-in/out (short day → half-day).</p>
+                        </div>
                         <input type="text" name="review_remarks" placeholder="Remarks (optional)" class="form-input">
                         <button class="btn btn-success w-full" onclick="return confirm('Approve and correct attendance?')">Approve & Apply</button>
                     </form>

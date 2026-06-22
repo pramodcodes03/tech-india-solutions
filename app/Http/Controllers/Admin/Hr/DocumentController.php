@@ -72,7 +72,19 @@ class DocumentController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('employee_documents.view'), 403);
         abort_unless($document->file_path && Storage::disk('public')->exists($document->file_path), 404);
 
-        return Storage::disk('public')->download($document->file_path, $document->title);
+        // Keep the real extension so the file opens in the right app.
+        return Storage::disk('public')->download($document->file_path, $document->download_name);
+    }
+
+    /**
+     * Open the document inline (PDF / image preview) in the browser.
+     */
+    public function view(EmployeeDocument $document)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('employee_documents.view'), 403);
+        abort_unless($document->file_path && Storage::disk('public')->exists($document->file_path), 404);
+
+        return response()->file(Storage::disk('public')->path($document->file_path));
     }
 
     /**

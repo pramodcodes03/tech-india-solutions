@@ -15,7 +15,18 @@ use Illuminate\Support\Facades\Auth;
 
 class EmployeeController extends Controller
 {
+    /** Allowed page sizes for the employee list. */
+    private const PAGE_SIZES = [15, 50, 100, 200];
+
     public function __construct(protected EmployeeService $service) {}
+
+    /** Resolve a safe per-page size from the request (defaults to 15). */
+    private function perPage(Request $request): int
+    {
+        $pp = (int) $request->input('per_page', 15);
+
+        return in_array($pp, self::PAGE_SIZES, true) ? $pp : 15;
+    }
 
     public function index(Request $request)
     {
@@ -33,13 +44,73 @@ class EmployeeController extends Controller
             ->when($request->designation_id, fn ($q, $id) => $q->where('designation_id', $id))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->latest()
-            ->paginate(15)
+            ->paginate($this->perPage($request))
             ->withQueryString();
 
         $departments = Department::where('status', 'active')->orderBy('name')->get();
         $designations = Designation::where('status', 'active')->orderBy('name')->get();
+        $shifts = Shift::where('status', 'active')->orderBy('name')->get();
+        $managers = Employee::whereIn('status', ['active', 'probation'])->orderBy('first_name')->get(['id', 'first_name', 'last_name', 'employee_code']);
+        $pageSizes = self::PAGE_SIZES;
+        $perPage = $this->perPage($request);
 
-        return view('admin.hr.employees.index', compact('employees', 'departments', 'designations'));
+        return view('admin.hr.employees.index', compact('employees', 'departments', 'designations', 'shifts', 'managers', 'pageSizes', 'perPage'));
+    }
+
+    /**
+     * Bulk-edit dropdown fields on selected employees. Only the fields the user
+     * actually chose a value for are applied; the rest are left untouched.
+     */
+    public function bulkAction(Request $request)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('employees.edit'), 403);
+
+        $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'department_id' => ['nullable', 'exists:departments,id'],
+            'designation_id' => ['nullable', 'exists:designations,id'],
+            'shift_id' => ['nullable', 'exists:shifts,id'],
+            'reporting_manager_id' => ['nullable', 'exists:employees,id'],
+            'employment_type' => ['nullable', 'in:full_time,part_time,contract,intern'],
+            'work_mode' => ['nullable', 'in:on_site,remote,hybrid'],
+            'status' => ['nullable', 'in:active,probation,on_notice,terminated,resigned,absconded,inactive'],
+        ]);
+
+        // Collect only the dropdowns that were given a value.
+        $fields = ['department_id', 'designation_id', 'shift_id', 'reporting_manager_id', 'employment_type', 'work_mode', 'status'];
+        $changes = [];
+        foreach ($fields as $f) {
+            if ($request->filled($f)) {
+                $changes[$f] = $request->input($f);
+            }
+        }
+
+        if (empty($changes)) {
+            return back()->with('warning', 'No fields were chosen to update.');
+        }
+
+        $employees = Employee::whereIn('id', $request->ids)->get();
+        if ($employees->isEmpty()) {
+            return back()->with('warning', 'No matching employees found.');
+        }
+
+        // Guard: an employee cannot be set as their own reporting manager.
+        $managerId = $changes['reporting_manager_id'] ?? null;
+
+        $count = 0;
+        foreach ($employees as $employee) {
+            $apply = $changes;
+            if ($managerId && (int) $managerId === $employee->id) {
+                unset($apply['reporting_manager_id']); // skip self-manager for this one
+            }
+            if (! empty($apply)) {
+                $employee->fill($apply)->save();
+                $count++;
+            }
+        }
+
+        return back()->with('success', "Updated ".count($changes)." field(s) on {$count} employee(s).");
     }
 
     public function create()

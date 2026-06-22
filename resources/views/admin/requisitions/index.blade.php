@@ -4,6 +4,7 @@
         <h1 class="text-2xl font-extrabold">Purchase Requisitions</h1>
         <div class="flex gap-2">
             <a href="{{ route('admin.requisitions.report') }}" class="btn btn-outline-secondary">Reports</a>
+            @can('requisition_categories.view')<a href="{{ route('admin.requisition-categories.index') }}" class="btn btn-outline-secondary">Categories</a>@endcan
             @can('requisitions.create')<a href="{{ route('admin.requisitions.create') }}" class="btn btn-primary">+ New Requisition</a>@endcan
         </div>
     </div>
@@ -17,7 +18,7 @@
         </select>
         <select name="category" class="form-select w-auto" onchange="this.form.submit()">
             <option value="">All Categories</option>
-            @foreach(\App\Models\Requisition::CATEGORIES as $v=>$l)<option value="{{ $v }}" @selected(request('category')===$v)>{{ $l }}</option>@endforeach
+            @foreach($categories as $v=>$l)<option value="{{ $v }}" @selected(request('category')===$v)>{{ $l }}</option>@endforeach
         </select>
     </form>
 

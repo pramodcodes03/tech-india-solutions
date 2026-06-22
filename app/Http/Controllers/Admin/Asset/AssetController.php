@@ -24,6 +24,19 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class AssetController extends Controller
 {
+    /** Allowed page sizes for the asset register. */
+    private const PAGE_SIZES = [20, 50, 100, 200];
+
+    /**
+     * Resolve a safe per-page size from the request (defaults to 20).
+     */
+    private function perPage(Request $request): int
+    {
+        $pp = (int) $request->input('per_page', 20);
+
+        return in_array($pp, self::PAGE_SIZES, true) ? $pp : 20;
+    }
+
     public function index(Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('assets.view'), 403);
@@ -40,7 +53,7 @@ class AssetController extends Controller
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->custodian_id, fn ($q, $id) => $q->where('current_custodian_id', $id))
             ->latest()
-            ->paginate(20)
+            ->paginate($this->perPage($request))
             ->withQueryString();
 
         $kpi = [
@@ -66,7 +79,16 @@ class AssetController extends Controller
         // with a status they've since retired.
         $assetStatuses = \App\Models\AssetStatus::orderBy('sort_order')->orderBy('label')->get();
 
-        return view('admin.assets.assets.index', compact('assets', 'kpi', 'categories', 'models', 'locations', 'employees', 'assetStatuses'));
+        // Live count for EVERY status so admins can see all assets accounted for
+        // at a glance (not just the headline Assigned / Maintenance / Lost cards).
+        $statusCounts = Asset::selectRaw('status, count(*) as c')
+            ->groupBy('status')
+            ->pluck('c', 'status');
+
+        $pageSizes = self::PAGE_SIZES;
+        $perPage = $this->perPage($request);
+
+        return view('admin.assets.assets.index', compact('assets', 'kpi', 'categories', 'models', 'locations', 'employees', 'assetStatuses', 'statusCounts', 'pageSizes', 'perPage'));
     }
 
     public function export(Request $request)
@@ -129,7 +151,8 @@ class AssetController extends Controller
 
         $result = $service->import($request->file('file'), $business->id);
 
-        $msg = "Imported {$result['imported']} assets";
+        $updated = $result['updated'] ?? 0;
+        $msg = "Imported {$result['imported']} new asset(s), updated {$updated} existing";
         if ($result['failed'] > 0) {
             $msg .= ", skipped {$result['failed']} row(s) — see details below.";
         } else {

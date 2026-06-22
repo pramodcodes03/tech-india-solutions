@@ -15,7 +15,7 @@
                         <tr>
                             <td>{{ $r->date->format('d M Y') }}</td>
                             <td>{{ $r->type_label }}</td>
-                            <td class="text-sm">{{ $r->expected_in ? $r->expected_in->format('H:i') : '—' }} / {{ $r->expected_out ? $r->expected_out->format('H:i') : '—' }}</td>
+                            <td class="text-sm">{{ $r->expected_in_time ?? '—' }} / {{ $r->expected_out_time ?? '—' }}</td>
                             <td class="text-sm max-w-xs truncate" title="{{ $r->reason }}">{{ $r->reason }}</td>
                             <td>
                                 @php $sc = ['pending'=>'warning','approved'=>'success','rejected'=>'danger','cancelled'=>'secondary'][$r->status]; @endphp

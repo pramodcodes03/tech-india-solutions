@@ -33,6 +33,9 @@
                     @if($doc->verification_remarks)<div class="text-xs text-gray-600 mt-2 p-2 bg-gray-50 dark:bg-[#0e1726] rounded">Remarks: {{ $doc->verification_remarks }}</div>@endif
 
                     <div class="flex items-center gap-3 mt-3 flex-wrap">
+                        @if($doc->is_viewable)
+                            <a href="{{ route('admin.hr.employee-documents.view', $doc) }}" target="_blank" rel="noopener" class="text-primary text-sm font-semibold">View</a>
+                        @endif
                         <a href="{{ route('admin.hr.employee-documents.download', $doc) }}" class="text-primary text-sm font-semibold">Download</a>
                         @can('employee_documents.verify')
                             @if($doc->verification_status !== 'verified')

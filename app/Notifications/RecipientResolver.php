@@ -40,11 +40,29 @@ class RecipientResolver
             $recipients = $this->allAdmins($business)->merge($this->superAdmins());
         }
 
+        // Super-admin oversight: any event that targets internal admin staff
+        // (a role, the creator, or all-admins) is ALSO sent to super admins,
+        // so they receive every important notification across all businesses.
+        // Purely external events (only customer / vendor / employee) are left
+        // alone — super admins aren't CC'd on a customer's invoice email.
+        if ($this->targetsInternalAdmin($roleKeys)) {
+            $recipients = $recipients->merge($this->superAdmins());
+        }
+
         // De-dupe by email (case-insensitive).
         return $recipients
             ->filter(fn ($r) => ! empty($r['email']))
             ->unique(fn ($r) => strtolower($r['email']))
             ->values();
+    }
+
+    /**
+     * True if any requested recipient targets internal admin staff — an
+     * admin.role:*, admin.creator, admin.all, or admin.super key.
+     */
+    protected function targetsInternalAdmin(array $roleKeys): bool
+    {
+        return collect($roleKeys)->contains(fn ($r) => str_starts_with($r, 'admin.'));
     }
 
     /**

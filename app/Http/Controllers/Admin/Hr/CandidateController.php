@@ -56,8 +56,12 @@ class CandidateController extends Controller
         $stages = RecruitmentStage::where('business_id', $this->businessId())->ordered()->get();
         $batches = RecruitmentBatch::orderByDesc('drive_date')->get();
         $sources = Candidate::SOURCES;
+        $departments = Department::orderBy('name')->get(['id', 'name']);
+        $designations = Designation::orderBy('name')->get(['id', 'name']);
+        $employees = Employee::orderBy('first_name')->get(['id', 'first_name', 'last_name', 'employee_code']);
 
-        return view('admin.hr.recruitment.index', compact('candidates', 'stages', 'batches', 'sources'));
+        return view('admin.hr.recruitment.index', compact('candidates', 'stages', 'batches', 'sources',
+            'departments', 'designations', 'employees'));
     }
 
     /**
@@ -172,6 +176,100 @@ class CandidateController extends Controller
     }
 
     /**
+     * Dropdown fields exposed to bulk edit. A field is applied only when the
+     * user actually chose a value (left blank = untouched).
+     */
+    private const BULK_FIELDS = [
+        'source', 'referred_by_employee_id', 'batch_id',
+        'department_id', 'designation_id', 'stage_id', 'status',
+    ];
+
+    /**
+     * Bulk operations on selected candidates from the list view:
+     *  - action=edit   : apply the chosen dropdown values at once
+     *  - action=delete : remove the selected candidates
+     */
+    public function bulkAction(Request $request)
+    {
+        $request->validate([
+            'action' => ['required', 'in:edit,delete'],
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+
+            'source' => ['nullable', 'in:walkin,referral,campus,online,agency,other'],
+            'referred_by_employee_id' => ['nullable', 'exists:employees,id'],
+            'batch_id' => ['nullable', 'exists:recruitment_batches,id'],
+            'department_id' => ['nullable', 'exists:departments,id'],
+            'designation_id' => ['nullable', 'exists:designations,id'],
+            'stage_id' => ['nullable', 'exists:recruitment_stages,id'],
+            'status' => ['nullable', 'in:active,hired,rejected,withdrawn'],
+        ]);
+
+        $businessId = $this->businessId();
+        $candidates = Candidate::where('business_id', $businessId)
+            ->whereIn('id', $request->ids)
+            ->get();
+
+        if ($candidates->isEmpty()) {
+            return back()->with('warning', 'No matching candidates were found.');
+        }
+
+        $count = $candidates->count();
+
+        if ($request->action === 'delete') {
+            abort_unless(Auth::guard('admin')->user()->can('recruitment.delete'), 403);
+            foreach ($candidates as $candidate) {
+                $candidate->delete();
+            }
+
+            return back()->with('success', "Deleted {$count} candidate(s).");
+        }
+
+        // action = edit — apply every dropdown the user actually chose a value for.
+        abort_unless(Auth::guard('admin')->user()->can('recruitment.edit'), 403);
+
+        $apply = [];
+        foreach (self::BULK_FIELDS as $field) {
+            if ($request->filled($field)) {
+                $apply[$field] = $request->input($field);
+            }
+        }
+
+        if (empty($apply)) {
+            return back()->with('warning', 'No dropdown values were chosen.');
+        }
+
+        // Stage changes go through the service so history + derived status stay correct.
+        $stage = null;
+        if (array_key_exists('stage_id', $apply)) {
+            $stage = RecruitmentStage::where('business_id', $businessId)->findOrFail($apply['stage_id']);
+            unset($apply['stage_id']);
+        }
+
+        foreach ($candidates as $candidate) {
+            if ($stage) {
+                $this->service->moveToStage($candidate, $stage);
+            }
+
+            if (! empty($apply)) {
+                if (array_key_exists('status', $apply)) {
+                    if ($apply['status'] === 'hired' && ! $candidate->hired_at) {
+                        $candidate->hired_at = now();
+                    }
+                    if ($apply['status'] === 'rejected') {
+                        $candidate->rejected_at = $candidate->rejected_at ?? now();
+                    }
+                }
+                $candidate->fill($apply)->save();
+            }
+        }
+
+        $fieldCount = count($apply) + ($stage ? 1 : 0);
+
+        return back()->with('success', "Updated {$fieldCount} field(s) on {$count} candidate(s).");
+    }
+
+    /**
      * Add a free-text note to the candidate timeline.
      */
     public function addNote(Request $request, Candidate $candidate)
@@ -222,6 +320,50 @@ class CandidateController extends Controller
         $pdf = Pdf::loadView('admin.hr.recruitment.offer-letter', compact('candidate', 'business'));
 
         return $pdf->stream("offer-letter-{$candidate->candidate_code}.pdf");
+    }
+
+    /**
+     * Email the generated offer letter PDF to the candidate's own email.
+     * Sent synchronously so the PDF attachment is always populated.
+     */
+    public function emailOfferLetter(Request $request, Candidate $candidate)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('recruitment.view'), 403);
+
+        if (empty($candidate->email)) {
+            return back()->with('error', 'This candidate has no email address on file.');
+        }
+
+        // Persist any offer details supplied so the letter reflects the latest.
+        $request->validate([
+            'offer_ctc' => ['nullable', 'numeric', 'min:0'],
+            'offer_designation' => ['nullable', 'string', 'max:120'],
+            'offer_date' => ['nullable', 'date'],
+            'proposed_joining_date' => ['nullable', 'date'],
+        ]);
+        $candidate->update([
+            'offer_ctc' => $request->offer_ctc ?? $candidate->offer_ctc ?? $candidate->expected_ctc,
+            'offer_designation' => $request->offer_designation ?? $candidate->offer_designation ?? $candidate->designation?->name,
+            'offer_date' => $request->offer_date ?? $candidate->offer_date ?? now()->toDateString(),
+            'proposed_joining_date' => $request->proposed_joining_date ?? $candidate->proposed_joining_date,
+            'offer_generated_at' => now(),
+        ]);
+
+        $candidate->load('business', 'designation', 'department');
+        $business = $candidate->business;
+
+        $pdf = Pdf::loadView('admin.hr.recruitment.offer-letter', compact('candidate', 'business'));
+        $fileName = "Offer-Letter-{$candidate->candidate_code}.pdf";
+
+        try {
+            \Illuminate\Support\Facades\Mail::to($candidate->email)->send(
+                new \App\Mail\OfferLetterMail($business, $candidate->full_name, $pdf->output(), $fileName)
+            );
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Could not send the offer letter: '.$e->getMessage());
+        }
+
+        return back()->with('success', "Offer letter emailed to {$candidate->email}.");
     }
 
     /**

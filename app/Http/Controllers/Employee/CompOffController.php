@@ -50,7 +50,7 @@ class CompOffController extends Controller
             ->whereDate('date', $data['worked_on'])
             ->value('status');
 
-        if (! in_array($workedStatus, ['present', 'late', 'half_day'], true)) {
+        if (! in_array($workedStatus, ['present', 'half_day'], true)) {
             throw ValidationException::withMessages([
                 'worked_on' => 'No present attendance found on this date — comp-off is only allowed if you actually worked on the week-off.',
             ]);

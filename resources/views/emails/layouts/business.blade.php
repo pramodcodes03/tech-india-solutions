@@ -99,32 +99,16 @@
     <div class="wrapper">
         <div class="container">
             <div class="header">
+                {{-- Logo is intentionally NOT shown in emails: clients like Gmail
+                     block base64-embedded images, which rendered as a broken icon.
+                     The business name + location is shown as text instead. The
+                     logo still appears on the PDF attachments (DomPDF allows it). --}}
                 <table style="width:100%;">
                     <tr>
-                        @php
-                            $logoSrc = null;
-                            if ($business->logo) {
-                                $diskPath = storage_path('app/public/'.$business->logo);
-                                if (file_exists($diskPath)) {
-                                    $mime = mime_content_type($diskPath) ?: 'image/png';
-                                    $logoSrc = 'data:'.$mime.';base64,'.base64_encode(file_get_contents($diskPath));
-                                }
-                            }
-                        @endphp
-                        @if($logoSrc)
-                            <td class="logo" style="width: 55%;">
-                                <img src="{{ $logoSrc }}" alt="{{ $business->name }}" />
-                            </td>
-                            <td style="text-align: right; vertical-align: middle;">
-                                <div class="name">{{ $business->name }}</div>
-                                <div class="tag">{{ collect([$business->city, $business->state])->filter()->implode(', ') }}</div>
-                            </td>
-                        @else
-                            <td>
-                                <div class="name">{{ $business->name }}</div>
-                                <div class="tag">{{ collect([$business->city, $business->state])->filter()->implode(', ') ?: 'Notification' }}</div>
-                            </td>
-                        @endif
+                        <td>
+                            <div class="name">{{ $business->name }}</div>
+                            <div class="tag">{{ collect([$business->city, $business->state])->filter()->implode(', ') ?: 'Notification' }}</div>
+                        </td>
                     </tr>
                 </table>
             </div>

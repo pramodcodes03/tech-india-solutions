@@ -21,7 +21,10 @@
                                 <td><span class="badge bg-{{ $vc }}/10 text-{{ $vc }}">{{ ucfirst($doc->verification_status) }}</span></td>
                                 <td class="text-sm text-gray-500">{{ $doc->verification_remarks ?? '—' }}</td>
                                 <td class="text-right">
-                                    <a href="{{ route('employee.documents.download', $doc) }}" class="text-primary text-sm">Download</a>
+                                    @if($doc->is_viewable)
+                                        <a href="{{ route('employee.documents.view', $doc) }}" target="_blank" rel="noopener" class="text-primary text-sm">View</a>
+                                    @endif
+                                    <a href="{{ route('employee.documents.download', $doc) }}" class="text-primary text-sm ml-2">Download</a>
                                     @if($doc->verification_status === 'pending' && $doc->employee_uploaded_by)
                                         <form method="POST" action="{{ route('employee.documents.destroy', $doc) }}" class="inline" onsubmit="return confirm('Remove?')">@csrf @method('DELETE')<button class="text-danger text-xs ml-2">Delete</button></form>
                                     @endif

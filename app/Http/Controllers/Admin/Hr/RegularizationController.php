@@ -48,10 +48,17 @@ class RegularizationController extends Controller
         if ($regularization->status !== 'pending') {
             return back()->withErrors(['status' => 'This request has already been resolved.']);
         }
-        $request->validate(['review_remarks' => ['nullable', 'string', 'max:500']]);
-        $this->service->approve($regularization, $request->review_remarks);
+        $request->validate([
+            'review_remarks' => ['nullable', 'string', 'max:500'],
+            'resulting_status' => ['nullable', 'in:present,half_day,on_leave,absent'],
+        ]);
+        $this->service->approve($regularization, $request->review_remarks, $request->resulting_status);
 
-        return back()->with('success', 'Request approved and attendance corrected.');
+        $label = $request->resulting_status
+            ? ' as '.ucfirst(str_replace('_', ' ', $request->resulting_status))
+            : '';
+
+        return back()->with('success', "Request approved and attendance corrected{$label}.");
     }
 
     public function reject(Request $request, AttendanceRegularization $regularization)

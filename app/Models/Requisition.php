@@ -53,7 +53,14 @@ class Requisition extends Model
 
     public function getCategoryLabelAttribute(): string
     {
-        return self::CATEGORIES[$this->category] ?? ucfirst($this->category);
+        // Prefer the manageable lookup table (covers custom categories);
+        // fall back to the legacy constant, then a humanised slug.
+        $label = RequisitionCategory::withTrashed()
+            ->where('business_id', $this->business_id)
+            ->where('key', $this->category)
+            ->value('label');
+
+        return $label ?? self::CATEGORIES[$this->category] ?? ucfirst((string) str_replace('_', ' ', $this->category));
     }
 
     public function currentApproval(): ?RequisitionApproval

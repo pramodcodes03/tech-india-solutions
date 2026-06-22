@@ -13,9 +13,20 @@ use Illuminate\Support\Facades\Auth;
 
 class LeadController extends Controller
 {
+    /** Per-page sizes offered on the Leads list. */
+    private const PAGE_SIZES = [10, 25, 50, 100];
+
     public function __construct(
         protected LeadService $leadService,
     ) {}
+
+    /** Resolve a safe per-page size from the request (defaults to 50). */
+    private function leadsPerPage(Request $request): int
+    {
+        $size = (int) $request->input('per_page', 50);
+
+        return in_array($size, self::PAGE_SIZES, true) ? $size : 50;
+    }
 
     public function index(Request $request)
     {
@@ -32,14 +43,13 @@ class LeadController extends Controller
             ->when($request->source, fn ($q, $s) => $q->where('source', $s))
             ->when($request->product_id, fn ($q, $p) => $q->where('product_id', $p))
             ->when($request->assigned_to, fn ($q, $a) => $q->where('assigned_to', $a))
-            // Date-range filter on when the lead was CREATED. Either end is
-            // optional — "from 2026-05-01 only" or "up to 2026-05-15 only"
-            // both work. Times are normalised to start/end of day so an
-            // identical from + to picks up every lead created on that day.
-            ->when($request->from_date, fn ($q, $d) => $q->whereDate('created_at', '>=', $d))
-            ->when($request->to_date,   fn ($q, $d) => $q->whereDate('created_at', '<=', $d))
+            // Date-range filter on the Lead Received Date (lead_date). Either
+            // end is optional. Old leads without a lead_date fall back to
+            // created_at via COALESCE so they are never dropped from results.
+            ->when($request->from_date, fn ($q, $d) => $q->whereRaw('DATE(COALESCE(lead_date, created_at)) >= ?', [$d]))
+            ->when($request->to_date,   fn ($q, $d) => $q->whereRaw('DATE(COALESCE(lead_date, created_at)) <= ?', [$d]))
             ->latest()
-            ->paginate(10);
+            ->paginate($this->leadsPerPage($request));
 
         // Flatten the eager-loaded relation + add a created_at_human field.
         // Used by BOTH the initial Alpine state (rendered server-side from
@@ -51,6 +61,8 @@ class LeadController extends Controller
             $arr['assigned_to_name'] = $lead->assignedTo?->name;
             $arr['next_follow_up']   = $lead->next_follow_up_at?->toDateString();
             $arr['created_date']     = $lead->created_at?->toDateString();
+            // Lead Received Date — falls back to created date for old leads.
+            $arr['received_date']    = ($lead->lead_date ?? $lead->created_at)?->toDateString();
             return $arr;
         };
 
@@ -81,7 +93,9 @@ class LeadController extends Controller
         $sources = Lead::SOURCES;
         $products = \App\Models\Product::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.leads.index', compact('leads', 'items', 'admins', 'sources', 'products'));
+        $pageSizes = self::PAGE_SIZES;
+
+        return view('admin.leads.index', compact('leads', 'items', 'admins', 'sources', 'products', 'pageSizes'));
     }
 
     /**
@@ -222,6 +236,135 @@ class LeadController extends Controller
         }
 
         return redirect()->route('admin.leads.index')->with('success', 'Lead deleted successfully.');
+    }
+
+    /**
+     * Delete many selected leads at once.
+     */
+    public function bulkDelete(Request $request)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('leads.delete'), 403);
+        $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $leads = Lead::whereIn('id', $request->ids)->get();
+        foreach ($leads as $lead) {
+            $this->leadService->delete($lead);
+        }
+
+        $count = $leads->count();
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => "Deleted {$count} lead(s)."]);
+        }
+
+        return back()->with('success', "Deleted {$count} lead(s).");
+    }
+
+    /**
+     * Apply chosen dropdown values (status / source / assigned_to / product)
+     * to many selected leads at once. Only fields actually provided are
+     * written; blanks are ignored.
+     */
+    public function bulkUpdate(Request $request)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('leads.edit'), 403);
+        $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'status' => ['nullable', 'in:new,contacted,qualified,proposal,won,lost'],
+            'source' => ['nullable', 'in:'.implode(',', array_keys(Lead::SOURCES))],
+            'assigned_to' => ['nullable', 'exists:admins,id'],
+            'product_id' => ['nullable', 'exists:products,id'],
+        ]);
+
+        $apply = [];
+        foreach (['source', 'assigned_to', 'product_id'] as $field) {
+            if ($request->filled($field)) {
+                $apply[$field] = $request->input($field);
+            }
+        }
+
+        if (empty($apply) && ! $request->filled('status')) {
+            $msg = 'No values were chosen to apply.';
+
+            return $request->ajax()
+                ? response()->json(['success' => false, 'message' => $msg], 422)
+                : back()->with('warning', $msg);
+        }
+
+        $leads = Lead::whereIn('id', $request->ids)->get();
+        foreach ($leads as $lead) {
+            // Status goes through the service so a stage log is recorded.
+            if ($request->filled('status') && $lead->status !== $request->status) {
+                $this->leadService->changeStatus($lead, $request->status);
+            }
+            if (! empty($apply)) {
+                $apply['updated_by'] = Auth::guard('admin')->id();
+                $lead->update($apply);
+            }
+        }
+
+        $count = $leads->count();
+        $msg = "Updated {$count} lead(s).";
+
+        return $request->ajax()
+            ? response()->json(['success' => true, 'message' => $msg])
+            : back()->with('success', $msg);
+    }
+
+    /**
+     * Bulk-import leads from a spreadsheet — upload form.
+     */
+    public function importForm()
+    {
+        abort_unless(Auth::guard('admin')->user()->can('leads.create'), 403);
+
+        $sources = Lead::SOURCES;
+
+        return view('admin.leads.import', compact('sources'));
+    }
+
+    /**
+     * Download a CSV template for the bulk import.
+     */
+    public function importTemplate()
+    {
+        abort_unless(Auth::guard('admin')->user()->can('leads.create'), 403);
+
+        $headers = ['Name', 'Company', 'Email', 'Phone', 'Source', 'Expected Value', 'Lead Received Date', 'Notes'];
+        $sample = ['Ramesh Kumar', 'ABC Pvt Ltd', 'ramesh@abc.com', '9876543210', 'meta_ads', '50000', '2026-06-15', 'Interested in speech therapy'];
+
+        $callback = function () use ($headers, $sample) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, $headers);
+            fputcsv($out, $sample);
+            fclose($out);
+        };
+
+        return response()->streamDownload($callback, 'leads-import-template.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    /**
+     * Process the uploaded import file.
+     */
+    public function import(Request $request, \App\Services\LeadImportService $importer)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('leads.create'), 403);
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:5120'],
+        ]);
+
+        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
+        $result = $importer->import($request->file('file'), $businessId);
+
+        return redirect()->route('admin.leads.index')
+            ->with('success', "{$result['imported']} lead(s) imported.".($result['failed'] ? " {$result['failed']} row(s) skipped." : ''))
+            ->with('import_errors', $result['errors']);
     }
 
     public function convertToCustomer($id)

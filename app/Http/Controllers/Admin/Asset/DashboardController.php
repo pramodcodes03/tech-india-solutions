@@ -6,17 +6,54 @@ use App\Http\Controllers\Controller;
 use App\Models\Asset;
 use App\Models\AssetMaintenanceLog;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    /**
+     * Resolve the dashboard date window from the request, defaulting to the
+     * current month. Returns [Carbon $from (start of day), Carbon $to (end of
+     * day)]. Used by the period-based metrics on every analytics dashboard;
+     * point-in-time metrics (stock, receivables, totals) ignore it.
+     */
+    private function dateRange(\Illuminate\Http\Request $request): array
+    {
+        $today = Carbon::today();
+
+        try {
+            $from = $request->filled('from')
+                ? Carbon::parse($request->input('from'))->startOfDay()
+                : $today->copy()->startOfMonth();
+        } catch (\Throwable) {
+            $from = $today->copy()->startOfMonth();
+        }
+
+        try {
+            $to = $request->filled('to')
+                ? Carbon::parse($request->input('to'))->endOfDay()
+                : $today->copy()->endOfMonth();
+        } catch (\Throwable) {
+            $to = $today->copy()->endOfMonth();
+        }
+
+        // Guard against an inverted range (user picked to < from).
+        if ($to->lt($from)) {
+            [$from, $to] = [$to->copy()->startOfDay(), $from->copy()->endOfDay()];
+        }
+
+        return [$from, $to];
+    }
+
+    public function index(Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('analytics_asset.view'), 403);
 
         // Tenant guard for raw queries (Eloquent calls below use BelongsToBusiness).
         $bizId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
+
+        [$rangeFrom, $rangeTo] = $this->dateRange($request);
 
         // KPIs
         $kpi = [
@@ -30,6 +67,14 @@ class DashboardController extends Controller
             'lost'          => Asset::where('is_lost', true)->count(),
             'maint_cost_ytd'=> (float) AssetMaintenanceLog::whereYear('performed_date', now()->year)->sum('total_cost'),
             'warranty_soon' => Asset::whereBetween('warranty_expiry_date', [now(), now()->addDays(60)])->count(),
+            // Period figures honour the picked range (point-in-time / YTD KPIs
+            // above stay as-is). acquired: assets purchased in range; acquired_value:
+            // their cost; maint_cost_period: maintenance spend logged in range;
+            // assigned_period: assignment actions recorded in range.
+            'acquired'          => Asset::whereBetween('purchase_date', [$rangeFrom, $rangeTo])->count(),
+            'acquired_value'    => (float) Asset::whereBetween('purchase_date', [$rangeFrom, $rangeTo])->sum('purchase_cost'),
+            'maint_cost_period' => (float) AssetMaintenanceLog::whereBetween('performed_date', [$rangeFrom, $rangeTo])->sum('total_cost'),
+            'assigned_period'   => \App\Models\AssetAssignment::whereBetween('assigned_at', [$rangeFrom, $rangeTo])->count(),
         ];
 
         // Status donut
@@ -107,7 +152,7 @@ class DashboardController extends Controller
         return view('admin.assets.dashboard', compact(
             'kpi', 'byStatus', 'byCategory', 'byLocation', 'byCondition',
             'forecast', 'maintTrend', 'topMaintAssets', 'maintByType',
-            'warranties', 'recentAssignments'
+            'warranties', 'recentAssignments', 'rangeFrom', 'rangeTo'
         ));
     }
 }

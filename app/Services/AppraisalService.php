@@ -46,7 +46,7 @@ class AppraisalService
 
         $present = Attendance::where('employee_id', $employee->id)
             ->whereBetween('date', [$start, $end])
-            ->whereIn('status', ['present', 'late', 'half_day'])
+            ->whereIn('status', ['present', 'half_day'])
             ->count();
         $absent = Attendance::where('employee_id', $employee->id)
             ->whereBetween('date', [$start, $end])

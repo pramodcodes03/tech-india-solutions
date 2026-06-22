@@ -62,6 +62,7 @@ class RolePermissionSeeder extends Seeder
             'reimbursements' => ['view', 'review'],
             'budgets' => ['view', 'manage'],
             'requisitions' => ['view', 'create', 'approve', 'disburse'],
+            'requisition_categories' => ['view', 'create', 'edit', 'delete'],
 
             // ── HR Module ────────────────────────────────────────────────
             'employees' => ['view', 'create', 'edit', 'delete', 'export'],
@@ -196,7 +197,10 @@ class RolePermissionSeeder extends Seeder
             $this->allActionsFor('shifts', $modules),
             $this->allActionsFor('holidays', $modules),
             ['attendance.view', 'attendance.create', 'attendance.import'], // no attendance.edit
-            $this->allActionsFor('leaves', $modules),
+            // Leaves are approved by Department Heads in the employee portal.
+            // HR is view-only here (no approve/reject) — they keep full
+            // visibility for records/reporting across all departments.
+            ['leaves.view', 'leaves.create'],
             $this->allActionsFor('leave_types', $modules),
             $this->allActionsFor('payroll', $modules),
             $this->allActionsFor('salary_structures', $modules),

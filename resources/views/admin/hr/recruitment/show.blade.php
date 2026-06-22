@@ -2,6 +2,7 @@
     <x-admin.breadcrumb :items="[['label' => 'HR'], ['label' => 'Recruitment', 'url' => route('admin.hr.recruitment.index')], ['label' => $candidate->full_name]]" />
 
     @if(session('success'))<div class="alert alert-success mb-4">{{ session('success') }}</div>@endif
+    @if(session('error'))<div class="alert alert-danger mb-4">{{ session('error') }}</div>@endif
     @foreach($errors->all() as $e)<div class="alert alert-danger mb-4">{{ $e }}</div>@endforeach
 
     <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
@@ -36,7 +37,7 @@
                     <div class="flex justify-between"><dt class="text-gray-500">Notice</dt><dd>{{ $candidate->notice_period_days ? $candidate->notice_period_days.' days' : '—' }}</dd></div>
                     <div class="flex justify-between"><dt class="text-gray-500">Source</dt><dd>{{ $candidate->source_label }}</dd></div>
                     @if($candidate->referrer)<div class="flex justify-between"><dt class="text-gray-500">Referred By</dt><dd>{{ $candidate->referrer->full_name }}</dd></div>@endif
-                    @if($candidate->batch)<div class="flex justify-between"><dt class="text-gray-500">Batch</dt><dd>{{ $candidate->batch->name }}</dd></div>@endif
+                    @if($candidate->batch)<div class="flex justify-between"><dt class="text-gray-500">Campus / Batch</dt><dd class="text-right">{{ $candidate->batch->name }}@if($candidate->batch->institution)<div class="text-xs text-gray-500">{{ $candidate->batch->institution }}</div>@endif</dd></div>@endif
                 </dl>
                 @if($candidate->resume_path)
                     <a href="{{ Storage::url($candidate->resume_path) }}" target="_blank" class="btn btn-outline-primary btn-sm w-full mt-4">View Resume</a>
@@ -81,7 +82,20 @@
                         <input type="date" name="offer_date" value="{{ optional($candidate->offer_date)->format('Y-m-d') ?? date('Y-m-d') }}" class="form-input" />
                         <input type="date" name="proposed_joining_date" value="{{ optional($candidate->proposed_joining_date)->format('Y-m-d') }}" class="form-input" />
                     </div>
-                    <button class="btn btn-outline-primary w-full">Generate Offer Letter</button>
+                    <button class="btn btn-outline-primary w-full">Generate Offer Letter (PDF)</button>
+                    <button type="submit"
+                            formaction="{{ route('admin.hr.recruitment.offer-letter.email', $candidate) }}"
+                            formtarget="_self"
+                            @disabled(empty($candidate->email))
+                            class="btn btn-primary w-full"
+                            onclick="return confirm('Email the offer letter to {{ $candidate->email ?: 'this candidate' }}?')">
+                        ✉ Email Offer Letter to Candidate
+                    </button>
+                    @if(empty($candidate->email))
+                        <p class="text-[11px] text-danger">No email on file — add the candidate's email to enable sending.</p>
+                    @else
+                        <p class="text-[11px] text-gray-400">Will be sent to <strong>{{ $candidate->email }}</strong>.</p>
+                    @endif
                 </form>
             </div>
         </div>

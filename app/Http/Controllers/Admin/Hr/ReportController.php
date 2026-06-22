@@ -140,7 +140,6 @@ class ReportController extends Controller
                 'absent' => $s['absent'] ?? 0,
                 'half_day' => $s['half_day'] ?? 0,
                 'leave' => $s['on_leave'] ?? ($s['leave'] ?? 0),
-                'late' => $s['late'] ?? 0,
                 'paid_days' => $s['paid_days'] ?? 0,
             ];
         });
@@ -148,11 +147,11 @@ class ReportController extends Controller
         if ($request->get('export') === 'excel') {
             $export = $rows->map(fn ($r) => [
                 $r['employee']->employee_code, $r['employee']->full_name,
-                $r['present'], $r['absent'], $r['half_day'], $r['leave'], $r['late'], $r['paid_days'],
+                $r['present'], $r['absent'], $r['half_day'], $r['leave'], $r['paid_days'],
             ])->all();
 
             return Excel::download(new GenericArrayExport(
-                ['Code', 'Name', 'Present', 'Absent', 'Half-day', 'Leave', 'Late', 'Paid Days'], $export
+                ['Code', 'Name', 'Present', 'Absent', 'Half-day', 'Leave', 'Paid Days'], $export
             ), "attendance-report-{$year}-{$month}.xlsx");
         }
 

@@ -34,7 +34,7 @@
                         <td><div class="font-semibold">{{ $r->employee->full_name }}</div><div class="text-xs text-gray-500">{{ $r->employee->employee_code }}</div></td>
                         <td>{{ $r->date->format('d M Y') }}</td>
                         <td class="text-sm">{{ $r->type_label }}</td>
-                        <td class="text-sm">{{ $r->expected_in ? $r->expected_in->format('H:i') : '—' }} / {{ $r->expected_out ? $r->expected_out->format('H:i') : '—' }}</td>
+                        <td class="text-sm">{{ $r->expected_in_time ?? '—' }} / {{ $r->expected_out_time ?? '—' }}</td>
                         <td>
                             @php $sc = ['pending'=>'warning','approved'=>'success','rejected'=>'danger','cancelled'=>'secondary'][$r->status]; @endphp
                             <span class="badge bg-{{ $sc }}/10 text-{{ $sc }}">{{ ucfirst($r->status) }}</span>

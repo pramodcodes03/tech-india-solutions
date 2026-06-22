@@ -13,6 +13,7 @@ class LeaveSettingsController extends Controller
     private array $keys = [
         'probation_period_days',
         'leave_application_window_hours',
+        'attendance_correction_tat_hours',
         'leave_accrual_frequency',
         'el_working_days_required',
         'el_carry_forward_cap',
@@ -38,6 +39,7 @@ class LeaveSettingsController extends Controller
         $data = $request->validate([
             'probation_period_days' => ['required', 'integer', 'min:0', 'max:730'],
             'leave_application_window_hours' => ['required', 'integer', 'min:0', 'max:2160'],
+            'attendance_correction_tat_hours' => ['required', 'integer', 'min:1', 'max:2160'],
             'leave_accrual_frequency' => ['required', 'in:monthly,half_yearly,annual'],
             'el_working_days_required' => ['required', 'integer', 'min:0', 'max:1000'],
             'el_carry_forward_cap' => ['required', 'numeric', 'min:0'],

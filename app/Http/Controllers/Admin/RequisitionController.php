@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Requisition;
+use App\Models\RequisitionCategory;
 use App\Services\RequisitionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,18 @@ class RequisitionController extends Controller
 {
     public function __construct(private RequisitionService $service)
     {
+    }
+
+    /**
+     * Active requisition categories as a [key => label] map. Reads the
+     * per-business lookup table; falls back to the legacy constant if the
+     * table hasn't been seeded yet (e.g. before the seeder runs).
+     */
+    private function categoryOptions(): array
+    {
+        $options = RequisitionCategory::options();
+
+        return ! empty($options) ? $options : Requisition::CATEGORIES;
     }
 
     public function index(Request $request)
@@ -26,21 +39,23 @@ class RequisitionController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('admin.requisitions.index', compact('requisitions'));
+        $categories = $this->categoryOptions();
+
+        return view('admin.requisitions.index', compact('requisitions', 'categories'));
     }
 
     public function create()
     {
         abort_unless(Auth::guard('admin')->user()->can('requisitions.create'), 403);
 
-        return view('admin.requisitions.create', ['categories' => Requisition::CATEGORIES]);
+        return view('admin.requisitions.create', ['categories' => $this->categoryOptions()]);
     }
 
     public function store(Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('requisitions.create'), 403);
         $data = $request->validate([
-            'category' => ['required', 'in:'.implode(',', array_keys(Requisition::CATEGORIES))],
+            'category' => ['required', 'in:'.implode(',', array_keys($this->categoryOptions()))],
             'title' => ['required', 'string', 'max:160'],
             'purpose' => ['nullable', 'string', 'max:1000'],
             'requested_amount' => ['required', 'numeric', 'min:0'],

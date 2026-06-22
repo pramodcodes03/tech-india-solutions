@@ -12,7 +12,7 @@
     <p>We're sorry to inform you that your leave request could not be approved at this time. Please find the details below and feel free to reach out to your manager for clarifications.</p>
 
     <table class="meta-table">
-        <tr><td class="label">Leave Type</td><td class="val">{{ $entity?->leave_type ?? '—' }}</td></tr>
+        <tr><td class="label">Leave Type</td><td class="val">{{ $entity?->leaveType?->name ?? '—' }}</td></tr>
         <tr><td class="label">From</td><td class="val">{{ \Carbon\Carbon::parse($entity?->from_date)->format('d M Y') }}</td></tr>
         <tr><td class="label">To</td><td class="val">{{ \Carbon\Carbon::parse($entity?->to_date)->format('d M Y') }}</td></tr>
         @if(!empty($context['reason']))

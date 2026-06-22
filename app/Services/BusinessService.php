@@ -53,6 +53,10 @@ class BusinessService
             // tenant to add them manually).
             \Database\Seeders\AssetLookupSeeder::seedForBusiness($business->id);
 
+            // Seed default requisition categories so the Purchase Requisition
+            // "Category" dropdown is populated for fresh tenants too.
+            \Database\Seeders\RequisitionCategorySeeder::seedForBusiness($business->id);
+
             return $business;
         });
     }

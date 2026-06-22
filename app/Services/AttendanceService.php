@@ -597,7 +597,8 @@ class AttendanceService
             if ($rec) {
                 $resolved = match ($rec->status) {
                     'weekend' => 'week_off',
-                    'present', 'late', 'half_day', 'on_leave',
+                    'late' => 'present', // 'Late' removed — treat as a full present day
+                    'present', 'half_day', 'on_leave',
                     'absent', 'holiday', 'week_off' => $rec->status,
                     // Any other recorded status (e.g. imported variant) means
                     // the employee did interact with attendance — treat as present.
@@ -669,7 +670,7 @@ class AttendanceService
         $statuses = $this->monthlyDayStatuses($employeeId, $month, $year);
 
         $tally = [
-            'present' => 0, 'late' => 0, 'half_day' => 0, 'on_leave' => 0,
+            'present' => 0, 'half_day' => 0, 'on_leave' => 0,
             'absent' => 0, 'holiday' => 0, 'week_off' => 0, 'comp_off' => 0,
             'future' => 0,
         ];
@@ -687,13 +688,13 @@ class AttendanceService
             }
         }
 
-        // A 'late' day is still a paid attended day — surface it as both a
-        // distinct count (so the "Late" widget shows it) and as part of present.
-        $presentTotal = $tally['present'] + $tally['late'];
+        // 'Late' has been removed — a day is either a full present day or a
+        // half-day. (Any legacy late record is mapped to present upstream.)
+        $presentTotal = $tally['present'];
 
         // Working days = days the employee was expected at work (past, non-holiday,
         // non-week-off, non-comp-off). Future days are excluded by construction.
-        $workingDays = $tally['present'] + $tally['late'] + $tally['half_day']
+        $workingDays = $tally['present'] + $tally['half_day']
                      + $tally['on_leave'] + $tally['absent'];
 
         [$paidLeave, $unpaidLeave] = $this->splitLeaveDaysInMonth($employeeId, $start, $end);
@@ -708,7 +709,7 @@ class AttendanceService
         return [
             'present'           => $presentTotal,
             'absent'            => $tally['absent'],
-            'late'              => $tally['late'],
+            'late'              => 0, // 'Late' status removed; kept as 0 for backward-compat
             'half_day'          => $tally['half_day'],
             'on_leave'          => $tally['on_leave'],
             'holidays'          => $tally['holiday'],

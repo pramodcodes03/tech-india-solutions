@@ -133,6 +133,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Lead Management
         Route::get('leads/kanban', [LeadController::class, 'kanban'])->name('leads.kanban');
         Route::get('leads/report', [LeadController::class, 'report'])->name('leads.report');
+        // Bulk operations + CSV import (declared before the resource route so
+        // these paths aren't captured as a {lead} show parameter).
+        Route::get('leads/import', [LeadController::class, 'importForm'])->name('leads.import.form');
+        Route::post('leads/import', [LeadController::class, 'import'])->name('leads.import');
+        Route::get('leads/import/template', [LeadController::class, 'importTemplate'])->name('leads.import.template');
+        Route::post('leads/bulk-delete', [LeadController::class, 'bulkDelete'])->name('leads.bulk-delete');
+        Route::post('leads/bulk-update', [LeadController::class, 'bulkUpdate'])->name('leads.bulk-update');
         Route::resource('leads', LeadController::class);
         Route::post('leads/{lead}/convert', [LeadController::class, 'convertToCustomer'])->name('leads.convert');
         Route::patch('leads/{lead}/status', [LeadController::class, 'updateStatus'])->name('leads.update-status');
@@ -222,6 +229,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('budgets/{budget}', [\App\Http\Controllers\Admin\BudgetController::class, 'destroy'])->name('budgets.destroy');
 
         // Requisitions (purchase requests with approval chain)
+        // Requisition categories (manageable dropdown options)
+        Route::get('requisition-categories', [\App\Http\Controllers\Admin\RequisitionCategoryController::class, 'index'])->name('requisition-categories.index');
+        Route::post('requisition-categories', [\App\Http\Controllers\Admin\RequisitionCategoryController::class, 'store'])->name('requisition-categories.store');
+        Route::patch('requisition-categories/{category}', [\App\Http\Controllers\Admin\RequisitionCategoryController::class, 'update'])->name('requisition-categories.update');
+        Route::patch('requisition-categories/{category}/toggle', [\App\Http\Controllers\Admin\RequisitionCategoryController::class, 'toggle'])->name('requisition-categories.toggle');
+        Route::delete('requisition-categories/{category}', [\App\Http\Controllers\Admin\RequisitionCategoryController::class, 'destroy'])->name('requisition-categories.destroy');
+
         Route::get('requisitions/report', [\App\Http\Controllers\Admin\RequisitionController::class, 'report'])->name('requisitions.report');
         Route::resource('requisitions', \App\Http\Controllers\Admin\RequisitionController::class)->except(['edit', 'update', 'destroy']);
         Route::post('requisitions/{requisition}/approve', [\App\Http\Controllers\Admin\RequisitionController::class, 'approve'])->name('requisitions.approve');
@@ -305,13 +319,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
                 Route::delete('batches/{batch}', [HrRecruitmentBatchController::class, 'destroy'])->name('batches.destroy');
 
                 // Candidate actions
+                Route::post('bulk-action', [HrCandidateController::class, 'bulkAction'])->name('bulk-action');
                 Route::post('{candidate}/move', [HrCandidateController::class, 'move'])->name('move');
                 Route::post('{candidate}/note', [HrCandidateController::class, 'addNote'])->name('note');
                 Route::match(['get', 'post'], '{candidate}/offer-letter', [HrCandidateController::class, 'offerLetter'])->name('offer-letter');
+                Route::post('{candidate}/offer-letter/email', [HrCandidateController::class, 'emailOfferLetter'])->name('offer-letter.email');
             });
             Route::resource('recruitment', HrCandidateController::class)->parameters(['recruitment' => 'candidate']);
 
             // Employees
+            Route::post('employees/bulk-action', [HrEmployeeController::class, 'bulkAction'])->name('employees.bulk-action');
             Route::resource('employees', HrEmployeeController::class);
             Route::post('employees/{employee}/reset-password', [HrEmployeeController::class, 'resetPassword'])->name('employees.reset-password');
             Route::post('employees/{employee}/toggle-status', [HrEmployeeController::class, 'toggleStatus'])->name('employees.toggle-status');
@@ -320,6 +337,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('employees/{employee}/documents', [\App\Http\Controllers\Admin\Hr\DocumentController::class, 'index'])->name('employees.documents.index');
             Route::post('employees/{employee}/documents', [\App\Http\Controllers\Admin\Hr\DocumentController::class, 'store'])->name('employees.documents.store');
             Route::get('employees/{employee}/documents/download-all', [\App\Http\Controllers\Admin\Hr\DocumentController::class, 'bulkDownload'])->name('employees.documents.bulk-download');
+            Route::get('employee-documents/{document}/view', [\App\Http\Controllers\Admin\Hr\DocumentController::class, 'view'])->name('employee-documents.view');
             Route::get('employee-documents/{document}/download', [\App\Http\Controllers\Admin\Hr\DocumentController::class, 'download'])->name('employee-documents.download');
             Route::post('employee-documents/{document}/verify', [\App\Http\Controllers\Admin\Hr\DocumentController::class, 'verify'])->name('employee-documents.verify');
             Route::post('employee-documents/{document}/reject', [\App\Http\Controllers\Admin\Hr\DocumentController::class, 'reject'])->name('employee-documents.reject');
@@ -592,6 +610,7 @@ Route::prefix('employee')->name('employee.')->group(function () {
         // My Documents (self-upload + verification status)
         Route::get('documents', [\App\Http\Controllers\Employee\DocumentController::class, 'index'])->name('documents.index');
         Route::post('documents', [\App\Http\Controllers\Employee\DocumentController::class, 'store'])->name('documents.store');
+        Route::get('documents/{document}/view', [\App\Http\Controllers\Employee\DocumentController::class, 'view'])->name('documents.view');
         Route::get('documents/{document}/download', [\App\Http\Controllers\Employee\DocumentController::class, 'download'])->name('documents.download');
         Route::delete('documents/{document}', [\App\Http\Controllers\Employee\DocumentController::class, 'destroy'])->name('documents.destroy');
 
@@ -608,6 +627,15 @@ Route::prefix('employee')->name('employee.')->group(function () {
         Route::post('leaves', [EmpLeaveController::class, 'store'])->name('leaves.store');
         Route::get('leaves/{leaveRequest}', [EmpLeaveController::class, 'show'])->name('leaves.show');
         Route::post('leaves/{leaveRequest}/cancel', [EmpLeaveController::class, 'cancel'])->name('leaves.cancel');
+
+        // My Budget — budgets sanctioned to this employee
+        Route::get('budget', [\App\Http\Controllers\Employee\BudgetController::class, 'index'])->name('budget.index');
+        Route::post('budget/{budget}/utilize', [\App\Http\Controllers\Employee\BudgetExpenseController::class, 'store'])->name('budget.utilize');
+
+        // Team Leaves — Department Head approvals (scoped to departments they head)
+        Route::get('team-leaves', [\App\Http\Controllers\Employee\TeamLeaveController::class, 'index'])->name('team-leaves.index');
+        Route::post('team-leaves/{leaveRequest}/approve', [\App\Http\Controllers\Employee\TeamLeaveController::class, 'approve'])->name('team-leaves.approve');
+        Route::post('team-leaves/{leaveRequest}/reject', [\App\Http\Controllers\Employee\TeamLeaveController::class, 'reject'])->name('team-leaves.reject');
 
         // Comp-Off
         Route::get('comp-off', [\App\Http\Controllers\Employee\CompOffController::class, 'index'])->name('comp-off.index');

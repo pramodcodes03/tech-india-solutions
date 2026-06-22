@@ -18,7 +18,7 @@
         </select>
         <select name="status" class="form-select">
             <option value="">All Status</option>
-            @foreach(['present','absent','half_day','late','on_leave','holiday'] as $s)
+            @foreach(['present','absent','half_day','on_leave','holiday'] as $s)
                 <option value="{{ $s }}" @selected(request('status') == $s)>{{ ucfirst(str_replace('_',' ',$s)) }}</option>
             @endforeach
         </select>
@@ -47,7 +47,7 @@
                         <td><span @class([
                             'px-2 py-0.5 rounded text-xs font-semibold',
                             'bg-success/10 text-success' => $r->status === 'present',
-                            'bg-warning/10 text-warning' => in_array($r->status, ['late', 'half_day']),
+                            'bg-warning/10 text-warning' => $r->status === 'half_day',
                             'bg-danger/10 text-danger' => $r->status === 'absent',
                             'bg-info/10 text-info' => $r->status === 'on_leave',
                             'bg-gray-200 text-gray-600' => in_array($r->status, ['holiday', 'weekend']),

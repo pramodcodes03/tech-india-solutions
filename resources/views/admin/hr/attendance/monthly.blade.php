@@ -43,7 +43,7 @@
 
     <div class="panel p-0 overflow-x-auto">
         <table class="table-striped text-sm">
-            <thead><tr><th>Employee</th><th>Department</th><th>Working</th><th>Present</th><th>Absent</th><th>Half</th><th>Late</th><th>Leave</th><th>Paid Days</th><th>LOP</th></tr></thead>
+            <thead><tr><th>Employee</th><th>Department</th><th>Working</th><th>Present</th><th>Absent</th><th>Half</th><th>Leave</th><th>Paid Days</th><th>LOP</th></tr></thead>
             <tbody>
                 @forelse($employees as $e)
                     @php $s = $summaries[$e->id] ?? null; @endphp
@@ -54,7 +54,6 @@
                         <td class="text-success font-bold">{{ $s['present'] ?? 0 }}</td>
                         <td class="text-danger font-bold">{{ $s['absent'] ?? 0 }}</td>
                         <td>{{ $s['half_day'] ?? 0 }}</td>
-                        <td>{{ $s['late'] ?? 0 }}</td>
                         <td class="text-info">{{ $s['on_leave'] ?? 0 }}</td>
                         <td class="font-semibold">{{ $s['paid_days'] ?? 0 }}</td>
                         <td class="text-danger">{{ $s['lop_days'] ?? 0 }}</td>

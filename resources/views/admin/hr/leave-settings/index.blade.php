@@ -20,6 +20,11 @@
                 <p class="text-[11px] text-gray-400 mt-1">Applications older than this are auto-rejected.</p>
             </div>
             <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase">Attendance Correction TAT (hours)</label>
+                <input type="number" name="attendance_correction_tat_hours" value="{{ $settings['attendance_correction_tat_hours'] }}" min="1" max="2160" class="form-input mt-1" required>
+                <p class="text-[11px] text-gray-400 mt-1">Resolution target for attendance correction requests (currently {{ $settings['attendance_correction_tat_hours'] }}h). Requests past this show as overdue.</p>
+            </div>
+            <div>
                 <label class="text-xs font-semibold text-gray-500 uppercase">Default Accrual Frequency</label>
                 <select name="leave_accrual_frequency" class="form-select mt-1">
                     @foreach(['monthly'=>'Monthly','half_yearly'=>'Half-yearly','annual'=>'Annual'] as $v=>$l)

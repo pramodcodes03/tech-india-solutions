@@ -13,7 +13,7 @@
 
     <div class="panel overflow-x-auto">
         <table class="table-striped w-full text-sm">
-            <thead><tr><th>Employee</th><th>Present</th><th>Absent</th><th>Half-day</th><th>Leave</th><th>Late</th><th>Paid Days</th></tr></thead>
+            <thead><tr><th>Employee</th><th>Present</th><th>Absent</th><th>Half-day</th><th>Leave</th><th>Paid Days</th></tr></thead>
             <tbody>
                 @forelse($rows as $r)
                     <tr>
@@ -22,7 +22,6 @@
                         <td class="text-danger">{{ $r['absent'] }}</td>
                         <td>{{ $r['half_day'] }}</td>
                         <td>{{ $r['leave'] }}</td>
-                        <td class="text-warning">{{ $r['late'] }}</td>
                         <td class="font-semibold">{{ $r['paid_days'] }}</td>
                     </tr>
                 @empty

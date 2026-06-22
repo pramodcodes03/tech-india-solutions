@@ -160,7 +160,10 @@ class BulkController extends Controller
             }
         });
 
-        return redirect()->route('admin.assets.bulk.index')
+        // Return to wherever the action was triggered from (the Asset Register
+        // when driven inline, or the standalone bulk page) so the user stays in
+        // context. Falls back to the bulk page if no referrer is present.
+        return redirect()->to(url()->previous() ?: route('admin.assets.bulk.index'))
             ->with('success', "Bulk action applied to {$count} asset(s).");
     }
 }

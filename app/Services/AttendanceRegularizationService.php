@@ -79,24 +79,40 @@ class AttendanceRegularizationService
     /**
      * HR approves and (optionally) writes the corrected punches into attendance.
      */
-    public function approve(AttendanceRegularization $reg, ?string $remarks = null): AttendanceRegularization
+    /**
+     * @param string|null $status Resulting attendance status to force
+     *   (present|half_day|on_leave|absent). When null, the status is
+     *   DERIVED from the corrected punch times — so a short day (worked hours
+     *   below the full-day threshold) correctly becomes a half-day instead of
+     *   always being marked present.
+     */
+    public function approve(AttendanceRegularization $reg, ?string $remarks = null, ?string $status = null): AttendanceRegularization
     {
-        return DB::transaction(function () use ($reg, $remarks) {
+        return DB::transaction(function () use ($reg, $remarks, $status) {
             // Apply the correction to the attendance record.
             // expected_in / expected_out and the attendance time columns are
             // plain TIME strings (no Carbon cast) — normalise to H:i:s strings.
             $checkIn = $this->toTime($reg->expected_in) ?? $this->toTime(optional($reg->attendance)->check_in);
             $checkOut = $this->toTime($reg->expected_out) ?? $this->toTime(optional($reg->attendance)->check_out);
 
-            $this->attendance->upsert([
+            $payload = [
+                'business_id' => $reg->business_id,
                 'employee_id' => $reg->employee_id,
                 'date' => $reg->date->toDateString(),
                 'check_in' => $checkIn,
                 'check_out' => $checkOut,
                 'source' => 'regularization',
-                'status' => 'present',
                 'remarks' => 'Regularized: '.$reg->type_label,
-            ]);
+            ];
+
+            // Only force a status when HR explicitly chose one; otherwise let
+            // AttendanceService derive it from the corrected times (half-day
+            // for a short day, present for a full day).
+            if ($status !== null && $status !== '') {
+                $payload['status'] = $status;
+            }
+
+            $this->attendance->upsert($payload);
 
             $reg->update([
                 'status' => 'approved',

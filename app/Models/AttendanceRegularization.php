@@ -56,6 +56,33 @@ class AttendanceRegularization extends Model
         return self::TYPES[$this->request_type] ?? ucfirst($this->request_type);
     }
 
+    /**
+     * expected_in / expected_out are TIME columns (plain "HH:MM:SS" strings),
+     * not cast to Carbon — so calling ->format() on them directly throws.
+     * These accessors safely return a display-ready "HH:MM" or null.
+     */
+    public function getExpectedInTimeAttribute(): ?string
+    {
+        return $this->formatTime($this->expected_in);
+    }
+
+    public function getExpectedOutTimeAttribute(): ?string
+    {
+        return $this->formatTime($this->expected_out);
+    }
+
+    private function formatTime($value): ?string
+    {
+        if (empty($value)) {
+            return null;
+        }
+        try {
+            return \Carbon\Carbon::parse($value)->format('H:i');
+        } catch (\Throwable) {
+            return is_string($value) ? substr($value, 0, 5) : null;
+        }
+    }
+
     /** Open past the SLA window without resolution. */
     public function isBreaching(): bool
     {

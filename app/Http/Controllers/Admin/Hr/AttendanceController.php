@@ -214,7 +214,7 @@ class AttendanceController extends Controller
             'date' => ['required', 'date'],
             'check_in' => ['nullable', 'date_format:H:i'],
             'check_out' => ['nullable', 'date_format:H:i'],
-            'status' => ['required', 'in:present,absent,half_day,late,on_leave,holiday,weekend'],
+            'status' => ['required', 'in:present,absent,half_day,on_leave,holiday,weekend'],
             'remarks' => ['nullable', 'string'],
         ]);
         $data['source'] = 'manual';

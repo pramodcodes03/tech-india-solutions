@@ -48,6 +48,10 @@ class Holiday extends Model
                 $newDate = \Carbon\Carbon::create($year, $h->date->month, $h->date->day);
                 $clone = $h->replicate();
                 $clone->date = $newDate;
+                // Keep the original primary key on the projected occurrence so
+                // Edit / Remove on a yearly holiday target the real stored record
+                // (replicate() drops the key, which hid the action buttons).
+                $clone->id = $h->id;
                 return [$clone];
             }
             if ($h->date->year === $year) {
