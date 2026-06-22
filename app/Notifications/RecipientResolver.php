@@ -105,8 +105,34 @@ class RecipientResolver
             'asset_assignment.employee' => $this->fromRelation($entity, 'employee'),
             'salary_structure.submitter' => $this->fromRelation($entity, 'submitter'),
             'bank_edit.requester' => $this->fromRelation($entity, 'requester'),
+            // A literal email taken from a Settings row, e.g.
+            // setting.email:feedback_notification_email — lets admins configure a
+            // fixed mailbox (no user account needed) to receive certain events.
+            'setting.email' => $this->fromSettingEmail((string) $param),
             default => collect(), // Unknown role → silently ignore
         };
+    }
+
+    /**
+     * Resolve a recipient from a Settings row holding an email address. Returns
+     * empty when the setting is unset/blank so the event still falls through to
+     * its other recipients (e.g. HR Manager) instead of failing.
+     */
+    protected function fromSettingEmail(string $settingKey): Collection
+    {
+        if ($settingKey === '') {
+            return collect();
+        }
+
+        $email = \App\Models\Setting::where('key', $settingKey)->value('value');
+        if (empty($email) || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return collect();
+        }
+
+        return collect([[
+            'email' => $email,
+            'name'  => 'Company',
+        ]]);
     }
 
     protected function fromRelation(?Model $entity, string $relation, array $nameFields = ['name']): Collection

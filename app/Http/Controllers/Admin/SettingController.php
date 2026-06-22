@@ -28,7 +28,7 @@ class SettingController extends Controller
             'company_name' => 'company', 'company_address' => 'company',
             'company_phone' => 'company', 'company_email' => 'company',
             'company_gst' => 'company', 'company_pan' => 'company',
-            'company_logo' => 'company',
+            'company_logo' => 'company', 'feedback_notification_email' => 'company',
             'bank_name' => 'bank', 'bank_account' => 'bank',
             'bank_ifsc' => 'bank', 'bank_account_type' => 'bank',
             'bank_account_holder' => 'bank', 'bank_branch' => 'bank',

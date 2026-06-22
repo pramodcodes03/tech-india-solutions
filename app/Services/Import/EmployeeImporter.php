@@ -26,12 +26,12 @@ class EmployeeImporter implements RowImporter
 
     public function templateHeaders(): array
     {
-        return ['First Name', 'Last Name', 'Email', 'Phone', 'Department', 'Designation', 'Joining Date', 'Employment Type'];
+        return ['Employee Code', 'First Name', 'Last Name', 'Email', 'Phone', 'Department', 'Designation', 'Joining Date', 'Employment Type'];
     }
 
     public function sampleRow(): array
     {
-        return ['Asha', 'Verma', 'asha@example.com', '9876543210', 'Engineering', 'Software Engineer', '2026-06-01', 'full_time'];
+        return ['EMP001', 'Asha', 'Verma', 'asha@example.com', '9876543210', 'Engineering', 'Software Engineer', '2026-06-01', 'full_time'];
     }
 
     /** Map free-text employment type to the employees enum, default full_time. */
@@ -51,13 +51,33 @@ class EmployeeImporter implements RowImporter
         if (empty(trim($row['first name'] ?? ''))) {
             $errors[] = 'First Name is required.';
         }
+
+        $code = trim($row['employee code'] ?? '');
+        $overwrite = ! empty($row['__overwrite']);
+        // The existing employee this row would overwrite (matched on code).
+        $existing = $code !== '' ? Employee::where('employee_code', $code)->first() : null;
+
+        // A duplicate code without the Overwrite option is a hard error so we
+        // never silently create a second employee with the same code.
+        if ($existing && ! $overwrite) {
+            $errors[] = "Employee Code {$code} already exists — tick Overwrite to update it.";
+        }
+
         $email = trim($row['email'] ?? '');
         if ($email !== '' && ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Invalid email.';
         }
-        if ($email !== '' && Employee::where('email', $email)->exists()) {
-            $errors[] = "Email {$email} already exists.";
+        // Email must be unique — but the employee being overwritten may keep its
+        // own email, so exclude it from the clash check.
+        if ($email !== '') {
+            $clash = Employee::where('email', $email)
+                ->when($existing, fn ($q) => $q->where('id', '!=', $existing->id))
+                ->exists();
+            if ($clash) {
+                $errors[] = "Email {$email} already exists.";
+            }
         }
+
         $jd = trim($row['joining date'] ?? '');
         if ($jd !== '' && ! strtotime($jd)) {
             $errors[] = 'Invalid joining date.';
@@ -68,11 +88,15 @@ class EmployeeImporter implements RowImporter
 
     public function importRow(array $row, int $businessId): void
     {
+        $code = trim($row['employee code'] ?? '');
+        $overwrite = ! empty($row['__overwrite']);
+        $existing = $code !== '' ? Employee::where('employee_code', $code)->first() : null;
+
         $deptId = $this->resolve(Department::class, $row['department'] ?? null);
         $desigId = $this->resolve(Designation::class, $row['designation'] ?? null);
 
-        app(EmployeeService::class)->create([
-            'business_id' => $businessId,
+        // Common attributes from the row (blank cells become null).
+        $attrs = [
             'first_name' => trim($row['first name']),
             'last_name' => trim($row['last name'] ?? '') ?: null,
             'email' => trim($row['email'] ?? '') ?: null,
@@ -81,8 +105,24 @@ class EmployeeImporter implements RowImporter
             'designation_id' => $desigId,
             'joining_date' => ! empty($row['joining date']) ? date('Y-m-d', strtotime($row['joining date'])) : null,
             'employment_type' => $this->normalizeEmploymentType($row['employment type'] ?? null),
-            'status' => 'active',
-        ]);
+        ];
+
+        if ($existing && $overwrite) {
+            // UPDATE the existing employee. Skip blank cells so an empty column
+            // never wipes an existing value; never touch code / password / status.
+            $changes = array_filter($attrs, fn ($v) => $v !== null && $v !== '');
+            app(EmployeeService::class)->update($existing, $changes);
+
+            return;
+        }
+
+        // CREATE — honour a supplied Employee Code, else the service generates one.
+        if ($code !== '') {
+            $attrs['employee_code'] = $code;
+        }
+        $attrs['business_id'] = $businessId;
+        $attrs['status'] = 'active';
+        app(EmployeeService::class)->create($attrs);
     }
 
     private function resolve(string $modelClass, ?string $name): ?int

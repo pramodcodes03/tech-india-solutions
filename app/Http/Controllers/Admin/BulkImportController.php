@@ -59,7 +59,20 @@ class BulkImportController extends Controller
             return back()->withErrors(['file' => $parsed['error']]);
         }
 
-        $result = $this->service->validate($parsed['rows'], $importer, $this->bid());
+        // Overwrite option: stamp a flag onto every row so importers that key on
+        // a unique code (e.g. Employees on Employee Code) update the existing
+        // record instead of creating a duplicate. The flag rides along into the
+        // session-stashed valid rows, so the confirm step honours it too.
+        $rows = $parsed['rows'];
+        if ($request->boolean('overwrite')) {
+            $rows = array_map(function ($row) {
+                $row['__overwrite'] = true;
+
+                return $row;
+            }, $rows);
+        }
+
+        $result = $this->service->validate($rows, $importer, $this->bid());
 
         // Stash the valid rows for the confirm step.
         session(["import.{$key}.valid" => $result['valid'], "import.{$key}.file" => $request->file('file')->getClientOriginalName()]);

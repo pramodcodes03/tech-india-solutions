@@ -577,11 +577,11 @@ class NotificationCatalog
             'feedback.submitted' => [
                 'module' => 'HR — Discipline',
                 'name' => 'New feedback submitted',
-                'description' => 'Notify HR when feedback is submitted by an employee.',
+                'description' => 'Sent to the global company feedback email (Settings → Feedback Email) and HR when an employee submits department feedback.',
                 'subject' => 'New department feedback received',
-                'recipients' => ['admin.role:HR Manager'],
+                'recipients' => ['setting.email:feedback_notification_email', 'admin.role:HR Manager'],
                 'related' => 'department_feedback',
-                'default_on' => false,
+                'default_on' => true,
             ],
 
             // ──────────────────────── 9. HR — CALENDAR ────────────────────────────────

@@ -23,10 +23,11 @@
         <div class="panel overflow-x-auto mb-5">
             <div class="p-3 text-sm font-semibold border-b">Valid rows preview (first 10)</div>
             <table class="table-striped w-full text-sm">
-                <thead><tr>@foreach(array_keys($valid[0]) as $h)<th>{{ ucwords($h) }}</th>@endforeach</tr></thead>
+                @php $cols = collect(array_keys($valid[0]))->reject(fn ($k) => str_starts_with($k, '__'))->all(); @endphp
+                <thead><tr>@foreach($cols as $h)<th>{{ ucwords($h) }}</th>@endforeach</tr></thead>
                 <tbody>
                     @foreach(array_slice($valid, 0, 10) as $row)
-                        <tr>@foreach($row as $v)<td>{{ $v }}</td>@endforeach</tr>
+                        <tr>@foreach($cols as $h)<td>{{ $row[$h] ?? '' }}</td>@endforeach</tr>
                     @endforeach
                 </tbody>
             </table>

@@ -21,6 +21,7 @@ class UpdateSettingsRequest extends FormRequest
             'settings.company_pan' => ['nullable', 'string', 'max:20'],
             'settings.company_phone' => ['nullable', 'string', 'max:20'],
             'settings.company_email' => ['nullable', 'email'],
+            'settings.feedback_notification_email' => ['nullable', 'email'],
             'settings.company_logo' => ['nullable', 'string', 'max:255'],
             'settings.bank_name' => ['nullable', 'string', 'max:120'],
             'settings.bank_account' => ['nullable', 'string', 'max:40'],
