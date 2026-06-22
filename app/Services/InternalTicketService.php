@@ -31,9 +31,18 @@ class InternalTicketService
         $data['status'] = 'open';
 
         // TAT due: category tat_hours, else global ticket_escalation_days (in hours).
+        // Also route the ticket to the category's designated handler (if the
+        // category names a specific admin) so ONLY that user is notified.
         $tatHours = null;
         if (! empty($data['category_id'])) {
-            $tatHours = InternalTicketCategory::where('id', $data['category_id'])->value('tat_hours');
+            $category = InternalTicketCategory::find($data['category_id']);
+            $tatHours = $category?->tat_hours;
+
+            // Direct the ticket to the category's assigned user when set.
+            if ($category && $category->assigned_admin_id && empty($data['assigned_to'])) {
+                $data['assigned_to'] = $category->assigned_admin_id;
+                $data['status'] = 'assigned';
+            }
         }
         $tatHours = $tatHours ?: (HrSettings::int('ticket_escalation_days', 3) * 24);
         $data['tat_due_at'] = now()->addHours($tatHours);

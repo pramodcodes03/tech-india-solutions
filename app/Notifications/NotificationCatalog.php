@@ -289,9 +289,13 @@ class NotificationCatalog
             'internal_ticket.created' => [
                 'module' => 'Internal Helpdesk',
                 'name' => 'Internal ticket raised',
-                'description' => 'Sent to HR / Admin when an employee raises an internal helpdesk ticket.',
+                'description' => 'Sent ONLY to the category\'s assigned user. If the category has no assigned user, it falls back to all admins of the business.',
                 'subject' => 'New {entity.department} ticket {entity.ticket_number}: {entity.subject}',
-                'recipients' => ['admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin'],
+                // The ticket is stamped with the category's assigned admin at
+                // creation, so ticket.assignee routes it to that single user.
+                // When a category has no assigned user, the resolver's built-in
+                // fallback delivers it to all business admins so it's not lost.
+                'recipients' => ['ticket.assignee'],
                 'related' => 'internal_ticket',
             ],
             'internal_ticket.assigned' => [

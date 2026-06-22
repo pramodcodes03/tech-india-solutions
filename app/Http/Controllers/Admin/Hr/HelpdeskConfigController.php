@@ -21,11 +21,13 @@ class HelpdeskConfigController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('internal_tickets.configure'), 403);
 
-        $categories = InternalTicketCategory::orderBy('department')->orderBy('name')->get();
+        $categories = InternalTicketCategory::with('assignedAdmin')->orderBy('department')->orderBy('name')->get();
         $levels = TicketEscalationLevel::with('owner')->orderBy('department')->orderBy('level')->get();
         $admins = Admin::where('status', 'active')->where('business_id', $this->bid())->orderBy('name')->get(['id', 'name']);
+        // Roles for the category form's "Role" dropdown (admin guard).
+        $roles = \Spatie\Permission\Models\Role::where('guard_name', 'admin')->orderBy('name')->pluck('name');
 
-        return view('admin.hr.internal-tickets.config', compact('categories', 'levels', 'admins'));
+        return view('admin.hr.internal-tickets.config', compact('categories', 'levels', 'admins', 'roles'));
     }
 
     public function storeCategory(Request $request)
@@ -34,6 +36,8 @@ class HelpdeskConfigController extends Controller
         $data = $request->validate([
             'department' => ['required', 'in:hr,it,admin,accounts'],
             'name' => ['required', 'string', 'max:100'],
+            'assigned_role' => ['nullable', 'string', 'exists:roles,name'],
+            'assigned_admin_id' => ['nullable', 'integer', 'exists:admins,id'],
             'tat_hours' => ['required', 'integer', 'min:1', 'max:8760'],
         ]);
         $data['business_id'] = $this->bid();
@@ -41,6 +45,28 @@ class HelpdeskConfigController extends Controller
         InternalTicketCategory::create($data);
 
         return back()->with('success', 'Category added.');
+    }
+
+    /**
+     * AJAX: list active admins of a given role (admin guard) for the category
+     * form's dependent "user" dropdown. Scoped to the current business.
+     */
+    public function adminsByRole(Request $request)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('internal_tickets.configure'), 403);
+
+        $role = (string) $request->input('role', '');
+        if ($role === '') {
+            return response()->json([]);
+        }
+
+        $admins = Admin::where('status', 'active')
+            ->where('business_id', $this->bid())
+            ->whereHas('roles', fn ($q) => $q->where('name', $role)->where('guard_name', 'admin'))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return response()->json($admins);
     }
 
     public function destroyCategory(InternalTicketCategory $category)

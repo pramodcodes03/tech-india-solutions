@@ -382,6 +382,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Internal helpdesk (employee tickets → department workflow)
             Route::get('helpdesk', [\App\Http\Controllers\Admin\Hr\InternalTicketController::class, 'index'])->name('internal-tickets.index');
             Route::get('helpdesk/config', [\App\Http\Controllers\Admin\Hr\HelpdeskConfigController::class, 'index'])->name('internal-tickets.config');
+            Route::get('helpdesk/config/admins-by-role', [\App\Http\Controllers\Admin\Hr\HelpdeskConfigController::class, 'adminsByRole'])->name('internal-tickets.admins-by-role');
             Route::post('helpdesk/config/categories', [\App\Http\Controllers\Admin\Hr\HelpdeskConfigController::class, 'storeCategory'])->name('internal-tickets.categories.store');
             Route::delete('helpdesk/config/categories/{category}', [\App\Http\Controllers\Admin\Hr\HelpdeskConfigController::class, 'destroyCategory'])->name('internal-tickets.categories.destroy');
             Route::post('helpdesk/config/levels', [\App\Http\Controllers\Admin\Hr\HelpdeskConfigController::class, 'storeLevel'])->name('internal-tickets.levels.store');
