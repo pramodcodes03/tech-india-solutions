@@ -400,4 +400,43 @@ class HrmsAddonsTest extends TestCase
             'employee_id' => $this->employee->id, 'date' => '2026-06-10', 'status' => 'half_day',
         ]);
     }
+
+    // ───────────── Module 2b: worked-hours → status boundaries ────────────────
+
+    /**
+     * Strict boundaries on the hours→status rule:
+     *   < 4h30m        → absent   (e.g. 4h29m is NOT a half day)
+     *   4h30m to < 8h  → half_day (4h30m exactly is a half day)
+     *   >= 8h          → present  (8h exactly is present)
+     *
+     * deriveStatus() is exercised directly (it's the single source of truth for
+     * the hours→status mapping) so the assertion isn't muddied by week-off /
+     * holiday / approved-leave promotion that the upsert() path layers on top.
+     */
+    #[Test]
+    public function worked_hours_map_to_strict_attendance_status_boundaries(): void
+    {
+        $svc = app(AttendanceService::class);
+        $ref = new \ReflectionMethod($svc, 'deriveStatus');
+        $ref->setAccessible(true);
+
+        $derive = fn (string $in, string $out): string => $ref->invoke($svc, [
+            'check_in' => $in, 'check_out' => $out,
+        ]);
+
+        // Absent: anything strictly under 4h30m.
+        $this->assertEquals('absent', $derive('09:00:00', '09:05:00'), 'a few minutes → absent');
+        $this->assertEquals('absent', $derive('09:00:00', '13:29:00'), '4h29m → absent');
+
+        // Half day: 4h30m up to (not including) 8h.
+        $this->assertEquals('half_day', $derive('09:00:00', '13:30:00'), '4h30m exactly → half_day');
+        $this->assertEquals('half_day', $derive('09:00:00', '16:59:00'), '7h59m → half_day');
+
+        // Present: 8h and above.
+        $this->assertEquals('present', $derive('09:00:00', '17:00:00'), '8h exactly → present');
+        $this->assertEquals('present', $derive('09:00:00', '18:30:00'), '9h30m → present');
+
+        // Mid-day (no check-out) stays present until punch-out recomputes it.
+        $this->assertEquals('present', $derive('09:00:00', ''), 'punched in, not out → present');
+    }
 }

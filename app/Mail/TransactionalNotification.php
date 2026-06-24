@@ -114,9 +114,10 @@ class TransactionalNotification extends BaseBusinessMailable implements ShouldQu
         }
 
         $relationsByClass = [
-            \App\Models\LeaveRequest::class   => ['employee', 'leaveType', 'business'],
-            \App\Models\CompOffRequest::class => ['employee', 'business'],
-            \App\Models\ExpenseBudget::class  => ['employee', 'category', 'business'],
+            \App\Models\LeaveRequest::class       => ['employee', 'leaveType', 'business'],
+            \App\Models\CompOffRequest::class     => ['employee', 'business'],
+            \App\Models\ExpenseBudget::class      => ['employee', 'category', 'business'],
+            \App\Models\DepartmentFeedback::class => ['department', 'employee', 'business'],
         ];
 
         $class = get_class($entity);

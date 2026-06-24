@@ -317,9 +317,9 @@ class NotificationCatalog
             'internal_ticket.escalated' => [
                 'module' => 'Internal Helpdesk',
                 'name' => 'Internal ticket escalated',
-                'description' => 'Sent to HR / Admin when a ticket breaches TAT and escalates.',
+                'description' => 'Sent to the escalation-matrix Owner for the breached level (plus HR / Admin for visibility) when a ticket crosses its escalation threshold.',
                 'subject' => 'Ticket {entity.ticket_number} escalated to level {context.level}',
-                'recipients' => ['admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin'],
+                'recipients' => ['escalation.owner', 'admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin'],
                 'related' => 'internal_ticket',
             ],
             'internal_ticket.closed' => [

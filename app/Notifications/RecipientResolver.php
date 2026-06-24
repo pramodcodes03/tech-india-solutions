@@ -109,6 +109,10 @@ class RecipientResolver
             // setting.email:feedback_notification_email — lets admins configure a
             // fixed mailbox (no user account needed) to receive certain events.
             'setting.email' => $this->fromSettingEmail((string) $param),
+            // The Owner configured on the matched escalation-matrix level for
+            // this ticket's current level — so an escalated ticket auto-mails
+            // exactly the person set to own that level.
+            'escalation.owner' => $this->escalationOwner($entity),
             default => collect(), // Unknown role → silently ignore
         };
     }
@@ -133,6 +137,35 @@ class RecipientResolver
             'email' => $email,
             'name'  => 'Company',
         ]]);
+    }
+
+    /**
+     * Resolve the Owner of the escalation-matrix level that matches this
+     * ticket's current level (business + department + level). Runs from the
+     * scheduler (no tenant context), so global scopes are stripped and the
+     * business is filtered explicitly. Empty when no level/owner is configured.
+     */
+    protected function escalationOwner(?Model $entity): Collection
+    {
+        if (! $entity || empty($entity->escalation_level) || empty($entity->department)) {
+            return collect();
+        }
+
+        $level = \App\Models\TicketEscalationLevel::withoutGlobalScopes()
+            ->where('business_id', $entity->business_id)
+            ->where('department', $entity->department)
+            ->where('level', $entity->escalation_level)
+            ->first();
+
+        if (! $level || ! $level->owner_admin_id) {
+            return collect();
+        }
+
+        $admin = \App\Models\Admin::withoutGlobalScopes()->find($level->owner_admin_id);
+
+        return ($admin && $admin->email)
+            ? collect([['email' => $admin->email, 'name' => $admin->name]])
+            : collect();
     }
 
     protected function fromRelation(?Model $entity, string $relation, array $nameFields = ['name']): Collection

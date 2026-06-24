@@ -783,19 +783,25 @@ class AttendanceService
         }
     }
 
+    /** Minimum worked hours to qualify as a full Present day. */
+    private const FULL_DAY_HOURS = 8.0;
+
+    /** Minimum worked hours to qualify as a Half day (4 hrs 30 min). */
+    private const HALF_DAY_HOURS = 4.5;
+
     /**
      * Derive an attendance status from punch times.
      *
      * Rules:
      *   - no check-in              → absent
      *   - check-in, no check-out   → present (mid-day; biometric will recompute on punch-out)
-     *   - completed day, ≥ 8 hrs   → present
-     *   - completed day, < 8 hrs   → half_day  (anything short of a full day)
+     *   - completed day, ≥ 8 hrs       → present
+     *   - completed day, ≥ 4h30m & < 8 → half_day
+     *   - completed day, < 4h30m       → absent
      *
-     * The previous "≥ 4 hrs → half_day, else → present" was wrong on two
-     * fronts: a 3-hour day silently became "present" (the < 4 hrs fallback),
-     * and a 7h 59m day was demoted to half_day. The new rule treats any
-     * completed under-8-hour day as half_day uniformly.
+     * The boundaries are strict: a 4h29m day is Absent, exactly 4h30m is a
+     * Half day, and exactly 8h is Present. This stops a few minutes of logged
+     * time from being credited as a Half day.
      */
     private function deriveStatus(array $data): string
     {
@@ -811,7 +817,14 @@ class AttendanceService
 
         $hours = $this->calcHours($data['check_in'], $data['check_out']);
 
-        return $hours >= 8 ? 'present' : 'half_day';
+        if ($hours >= self::FULL_DAY_HOURS) {
+            return 'present';
+        }
+        if ($hours >= self::HALF_DAY_HOURS) {
+            return 'half_day';
+        }
+
+        return 'absent';
     }
 
     private function normalizeHeader(string $h): string
