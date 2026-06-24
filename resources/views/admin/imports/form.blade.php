@@ -21,6 +21,14 @@
                         <span class="block text-xs text-gray-500">If an Employee Code already exists, update that record instead of creating a duplicate. Blank cells are left unchanged.</span>
                     </span>
                 </label>
+            @elseif($importer->key() === 'payroll_adjustments')
+                <label class="flex items-start gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" name="overwrite" value="1" class="form-checkbox mt-0.5">
+                    <span>
+                        <span class="font-semibold">Overwrite existing adjustments</span>
+                        <span class="block text-xs text-gray-500">If an adjustment already exists for the same Employee + Month + Year + Component, update its amount/note instead of adding a duplicate.</span>
+                    </span>
+                </label>
             @endif
             <div class="flex gap-3">
                 <button class="btn btn-primary">Validate &amp; Preview</button>

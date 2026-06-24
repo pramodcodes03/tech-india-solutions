@@ -25,6 +25,20 @@
         <button class="btn btn-primary md:col-span-5">Filter</button>
     </form>
 
+    {{-- Total attendance records for the current date + filters. When a
+         Department is selected, the count reflects only that department. --}}
+    @php $selectedDept = request('department_id') ? optional($departments->firstWhere('id', (int) request('department_id')))->name : null; @endphp
+    <div class="flex items-center gap-2 mb-3 text-sm">
+        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold">
+            Total Records: {{ number_format($records->total()) }}
+        </span>
+        @if($selectedDept)
+            <span class="text-gray-500">for <strong>{{ $selectedDept }}</strong> on {{ \Carbon\Carbon::parse($date)->format('d M Y') }}</span>
+        @else
+            <span class="text-gray-500">all departments on {{ \Carbon\Carbon::parse($date)->format('d M Y') }}</span>
+        @endif
+    </div>
+
     <div class="panel p-0 overflow-x-auto">
         <table class="table-striped"><thead><tr><th>Employee</th><th>Department</th><th>Check-in</th><th>Check-out</th><th>Hours</th><th>Status</th><th>Source</th>@can('attendance.edit')<th class="text-right">Actions</th>@endcan</tr></thead>
             <tbody>

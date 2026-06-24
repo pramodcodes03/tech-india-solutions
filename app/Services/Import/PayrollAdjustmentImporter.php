@@ -59,15 +59,28 @@ class PayrollAdjustmentImporter implements RowImporter
     {
         $employee = Employee::where('employee_code', trim($row['employee code']))->firstOrFail();
 
-        PayrollAdjustment::create([
+        $keys = [
             'business_id' => $businessId,
             'employee_id' => $employee->id,
             'month' => (int) $row['month'],
             'year' => (int) $row['year'],
             'component' => strtolower(trim($row['component'])),
+        ];
+        $values = [
             'amount' => (float) str_replace(',', '', $row['amount']),
             'note' => trim($row['note'] ?? '') ?: null,
             'created_by' => Auth::guard('admin')->id(),
-        ]);
+        ];
+
+        // With Overwrite ticked, an existing adjustment for the same employee +
+        // month + year + component is updated in place instead of adding a
+        // duplicate. Otherwise a fresh row is always created.
+        if (! empty($row['__overwrite'])) {
+            PayrollAdjustment::updateOrCreate($keys, $values);
+
+            return;
+        }
+
+        PayrollAdjustment::create($keys + $values);
     }
 }
