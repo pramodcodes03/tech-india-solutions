@@ -63,6 +63,22 @@ class LeaveService
             $data['unpaid_days'] = 0;
 
             $leaveType = LeaveType::findOrFail($data['leave_type_id']);
+
+            // Probation gate: paid leave cannot be taken while serving probation.
+            // Unpaid (Leave Without Pay) types are still allowed.
+            if ($leaveType->is_paid) {
+                $employee = \App\Models\Employee::find($data['employee_id']);
+                if ($employee && $employee->isOnProbation()) {
+                    $until = $employee->probation_end_date
+                        ? ' (until '.$employee->probation_end_date->format('d M Y').')'
+                        : '';
+                    throw new \RuntimeException(
+                        "Paid leave cannot be applied during your probation period{$until}. "
+                        .'You may apply for Leave Without Pay, or apply once your probation is completed.'
+                    );
+                }
+            }
+
             $request = LeaveRequest::create($data);
 
             // Hold as pending only up to the available balance (for paid types).

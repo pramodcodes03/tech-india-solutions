@@ -177,10 +177,17 @@ class EmployeeController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('employees.edit'), 403);
 
         $oldShiftId = $employee->shift_id;
+        $wasOnProbation = $employee->isOnProbation();
         $this->service->update($employee, $request->validated());
 
-        // Notify the employee if their shift changed.
+        // If the employee was just confirmed (probation → completed), allocate
+        // their paid leave quotas now (they were withheld during probation).
         $fresh = $employee->fresh();
+        if ($wasOnProbation && ! $fresh->isOnProbation()) {
+            $this->service->allocateAnnualLeaves($fresh, (int) date('Y'));
+        }
+
+        // Notify the employee if their shift changed.
         if ($fresh->shift_id !== $oldShiftId && $fresh->shift_id) {
             $shift = $fresh->shift;
             \App\Notifications\NotificationDispatcher::fire(

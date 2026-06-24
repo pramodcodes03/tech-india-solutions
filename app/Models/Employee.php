@@ -53,6 +53,27 @@ class Employee extends Authenticatable
         ];
     }
 
+    /**
+     * Whether the employee is still serving probation. Used to gate paid-leave
+     * allocation and applications until probation is completed.
+     *
+     * Confirmed (NOT on probation) when a confirmation_date has passed.
+     * Otherwise on probation while probation_end_date is in the future, falling
+     * back to the explicit 'probation' status flag when no dates are set.
+     */
+    public function isOnProbation(): bool
+    {
+        if ($this->confirmation_date) {
+            return $this->confirmation_date->isFuture();
+        }
+
+        if ($this->probation_end_date) {
+            return $this->probation_end_date->isFuture();
+        }
+
+        return $this->status === 'probation';
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

@@ -148,10 +148,17 @@ class EmployeeService
             ? max(1, 12 - $employee->joining_date->month + 1)
             : 12;
 
+        // Employees still on probation do not accrue PAID leave — it's allocated
+        // once they're confirmed (see EmployeeController::update). Unpaid (LWP)
+        // types are unaffected.
+        $onProbation = $employee->isOnProbation();
+
         foreach ($types as $type) {
-            $allocated = $type->annual_quota > 0
-                ? round(($type->annual_quota * $monthsWorked) / 12, 1)
-                : 0;
+            $allocated = ($type->is_paid && $onProbation)
+                ? 0
+                : ($type->annual_quota > 0
+                    ? round(($type->annual_quota * $monthsWorked) / 12, 1)
+                    : 0);
 
             LeaveBalance::updateOrCreate(
                 ['employee_id' => $employee->id, 'leave_type_id' => $type->id, 'year' => $year],
