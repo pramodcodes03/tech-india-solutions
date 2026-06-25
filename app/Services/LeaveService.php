@@ -20,7 +20,13 @@ class LeaveService
         return $prefix.str_pad((string) $next, 4, '0', STR_PAD_LEFT);
     }
 
-    public function computeDays(string $from, string $to, string $dayPortion = 'full'): float
+    /**
+     * Number of *leave* days in a range. Week-offs and public holidays are NOT
+     * counted as leave — only actual working days are. Pass $businessId so the
+     * correct week-off pattern / holiday calendar is used; without it the raw
+     * calendar-day count is returned (legacy behaviour).
+     */
+    public function computeDays(string $from, string $to, string $dayPortion = 'full', ?int $businessId = null): float
     {
         $start = Carbon::parse($from);
         $end = Carbon::parse($to);
@@ -28,11 +34,30 @@ class LeaveService
             return 0;
         }
 
-        if ($start->eq($end) && $dayPortion !== 'full') {
-            return 0.5;
+        $attendance = app(\App\Services\AttendanceService::class);
+        $isNonWorking = fn (Carbon $d): bool => $businessId
+            && ($attendance->isBusinessWeekOff($d->toDateString(), $businessId)
+                || $attendance->isPublicHoliday($d->toDateString(), $businessId));
+
+        // Single date: a half-day portion is 0.5, full is 1 — but a week-off /
+        // holiday on that date means no leave is consumed at all.
+        if ($start->eq($end)) {
+            if ($isNonWorking($start)) {
+                return 0;
+            }
+
+            return $dayPortion !== 'full' ? 0.5 : 1.0;
         }
 
-        return (float) ($start->diffInDays($end) + 1);
+        // Multi-day: count working days only, skipping week-offs and holidays.
+        $days = 0.0;
+        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+            if (! $isNonWorking($d)) {
+                $days += 1;
+            }
+        }
+
+        return (float) $days;
     }
 
     /**
@@ -56,18 +81,30 @@ class LeaveService
     public function submit(array $data): LeaveRequest
     {
         return DB::transaction(function () use ($data) {
+            $employee = \App\Models\Employee::find($data['employee_id']);
+
             $data['request_code'] = $this->generateCode();
-            $data['days'] = $this->computeDays($data['from_date'], $data['to_date'], $data['day_portion'] ?? 'full');
+            // Exclude week-offs and public holidays from the leave-day count.
+            $data['days'] = $this->computeDays(
+                $data['from_date'],
+                $data['to_date'],
+                $data['day_portion'] ?? 'full',
+                $employee?->business_id,
+            );
             $data['status'] = 'pending';
             $data['paid_days'] = 0;
             $data['unpaid_days'] = 0;
+
+            // All selected dates fell on week-offs / holidays — nothing to apply.
+            if ($data['days'] <= 0) {
+                throw new \RuntimeException('The selected dates are all week-offs or holidays — there are no working days to apply leave for.');
+            }
 
             $leaveType = LeaveType::findOrFail($data['leave_type_id']);
 
             // Probation gate: paid leave cannot be taken while serving probation.
             // Unpaid (Leave Without Pay) types are still allowed.
             if ($leaveType->is_paid) {
-                $employee = \App\Models\Employee::find($data['employee_id']);
                 if ($employee && $employee->isOnProbation()) {
                     $until = $employee->probation_end_date
                         ? ' (until '.$employee->probation_end_date->format('d M Y').')'

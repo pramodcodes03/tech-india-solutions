@@ -40,7 +40,27 @@ class LeaveController extends Controller
             ->get()
             ->keyBy('leave_type_id');
 
-        return view('employee.leaves.create', compact('types', 'balances'));
+        // Week-off weekdays (0=Sun..6=Sat) + public-holiday dates so the form's
+        // "Days requested" preview excludes them — matching the server count.
+        $weekOffDays = \App\Models\BusinessWeekOff::withoutGlobalScopes()
+            ->where('business_id', $employee->business_id)
+            ->where('is_off', true)
+            ->pluck('day_of_week')
+            ->map(fn ($d) => (int) $d)
+            ->values();
+        if ($weekOffDays->isEmpty()) {
+            $weekOffDays = collect([0]); // default: Sunday off
+        }
+
+        $holidayDates = \App\Models\Holiday::withoutGlobalScopes()
+            ->where('business_id', $employee->business_id)
+            ->where('is_dynamic', false)
+            ->whereIn(\Illuminate\Support\Facades\DB::raw('YEAR(date)'), [now()->year, now()->year + 1])
+            ->get()
+            ->map(fn ($h) => $h->date->toDateString())
+            ->values();
+
+        return view('employee.leaves.create', compact('types', 'balances', 'weekOffDays', 'holidayDates'));
     }
 
     public function store(Request $request)

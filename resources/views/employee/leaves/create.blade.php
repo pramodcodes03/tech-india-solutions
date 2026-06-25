@@ -21,7 +21,7 @@
     @endphp
 
     <form method="POST" action="{{ route('employee.leaves.store') }}"
-          x-data="leaveForm({{ \Illuminate\Support\Js::from($balanceMap) }})"
+          x-data="leaveForm({{ \Illuminate\Support\Js::from($balanceMap) }}, {{ \Illuminate\Support\Js::from($weekOffDays) }}, {{ \Illuminate\Support\Js::from($holidayDates) }})"
           class="grid grid-cols-12 gap-4">
         @csrf
 
@@ -160,8 +160,10 @@
     @push('scripts')
     <script>
         document.addEventListener('alpine:init', () => {
-            Alpine.data('leaveForm', (balanceMap) => ({
+            Alpine.data('leaveForm', (balanceMap, weekOffDays = [], holidayDates = []) => ({
                 balanceMap,
+                weekOffDays,                       // [0..6] week-off weekdays
+                holidayDates: new Set(holidayDates), // 'YYYY-MM-DD' public holidays
                 type: {{ old('leave_type_id') ? (int) old('leave_type_id') : 'null' }},
                 from: '{{ old('from_date') }}',
                 to: '{{ old('to_date') }}',
@@ -170,13 +172,28 @@
                 get selected() {
                     return this.type ? this.balanceMap[this.type] : null;
                 },
+                // True when a date is a week-off or public holiday → not a leave day.
+                isNonWorking(d) {
+                    const iso = d.toISOString().slice(0, 10);
+                    return this.weekOffDays.includes(d.getDay()) || this.holidayDates.has(iso);
+                },
                 get days() {
                     if (!this.from || !this.to) return 0;
                     const f = new Date(this.from), t = new Date(this.to);
                     if (isNaN(f) || isNaN(t) || t < f) return 0;
-                    const diffDays = Math.round((t - f) / 86400000) + 1;
-                    if (diffDays === 1 && this.portion !== 'full') return 0.5;
-                    return diffDays;
+
+                    // Single date: 0 if it's a week-off/holiday, else half or full.
+                    if (f.getTime() === t.getTime()) {
+                        if (this.isNonWorking(f)) return 0;
+                        return this.portion !== 'full' ? 0.5 : 1;
+                    }
+
+                    // Multi-day: count working days only (skip week-offs/holidays).
+                    let count = 0;
+                    for (let d = new Date(f); d <= t; d.setDate(d.getDate() + 1)) {
+                        if (!this.isNonWorking(d)) count++;
+                    }
+                    return count;
                 },
                 get overBy() {
                     if (!this.selected || !this.selected.is_paid) return 0;
