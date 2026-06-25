@@ -33,6 +33,7 @@ class EmployeeReportExport implements FromCollection, WithHeadings
             ->get()
             ->map(fn (Employee $e) => [
                 $e->employee_code,
+                $e->legacy_employee_id,
                 trim($e->first_name.' '.$e->last_name),
                 $e->email,
                 $e->phone,
@@ -52,7 +53,7 @@ class EmployeeReportExport implements FromCollection, WithHeadings
     public function headings(): array
     {
         return [
-            'Employee Code', 'Name', 'Email', 'Phone', 'Department', 'Designation',
+            'Employee Code', 'Legacy Employee ID', 'Name', 'Email', 'Phone', 'Department', 'Designation',
             'Shift', 'Reporting Manager', 'Status', 'Joining Date', 'Probation End',
             'Confirmation Date', 'Employment Type', 'Gender',
         ];

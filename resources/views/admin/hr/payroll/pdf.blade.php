@@ -59,6 +59,7 @@
         <div class="col">
             <div class="row"><span class="label">Name:</span> <strong>{{ $emp->full_name }}</strong></div>
             <div class="row"><span class="label">Code:</span> {{ $emp->employee_code }}</div>
+            @if($emp->legacy_employee_id)<div class="row"><span class="label">Employee ID:</span> {{ $emp->legacy_employee_id }}</div>@endif
             <div class="row"><span class="label">Department:</span> {{ $emp->department?->name ?? '—' }}</div>
             <div class="row"><span class="label">Designation:</span> {{ $emp->designation?->name ?? '—' }}</div>
             <div class="row"><span class="label">Period:</span> {{ $p->period_start->format('d M') }} – {{ $p->period_end->format('d M Y') }}</div>

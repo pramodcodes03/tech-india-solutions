@@ -26,12 +26,12 @@ class EmployeeImporter implements RowImporter
 
     public function templateHeaders(): array
     {
-        return ['Employee Code', 'First Name', 'Last Name', 'Email', 'Phone', 'Department', 'Designation', 'Joining Date', 'Employment Type'];
+        return ['Employee Code', 'Legacy Employee ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Department', 'Designation', 'Joining Date', 'Employment Type'];
     }
 
     public function sampleRow(): array
     {
-        return ['EMP001', 'Asha', 'Verma', 'asha@example.com', '9876543210', 'Engineering', 'Software Engineer', '2026-06-01', 'full_time'];
+        return ['EMP001', 'OLD-1023', 'Asha', 'Verma', 'asha@example.com', '9876543210', 'Engineering', 'Software Engineer', '2026-06-01', 'full_time'];
     }
 
     /** Map free-text employment type to the employees enum, default full_time. */
@@ -78,6 +78,18 @@ class EmployeeImporter implements RowImporter
             }
         }
 
+        // Legacy Employee ID must be unique when provided (excluding the row
+        // being overwritten).
+        $legacy = trim($row['legacy employee id'] ?? '');
+        if ($legacy !== '') {
+            $legacyClash = Employee::where('legacy_employee_id', $legacy)
+                ->when($existing, fn ($q) => $q->where('id', '!=', $existing->id))
+                ->exists();
+            if ($legacyClash) {
+                $errors[] = "Legacy Employee ID {$legacy} already exists.";
+            }
+        }
+
         $jd = trim($row['joining date'] ?? '');
         if ($jd !== '' && ! strtotime($jd)) {
             $errors[] = 'Invalid joining date.';
@@ -97,6 +109,7 @@ class EmployeeImporter implements RowImporter
 
         // Common attributes from the row (blank cells become null).
         $attrs = [
+            'legacy_employee_id' => trim($row['legacy employee id'] ?? '') ?: null,
             'first_name' => trim($row['first name']),
             'last_name' => trim($row['last name'] ?? '') ?: null,
             'email' => trim($row['email'] ?? '') ?: null,

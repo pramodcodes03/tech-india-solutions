@@ -28,6 +28,8 @@ class StoreEmployeeRequest extends FormRequest
                 'nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9\-_]+$/',
                 Rule::unique('employees', 'employee_code'),
             ],
+            // Optional legacy/old employee ID — unique when provided.
+            'legacy_employee_id' => ['nullable', 'string', 'max:50', Rule::unique('employees', 'legacy_employee_id')],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
             'email' => ['required', 'email', Rule::unique('employees', 'email')],
