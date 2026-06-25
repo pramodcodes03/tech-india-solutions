@@ -32,6 +32,7 @@ class ProductService
     {
         $data['code'] = $this->generateCode();
         $data['created_by'] = Auth::guard('admin')->id();
+        $data = $this->normalizeOptionalNumbers($data);
 
         if (isset($data['image']) && $data['image'] instanceof UploadedFile) {
             $data['image'] = $data['image']->store('products', 'public');
@@ -41,11 +42,29 @@ class ProductService
     }
 
     /**
+     * Optional numeric fields (MRP, reorder level) are nullable in the form but
+     * the columns are NOT NULL with a 0 default — passing an explicit null would
+     * violate the constraint, so default blanks to 0.
+     */
+    private function normalizeOptionalNumbers(array $data): array
+    {
+        if (array_key_exists('mrp', $data) && $data['mrp'] === null) {
+            $data['mrp'] = 0;
+        }
+        if (array_key_exists('reorder_level', $data) && $data['reorder_level'] === null) {
+            $data['reorder_level'] = 0;
+        }
+
+        return $data;
+    }
+
+    /**
      * Update an existing product, handling image upload/replace.
      */
     public function update(Product $product, array $data): Product
     {
         $data['updated_by'] = Auth::guard('admin')->id();
+        $data = $this->normalizeOptionalNumbers($data);
 
         if (isset($data['image']) && $data['image'] instanceof UploadedFile) {
             // Delete old image if it exists
