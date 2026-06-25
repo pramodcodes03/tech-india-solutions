@@ -3,9 +3,13 @@
 
     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h1 class="text-2xl font-extrabold">Employees</h1>
-        @can('employees.create')
-            <a href="{{ route('admin.hr.employees.create') }}" class="btn btn-primary">+ Add Employee</a>
-        @endcan
+        <div class="flex gap-2">
+            {{-- Export the list, preserving the active search/department/status filters. --}}
+            <a href="{{ route('admin.hr.employees.export', request()->only(['search', 'department_id', 'designation_id', 'status'])) }}" class="btn btn-outline-success">⬇ Export Excel</a>
+            @can('employees.create')
+                <a href="{{ route('admin.hr.employees.create') }}" class="btn btn-primary">+ Add Employee</a>
+            @endcan
+        </div>
     </div>
 
     <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-2 mb-4">

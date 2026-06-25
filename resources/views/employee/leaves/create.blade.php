@@ -52,16 +52,18 @@
                 </div>
             </div>
 
-            <div>
+            <div x-effect="if (!isSingleDay && portion !== 'full') portion = 'full'">
                 <label class="text-xs font-semibold text-gray-500 uppercase">Day Portion *</label>
                 <div class="flex gap-2 mt-1">
                     @foreach(['full' => 'Full Day', 'first_half' => 'First Half', 'second_half' => 'Second Half'] as $k => $v)
-                        <label class="flex-1 cursor-pointer">
+                        {{-- Half-day options only make sense for a single date. --}}
+                        <label class="flex-1 cursor-pointer" @if($k !== 'full') x-show="isSingleDay" x-cloak @endif>
                             <input type="radio" name="day_portion" value="{{ $k }}" x-model="portion" class="sr-only" />
                             <div class="py-2 px-3 border rounded-lg text-center text-sm" :class="portion === '{{ $k }}' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-gray-300 dark:border-gray-600'">{{ $v }}</div>
                         </label>
                     @endforeach
                 </div>
+                <p class="text-[11px] text-gray-400 mt-1" x-show="!isSingleDay" x-cloak>Half-day applies to single-day leave only.</p>
             </div>
 
             {{-- ─── Live preview box ───────────────────────────────── --}}
@@ -171,6 +173,10 @@
 
                 get selected() {
                     return this.type ? this.balanceMap[this.type] : null;
+                },
+                // Half-day portions are only offered when both dates are the same day.
+                get isSingleDay() {
+                    return !!this.from && !!this.to && this.from === this.to;
                 },
                 // True when a date is a week-off or public holiday → not a leave day.
                 isNonWorking(d) {

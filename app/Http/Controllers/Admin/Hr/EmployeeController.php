@@ -58,6 +58,21 @@ class EmployeeController extends Controller
     }
 
     /**
+     * Export the (filtered) employee list to Excel.
+     */
+    public function export(Request $request)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('employees.view'), 403);
+
+        $filters = $request->only(['search', 'department_id', 'designation_id', 'status']);
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\EmployeeReportExport($filters),
+            'employees-'.now()->format('Y-m-d').'.xlsx',
+        );
+    }
+
+    /**
      * Bulk-edit dropdown fields on selected employees. Only the fields the user
      * actually chose a value for are applied; the rest are left untouched.
      */

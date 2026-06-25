@@ -83,6 +83,12 @@ class LeaveService
         return DB::transaction(function () use ($data) {
             $employee = \App\Models\Employee::find($data['employee_id']);
 
+            // Half-day portions only apply to a single-date request; a multi-day
+            // range is always full days.
+            if (($data['from_date'] ?? null) !== ($data['to_date'] ?? null)) {
+                $data['day_portion'] = 'full';
+            }
+
             $data['request_code'] = $this->generateCode();
             // Exclude week-offs and public holidays from the leave-day count.
             $data['days'] = $this->computeDays(
