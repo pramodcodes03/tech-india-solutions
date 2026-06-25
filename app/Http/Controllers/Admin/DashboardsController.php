@@ -151,7 +151,10 @@ class DashboardsController extends Controller
             ->where('payments.payment_date', '>=', $today->copy()->subDays(90))
             ->selectRaw('AVG(DATEDIFF(payments.payment_date, invoices.invoice_date)) as dso')
             ->first();
-        $dso = (int) round($dsoRow->dso ?? 0);
+        // Average collection days over the last 90 days. Clamp at 0 — a negative
+        // value only arises from advance payments dated before their invoice and
+        // is meaningless as "days outstanding".
+        $dso = max(0, (int) round($dsoRow->dso ?? 0));
 
         // Invoice aging buckets (unpaid invoices)
         $aging = ['0-30' => 0, '31-60' => 0, '61-90' => 0, '90+' => 0];

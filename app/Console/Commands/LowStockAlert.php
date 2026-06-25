@@ -14,7 +14,15 @@ class LowStockAlert extends Command
 
     public function handle()
     {
-        $lowStockProducts = Product::whereColumn('current_stock', '<=', 'reorder_level')->get();
+        // current_stock is a computed accessor (sum of stock movements), not a
+        // DB column, so it can't be used in a WHERE/whereColumn. The scheduler
+        // also has no active business, so drop the tenant scope and scan every
+        // business's products, then filter in PHP by the accessor.
+        $lowStockProducts = Product::withoutGlobalScope(\App\Support\Tenancy\BusinessScope::class)
+            ->where('reorder_level', '>', 0)
+            ->get()
+            ->filter(fn ($product) => $product->current_stock <= $product->reorder_level)
+            ->values();
 
         if ($lowStockProducts->isEmpty()) {
             $this->info('No low-stock products found.');
@@ -25,7 +33,7 @@ class LowStockAlert extends Command
         $rows = $lowStockProducts->map(function ($product) {
             return [
                 'ID' => $product->id,
-                'Code' => $product->product_code,
+                'Code' => $product->code,
                 'Name' => $product->name,
                 'Current Stock' => $product->current_stock,
                 'Reorder Level' => $product->reorder_level,

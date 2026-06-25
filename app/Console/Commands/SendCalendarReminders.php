@@ -28,9 +28,9 @@ class SendCalendarReminders extends Command
         $today = Carbon::today();
         $dryRun = $this->option('dry-run');
 
-        // Holidays exactly 2 days from now.
+        // Holidays exactly 2 days from now. (Holidays aren't soft-deletable, so
+        // there's no deleted_at column to filter on.)
         $upcomingHolidays = Holiday::withoutGlobalScopes()
-            ->whereNull('deleted_at')
             ->whereDate('date', $today->copy()->addDays(2))
             ->get();
 
