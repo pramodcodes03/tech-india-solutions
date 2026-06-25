@@ -141,7 +141,12 @@ class EmployeeService
      */
     public function allocateAnnualLeaves(Employee $employee, int $year): void
     {
-        $types = LeaveType::where('status', 'active')->get();
+        // Business-explicit (+ scope-free) so this works both in the admin UI
+        // and from the nightly scheduler, which has no active business context.
+        $types = LeaveType::withoutGlobalScopes()
+            ->where('business_id', $employee->business_id)
+            ->where('status', 'active')
+            ->get();
 
         $joinedThisYear = $employee->joining_date && $employee->joining_date->year === $year;
         $monthsWorked = $joinedThisYear
@@ -149,7 +154,8 @@ class EmployeeService
             : 12;
 
         // Employees still on probation do not accrue PAID leave — it's allocated
-        // once they're confirmed (see EmployeeController::update). Unpaid (LWP)
+        // once they're confirmed (manually via EmployeeController::update, or
+        // automatically by the nightly probation-completion job). Unpaid (LWP)
         // types are unaffected.
         $onProbation = $employee->isOnProbation();
 
@@ -160,10 +166,57 @@ class EmployeeService
                     ? round(($type->annual_quota * $monthsWorked) / 12, 1)
                     : 0);
 
-            LeaveBalance::updateOrCreate(
-                ['employee_id' => $employee->id, 'leave_type_id' => $type->id, 'year' => $year],
+            LeaveBalance::withoutGlobalScopes()->updateOrCreate(
+                [
+                    'business_id' => $employee->business_id,
+                    'employee_id' => $employee->id,
+                    'leave_type_id' => $type->id,
+                    'year' => $year,
+                ],
                 ['allocated' => $allocated]
             );
         }
+    }
+
+    /**
+     * Nightly job: confirm employees whose probation period has completed.
+     * Probation end = the employee's own probation_end_date, else joining_date
+     * + the global default (HR Settings → Probation Period Days). On completion
+     * the employee is flipped to 'active', stamped with a confirmation_date, and
+     * their leave quotas are allocated for ALL active leave types.
+     *
+     * @return int number of employees confirmed
+     */
+    public function confirmCompletedProbations(?\Carbon\Carbon $asOf = null): int
+    {
+        $asOf = $asOf ?? now();
+        $defaultDays = \App\Support\HrSettings::int('probation_period_days', 90);
+        $confirmed = 0;
+
+        Employee::withoutGlobalScopes()
+            ->where('status', 'probation')
+            ->whereNull('confirmation_date')
+            ->whereNotNull('joining_date')
+            ->get()
+            ->each(function (Employee $emp) use ($asOf, $defaultDays, &$confirmed) {
+                // The employee's own probation end date wins; else DOJ + default.
+                $probEnd = $emp->probation_end_date
+                    ?: $emp->joining_date->copy()->addDays($defaultDays);
+
+                if ($asOf->lt($probEnd)) {
+                    return; // probation not complete yet
+                }
+
+                $emp->update([
+                    'status' => 'active',
+                    'confirmation_date' => $probEnd->toDateString(),
+                ]);
+
+                // Allocate leaves now that they're confirmed (all leave types).
+                $this->allocateAnnualLeaves($emp->fresh(), (int) $asOf->year);
+                $confirmed++;
+            });
+
+        return $confirmed;
     }
 }

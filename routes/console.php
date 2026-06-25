@@ -46,6 +46,9 @@ Schedule::command('attendance:escalate-regularizations')->hourly();
 // Internal helpdesk: escalate overdue tickets per the escalation matrix.
 Schedule::command('tickets:escalate-internal')->hourly();
 
+// HR: confirm employees whose probation has completed, then allocate leaves.
+Schedule::command('employees:confirm-probation')->dailyAt('00:45');
+
 // Leave: daily accrual credit + year-end lapse / carry-forward on Dec 31.
 Schedule::command('leave:accrue')->dailyAt('01:00');
 Schedule::command('leave:year-end')->yearlyOn(12, 31, '23:30');
