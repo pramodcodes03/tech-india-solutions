@@ -69,7 +69,11 @@ class LeaveAccrualService
      */
     private function currentPeriodKey(LeaveType $type, Carbon $asOf): ?string
     {
-        return match ($type->accrual_frequency) {
+        // Fall back to the global Default Accrual Frequency when the type hasn't
+        // set its own.
+        $frequency = $type->accrual_frequency ?: HrSettings::get('leave_accrual_frequency', 'monthly');
+
+        return match ($frequency) {
             'monthly' => $asOf->format('Y-m'),
             // Credit at the start of each half (Jan & Jul). Other months: null.
             'half_yearly' => in_array($asOf->month, [1, 7]) ? $asOf->format('Y').'-H'.($asOf->month === 1 ? '1' : '2') : null,
@@ -90,11 +94,14 @@ class LeaveAccrualService
             }
         }
 
-        // Earned-leave style minimum-working-days rule.
-        if ($type->min_working_days) {
-            if ($this->workingDaysSinceJoining($emp) < $type->min_working_days) {
-                return false;
-            }
+        // Earned-leave style minimum-working-days rule. EL types fall back to the
+        // global "EL Working-Days Required" setting when no per-type value is set.
+        $minDays = (int) $type->min_working_days;
+        if ($minDays <= 0 && str_starts_with(strtoupper((string) $type->code), 'EL')) {
+            $minDays = HrSettings::int('el_working_days_required', 240);
+        }
+        if ($minDays > 0 && $this->workingDaysSinceJoining($emp) < $minDays) {
+            return false;
         }
 
         return true;
@@ -187,6 +194,11 @@ class LeaveAccrualService
             $carryAmt = 0.0;
             if ($type->carry_forward && $available > 0) {
                 $cap = (float) $type->max_carry_forward;
+                // EL types fall back to the global "EL Carry-Forward Cap" setting
+                // when no per-type cap is configured.
+                if ($cap <= 0 && str_starts_with(strtoupper((string) $type->code), 'EL')) {
+                    $cap = HrSettings::float('el_carry_forward_cap', 30);
+                }
                 $carryAmt = $cap > 0 ? min($available, $cap) : $available;
             }
             $lapseAmt = round($available - $carryAmt, 2);

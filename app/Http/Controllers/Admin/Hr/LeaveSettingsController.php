@@ -50,6 +50,23 @@ class LeaveSettingsController extends Controller
             HrSettings::set($key, $value, 'leave');
         }
 
+        // Make the EL-specific policy actually take effect: the accrual / year-end
+        // engine reads per-leave-type fields, so push the configured thresholds
+        // onto every Earned Leave type (code starting with "EL"). This keeps the
+        // global Leave Settings page authoritative over EL behaviour.
+        \App\Models\LeaveType::withoutGlobalScopes()
+            ->whereRaw('UPPER(code) LIKE ?', ['EL%'])
+            ->update([
+                'min_working_days' => (int) $data['el_working_days_required'],
+                'max_carry_forward' => (float) $data['el_carry_forward_cap'],
+                'carry_forward' => true,
+            ]);
+
+        // Seed the default accrual frequency onto any type that hasn't set one.
+        \App\Models\LeaveType::withoutGlobalScopes()
+            ->where(fn ($q) => $q->whereNull('accrual_frequency')->orWhere('accrual_frequency', ''))
+            ->update(['accrual_frequency' => $data['leave_accrual_frequency']]);
+
         return back()->with('success', 'Leave settings updated.');
     }
 
