@@ -196,7 +196,7 @@ class CandidateController extends Controller
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer'],
 
-            'source' => ['nullable', 'in:walkin,referral,campus,online,agency,other'],
+            'source' => ['nullable', 'in:'.implode(',', array_keys(Candidate::SOURCES))],
             'referred_by_employee_id' => ['nullable', 'exists:employees,id'],
             'batch_id' => ['nullable', 'exists:recruitment_batches,id'],
             'department_id' => ['nullable', 'exists:departments,id'],
@@ -381,7 +381,7 @@ class CandidateController extends Controller
             'current_ctc' => ['nullable', 'numeric', 'min:0'],
             'expected_ctc' => ['nullable', 'numeric', 'min:0'],
             'notice_period_days' => ['nullable', 'integer', 'min:0', 'max:365'],
-            'source' => ['required', 'in:walkin,referral,campus,online,agency,other'],
+            'source' => ['required', 'in:'.implode(',', array_keys(Candidate::SOURCES))],
             'referred_by_employee_id' => ['nullable', 'exists:employees,id'],
             'batch_id' => ['nullable', 'exists:recruitment_batches,id'],
             'department_id' => ['nullable', 'exists:departments,id'],

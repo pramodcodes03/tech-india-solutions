@@ -50,6 +50,27 @@ class Candidate extends Model
         'online' => 'Online / Portal',
         'agency' => 'Agency',
         'other' => 'Other',
+        // Recruitment sources
+        'job_board' => 'Job Board',
+        'placement' => 'Placement',
+        'skill_india' => 'Skill India',
+        'computer_center' => 'Computer Center',
+        'internal' => 'Internal',
+        'iti' => 'ITI',
+        'grow_center' => 'Grow Center',
+        'dc_office' => 'DC Office',
+        'employee_referral' => 'Employee Referral',
+        'referred_ex_employee' => 'Referred by Ex-Employee & Known Person',
+        'apna_app' => 'Apna App',
+        'indeed' => 'Indeed',
+        'workindia' => 'WorkIndia',
+        'db_whatsapp_group' => 'Referred by DB WhatsApp Group',
+        'instagram' => 'Instagram',
+        'employment_exchange' => 'Employment Exchange',
+        'job_camp' => 'Job Camp',
+        'facebook' => 'Facebook',
+        'rejoining' => 'Rejoining',
+        'satyam_skill_center' => 'Satyam Skill Center',
     ];
 
     public function getActivitylogOptions(): LogOptions
