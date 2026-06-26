@@ -1018,7 +1018,7 @@
                 @endcan
 
                 {{-- ========== REPORTS ========== --}}
-                @php $reportPerms = ['reports.view','reports.sales','reports.inventory','reports.customers','reports.purchases','reports.payments','reports.hr','reports.builder']; @endphp
+                @php $reportPerms = ['reports.view','report_sales.view','report_inventory.view','report_customers.view','report_purchases.view','report_payments.view','report_hr.view','report_builder.view']; @endphp
                 @canany($reportPerms)
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Reports</span>
@@ -1045,13 +1045,13 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'reports'" class="sub-menu text-gray-500">
-                        @can('reports.sales')<li><a href="{{ route('admin.reports.sales') }}">Sales Report</a></li>@endcan
-                        @can('reports.inventory')<li><a href="{{ route('admin.reports.inventory') }}">Inventory Report</a></li>@endcan
-                        @can('reports.customers')<li><a href="{{ route('admin.reports.customers') }}">Customer Report</a></li>@endcan
-                        @can('reports.purchases')<li><a href="{{ route('admin.reports.purchases') }}">Purchase Report</a></li>@endcan
-                        @can('reports.payments')<li><a href="{{ route('admin.reports.payments') }}">Payment Report</a></li>@endcan
-                        @can('reports.hr')<li><a href="{{ route('admin.hr.reports.index') }}">HR &amp; Payroll Reports</a></li>@endcan
-                        @can('reports.builder')<li><a href="{{ route('admin.report-builder.index') }}">Custom Report Builder</a></li>@endcan
+                        @can('report_sales.view')<li><a href="{{ route('admin.reports.sales') }}">Sales Report</a></li>@endcan
+                        @can('report_inventory.view')<li><a href="{{ route('admin.reports.inventory') }}">Inventory Report</a></li>@endcan
+                        @can('report_customers.view')<li><a href="{{ route('admin.reports.customers') }}">Customer Report</a></li>@endcan
+                        @can('report_purchases.view')<li><a href="{{ route('admin.reports.purchases') }}">Purchase Report</a></li>@endcan
+                        @can('report_payments.view')<li><a href="{{ route('admin.reports.payments') }}">Payment Report</a></li>@endcan
+                        @can('report_hr.view')<li><a href="{{ route('admin.hr.reports.index') }}">HR &amp; Payroll Reports</a></li>@endcan
+                        @can('report_builder.view')<li><a href="{{ route('admin.report-builder.index') }}">Custom Report Builder</a></li>@endcan
                     </ul>
                 </li>
                 @endcanany
