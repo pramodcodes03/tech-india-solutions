@@ -39,6 +39,22 @@ class AttendanceController extends Controller
         return view('admin.hr.attendance.index', compact('records', 'date', 'departments'));
     }
 
+    /**
+     * Export the (filtered) daily attendance list to Excel.
+     */
+    public function export(Request $request)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('attendance.view'), 403);
+
+        $date = $request->input('date', now()->toDateString());
+        $filters = $request->only(['department_id', 'status', 'search']);
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\DailyAttendanceExport($date, $filters),
+            'daily-attendance-'.$date.'.xlsx',
+        );
+    }
+
     public function monthly(Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('attendance.view'), 403);

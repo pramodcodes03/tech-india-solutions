@@ -3,6 +3,8 @@
     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h1 class="text-2xl font-extrabold">Daily Attendance</h1>
         <div class="flex gap-2">
+            {{-- Export the current day's list, preserving the active filters. --}}
+            <a href="{{ route('admin.hr.attendance.export', array_filter(['date' => $date] + request()->only(['department_id', 'status', 'search']))) }}" class="btn btn-outline-success">⬇ Export Excel</a>
             @can('attendance.import')<a href="{{ route('admin.hr.attendance.import-form') }}" class="btn btn-outline-info">Import CSV</a>@endcan
             @can('attendance.create')<a href="{{ route('admin.hr.attendance.create') }}" class="btn btn-primary">+ Mark Attendance</a>@endcan
             <a href="{{ route('admin.hr.attendance.monthly') }}" class="btn btn-outline-primary">Monthly Summary</a>

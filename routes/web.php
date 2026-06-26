@@ -368,6 +368,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
             // Attendance
             Route::get('attendance', [HrAttendanceController::class, 'index'])->name('attendance.index');
+            Route::get('attendance/export', [HrAttendanceController::class, 'export'])->name('attendance.export');
             Route::get('attendance/monthly', [HrAttendanceController::class, 'monthly'])->name('attendance.monthly');
             Route::get('attendance/monthly/export', [HrAttendanceController::class, 'exportMonthly'])->name('attendance.monthly-export');
             Route::get('attendance/create', [HrAttendanceController::class, 'create'])->name('attendance.create');
