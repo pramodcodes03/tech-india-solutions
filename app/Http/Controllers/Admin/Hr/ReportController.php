@@ -23,7 +23,7 @@ class ReportController extends Controller
 
     private function guard(): void
     {
-        abort_unless(Auth::guard('admin')->user()->can('reports.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('reports.hr'), 403);
     }
 
     public function index()

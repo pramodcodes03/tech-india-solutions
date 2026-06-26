@@ -84,7 +84,7 @@ class ReportBuilderController extends Controller
 
     public function index()
     {
-        abort_unless(Auth::guard('admin')->user()->can('reports.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('reports.builder'), 403);
         $catalog = $this->catalog();
         $templates = ReportTemplate::with('creator')->latest()->get();
 
@@ -93,7 +93,7 @@ class ReportBuilderController extends Controller
 
     public function build(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('reports.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('reports.builder'), 403);
         $data = $request->validate([
             'module' => ['required', 'in:employees,payslips,leads'],
             'columns' => ['required', 'array', 'min:1'],
@@ -119,7 +119,7 @@ class ReportBuilderController extends Controller
 
     public function save(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('reports.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('reports.builder'), 403);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'module' => ['required', 'in:employees,payslips,leads'],
@@ -139,7 +139,7 @@ class ReportBuilderController extends Controller
 
     public function runSaved(Request $request, ReportTemplate $template)
     {
-        abort_unless(Auth::guard('admin')->user()->can('reports.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('reports.builder'), 403);
         [$headings, $rows] = $this->run($template->module, $template->columns);
 
         if ($request->get('export') === 'excel') {
@@ -158,7 +158,7 @@ class ReportBuilderController extends Controller
 
     public function destroy(ReportTemplate $template)
     {
-        abort_unless(Auth::guard('admin')->user()->can('reports.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('reports.builder'), 403);
         $template->delete();
 
         return back()->with('success', 'Template deleted.');

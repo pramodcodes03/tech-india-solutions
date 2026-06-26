@@ -27,14 +27,18 @@ class ReportController extends Controller
 
     public function index()
     {
-        abort_unless(Auth::guard('admin')->user()->can('reports.view'), 403);
+        // Reports hub is visible to anyone who can see at least one report.
+        abort_unless(Auth::guard('admin')->user()->canany([
+            'reports.view', 'reports.sales', 'reports.inventory',
+            'reports.customers', 'reports.purchases', 'reports.payments', 'reports.builder',
+        ]), 403);
 
         return view('admin.reports.index');
     }
 
     public function sales(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('reports.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('reports.sales'), 403);
 
         $filters = $request->only(['date_from', 'date_to', 'customer_id', 'product_id', 'status']);
         $data = $this->reportService->salesReport($filters);
@@ -69,7 +73,7 @@ class ReportController extends Controller
 
     public function inventory(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('reports.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('reports.inventory'), 403);
 
         $filters = $request->only(['category_id', 'warehouse_id', 'low_stock']);
         $data = $this->reportService->inventoryReport($filters);
@@ -91,7 +95,7 @@ class ReportController extends Controller
 
     public function customers(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('reports.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('reports.customers'), 403);
 
         $filters = $request->only(['status', 'city', 'customer_id', 'date_from', 'date_to']);
         $data = $this->reportService->customerReport($filters);
@@ -109,7 +113,7 @@ class ReportController extends Controller
 
     public function purchases(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('reports.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('reports.purchases'), 403);
 
         $filters = $request->only(['date_from', 'date_to', 'vendor_id', 'status']);
         $data = $this->reportService->purchaseReport($filters);
@@ -129,7 +133,7 @@ class ReportController extends Controller
 
     public function payments(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('reports.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('reports.payments'), 403);
 
         $filters = $request->only(['date_from', 'date_to', 'customer_id', 'mode']);
         $data = $this->reportService->paymentReport($filters);
