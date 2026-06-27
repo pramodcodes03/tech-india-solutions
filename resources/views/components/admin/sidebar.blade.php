@@ -753,6 +753,7 @@
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'hr-employees'" class="sub-menu text-gray-500">
                         @can('employees.view')<li><a href="{{ route('admin.hr.employees.index') }}">All Employees</a></li>@endcan
+                        @can('employees.view')<li><a href="{{ route('admin.hr.reporting-managers.index') }}">Report Managers</a></li>@endcan
                         @can('employees.create')<li><a href="{{ route('admin.hr.employees.create') }}">Add Employee</a></li>@endcan
                         @can('departments.view')<li><a href="{{ route('admin.hr.departments.index') }}">Departments</a></li>@endcan
                         @can('designations.view')<li><a href="{{ route('admin.hr.designations.index') }}">Designations</a></li>@endcan

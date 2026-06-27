@@ -330,6 +330,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Employees
             Route::post('employees/bulk-action', [HrEmployeeController::class, 'bulkAction'])->name('employees.bulk-action');
             Route::get('employees/export', [HrEmployeeController::class, 'export'])->name('employees.export');
+            Route::get('reporting-managers', [\App\Http\Controllers\Admin\Hr\ReportingManagerController::class, 'index'])->name('reporting-managers.index');
             Route::resource('employees', HrEmployeeController::class);
             Route::post('employees/{employee}/reset-password', [HrEmployeeController::class, 'resetPassword'])->name('employees.reset-password');
             Route::post('employees/{employee}/toggle-status', [HrEmployeeController::class, 'toggleStatus'])->name('employees.toggle-status');
