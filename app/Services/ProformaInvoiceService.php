@@ -46,6 +46,9 @@ class ProformaInvoiceService
             );
 
             $data = array_merge($data, $totals);
+            // advance_received is NOT NULL with a 0 default — a blank field sends
+            // an explicit null which violates the constraint, so default it.
+            $data['advance_received'] = $data['advance_received'] ?? 0;
 
             $proforma = ProformaInvoice::create($data);
 
@@ -72,6 +75,9 @@ class ProformaInvoiceService
             );
 
             $data = array_merge($data, $totals);
+            if (array_key_exists('advance_received', $data) && $data['advance_received'] === null) {
+                $data['advance_received'] = 0;
+            }
 
             $proforma->update($data);
             $proforma->items()->delete();
