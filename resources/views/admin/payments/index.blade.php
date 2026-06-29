@@ -47,7 +47,7 @@
                             <th class="px-4 py-2">Date</th>
                             <th class="px-4 py-2 text-right">Amount</th>
                             <th class="px-4 py-2">Mode</th>
-                            <th class="px-4 py-2">Reference</th>
+                            <th class="px-4 py-2">Reference / UTR</th>
                             <th class="px-4 py-2 !text-center">Actions</th>
                         </tr>
                     </thead>
@@ -65,7 +65,7 @@
                                 <td class="px-4 py-2">
                                     <span class="badge bg-primary" x-text="formatMode(item.mode)"></span>
                                 </td>
-                                <td class="px-4 py-2" x-text="item.reference_number || '-'"></td>
+                                <td class="px-4 py-2" x-text="item.reference_no || '-'"></td>
                                 <td class="px-4 py-2">
                                     <div class="flex items-center justify-center gap-2">
                                         <a :href="`{{ url('admin/payments') }}/${item.id}`" class="btn btn-sm btn-outline-info p-1.5" data-tippy-content="View Details"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></a>

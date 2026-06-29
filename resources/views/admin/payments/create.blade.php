@@ -135,8 +135,8 @@
                     </div>
 
                     <div>
-                        <label for="reference_number">Reference No</label>
-                        <input id="reference_number" name="reference_number" type="text" class="form-input" value="{{ old('reference_number') }}" placeholder="Cheque/Transaction reference" />
+                        <label for="reference_no">Reference / UTR No</label>
+                        <input id="reference_no" name="reference_no" type="text" class="form-input" value="{{ old('reference_no') }}" placeholder="UTR / Cheque / Transaction reference" />
                     </div>
 
                     <div class="md:col-span-2">
