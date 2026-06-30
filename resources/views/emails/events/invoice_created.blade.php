@@ -11,7 +11,7 @@
         <tr><td class="label">Invoice No.</td><td class="val">{{ $entity?->invoice_number }}</td></tr>
         <tr><td class="label">Invoice Date</td><td class="val">{{ \Carbon\Carbon::parse($entity?->invoice_date)->format('d M Y') }}</td></tr>
         <tr><td class="label">Due Date</td><td class="val">{{ $entity?->due_date ? \Carbon\Carbon::parse($entity?->due_date)->format('d M Y') : '—' }}</td></tr>
-        <tr><td class="label">Total Amount</td><td class="val"><span class="amount">{{ $business->currency_symbol ?? '₹' }}{{ number_format($entity?->grand_total ?? $entity?->amount ?? 0, 2) }}</span></td></tr>
+        <tr><td class="label">Total Amount</td><td class="val"><span class="amount">{{ $business->currency_symbol ?? '₹' }}{{ number_format($documentTotal ?? $entity?->grand_total ?? $entity?->amount ?? 0, 2) }}</span></td></tr>
         @if(isset($entity?->amount_paid) && $entity?->amount_paid > 0)
             <tr><td class="label">Amount Paid</td><td class="val">{{ $business->currency_symbol ?? '₹' }}{{ number_format($entity?->amount_paid, 2) }}</td></tr>
             <tr><td class="label">Balance Due</td><td class="val">{{ $business->currency_symbol ?? '₹' }}{{ number_format(($entity?->grand_total ?? 0) - $entity?->amount_paid, 2) }}</td></tr>

@@ -114,9 +114,11 @@ class QuotationService
             $subtotal += $lineTotal;
         }
 
-        // Apply discount
+        // Apply discount. The whole app uses the "percent" key (forms, PDF,
+        // proforma); "percentage" never matched, so a % discount was silently
+        // treated as a flat amount — storing a wrong grand_total.
         $discountAmount = 0;
-        if ($discountType === 'percentage') {
+        if (in_array($discountType, ['percent', 'percentage'], true)) {
             $discountAmount = $subtotal * ($discountValue / 100);
         } else {
             $discountAmount = $discountValue;

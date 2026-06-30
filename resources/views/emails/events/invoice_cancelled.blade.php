@@ -10,7 +10,7 @@
     <table class="meta-table">
         <tr><td class="label">Invoice No.</td><td class="val">{{ $entity?->invoice_number }}</td></tr>
         <tr><td class="label">Invoice Date</td><td class="val">{{ \Carbon\Carbon::parse($entity?->invoice_date)->format('d M Y') }}</td></tr>
-        <tr><td class="label">Total Amount</td><td class="val"><span class="amount">{{ $business->currency_symbol ?? '₹' }}{{ number_format($entity?->grand_total ?? 0, 2) }}</span></td></tr>
+        <tr><td class="label">Total Amount</td><td class="val"><span class="amount">{{ $business->currency_symbol ?? '₹' }}{{ number_format($documentTotal ?? ($entity?->grand_total ?? 0), 2) }}</span></td></tr>
         <tr><td class="label">Status</td><td class="val">{{ ucfirst($entity?->status ?? 'Cancelled') }}</td></tr>
     </table>
 

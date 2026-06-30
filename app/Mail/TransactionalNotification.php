@@ -87,6 +87,11 @@ class TransactionalNotification extends BaseBusinessMailable implements ShouldQu
         $specific = 'emails.events.'.str_replace('.', '_', $this->eventKey);
         $viewName = view()->exists($specific) ? $specific : 'emails.events._generic';
 
+        // Net amount (after discount + tax) for document emails — computed the
+        // same way as the PDF so the email body never shows the raw subtotal.
+        $totals = $this->computePdfTotals($this->entity);
+        $documentTotal = $totals['pdfGrandTotal'] ?? ($this->entity->grand_total ?? null);
+
         return new Content(
             view: $viewName,
             with: [
@@ -96,6 +101,7 @@ class TransactionalNotification extends BaseBusinessMailable implements ShouldQu
                 'recipientName' => $this->recipientName,
                 'eventKey' => $this->eventKey,
                 'subject' => $this->subjectLine,
+                'documentTotal' => $documentTotal,
             ],
         );
     }
@@ -118,6 +124,12 @@ class TransactionalNotification extends BaseBusinessMailable implements ShouldQu
             \App\Models\CompOffRequest::class     => ['employee', 'business'],
             \App\Models\ExpenseBudget::class      => ['employee', 'category', 'business'],
             \App\Models\DepartmentFeedback::class => ['department', 'employee', 'business'],
+            // Sales / purchase documents — the email body shows the
+            // vendor/customer name, which the tenant scope blanks in the queue.
+            \App\Models\PurchaseOrder::class      => ['vendor', 'items', 'business'],
+            \App\Models\Quotation::class          => ['customer', 'items', 'business'],
+            \App\Models\ProformaInvoice::class    => ['customer', 'items', 'business'],
+            \App\Models\Invoice::class            => ['customer', 'items', 'business'],
         ];
 
         $class = get_class($entity);

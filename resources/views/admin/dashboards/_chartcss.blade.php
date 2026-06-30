@@ -17,4 +17,21 @@
         box-shadow: 0 10px 30px rgba(0,0,0,.12) !important;
         border-radius: 10px !important;
     }
+    /* Legend markers were rendering as small, cut-off bubbles because the global
+       span resets clipped them. Force clean, fully-coloured circular indicators
+       that line up with their label text. */
+    .apexcharts-legend-series {
+        display: inline-flex !important;
+        align-items: center !important;
+        margin: 2px 8px !important;
+    }
+    .apexcharts-legend-marker {
+        position: static !important;
+        width: 12px !important;
+        height: 12px !important;
+        border-radius: 50% !important;
+        margin-right: 5px !important;
+        flex: 0 0 auto !important;
+        top: 0 !important;
+    }
 </style>

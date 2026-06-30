@@ -23,32 +23,34 @@
         <div class="text-xs text-gray-500 mt-2">Slug: <code>{{ $category->slug }}</code> · Status: {{ $category->is_active ? 'Active' : 'Inactive' }}</div>
     </div>
 
-    <div class="panel" x-data="{ openId: null, addOpen: false }">
+    <div class="panel" x-data="{ openId: null, addOpen: false, addName: '', addSlug: '', addDesc: '',
+            startAdd() { this.addName=''; this.addSlug=''; this.addDesc=''; this.addOpen=true; },
+            duplicate(name, slug, desc) { this.addName = name + ' (Copy)'; this.addSlug = slug + '-copy'; this.addDesc = desc || ''; this.addOpen = true; this.$nextTick(() => this.$refs.addForm?.scrollIntoView({behavior:'smooth', block:'center'})); } }">
         <div class="flex items-center justify-between mb-3">
             <h6 class="font-semibold">Subcategories ({{ $category->subcategories->count() }})</h6>
             @can('expense_categories.edit')
-                <button type="button" class="btn btn-sm btn-primary" @click="addOpen = !addOpen">
+                <button type="button" class="btn btn-sm btn-primary" @click="addOpen ? addOpen=false : startAdd()">
                     <span x-show="!addOpen">+ Add Subcategory</span>
                     <span x-show="addOpen">Cancel</span>
                 </button>
             @endcan
         </div>
 
-        <div x-show="addOpen" x-cloak x-transition class="mb-4 border rounded p-4 bg-gray-50 dark:bg-dark/30">
+        <div x-show="addOpen" x-cloak x-transition x-ref="addForm" class="mb-4 border rounded p-4 bg-gray-50 dark:bg-dark/30">
             <form method="POST" action="{{ route('admin.expense-categories.subcategories.store', $category) }}">
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                         <label class="form-label text-xs">Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-input form-input-sm" required>
+                        <input type="text" name="name" x-model="addName" class="form-input form-input-sm" required>
                     </div>
                     <div>
                         <label class="form-label text-xs">Slug <span class="text-danger">*</span></label>
-                        <input type="text" name="slug" class="form-input form-input-sm" pattern="[a-z0-9\-_]+" required>
+                        <input type="text" name="slug" x-model="addSlug" class="form-input form-input-sm" pattern="[a-z0-9\-_]+" required>
                     </div>
                     <div>
                         <label class="form-label text-xs">Description</label>
-                        <input type="text" name="description" class="form-input form-input-sm">
+                        <input type="text" name="description" x-model="addDesc" class="form-input form-input-sm">
                     </div>
                 </div>
                 <div class="flex justify-end mt-3">
@@ -83,6 +85,10 @@
                                         <span x-show="openId !== {{ $sub->id }}">Edit</span>
                                         <span x-show="openId === {{ $sub->id }}">Close</span>
                                     </button>
+                                @endcan
+                                @can('expense_categories.edit')
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        @click="duplicate(@js($sub->name), @js($sub->slug), @js($sub->description))" title="Duplicate this subcategory">Duplicate</button>
                                 @endcan
                                 @can('expense_categories.delete')
                                     <form method="POST" action="{{ route('admin.expense-categories.subcategories.destroy', [$category, $sub]) }}" class="inline" onsubmit="return confirm('Remove subcategory?');">

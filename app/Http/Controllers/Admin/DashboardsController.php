@@ -113,7 +113,7 @@ class DashboardsController extends Controller
         // Revenue trend last 12 months (invoiced vs paid)
         $revenueTrend = [];
         for ($i = 11; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i);
+            $m = Carbon::today()->startOfMonth()->subMonths($i);
             $revenueTrend[] = [
                 'label'    => $m->format('M Y'),
                 'invoiced' => (float) Invoice::whereYear('invoice_date', $m->year)->whereMonth('invoice_date', $m->month)->sum('grand_total'),
@@ -128,7 +128,7 @@ class DashboardsController extends Controller
         // Quotation status over months (stacked column)
         $quoteStatusMonthly = [];
         for ($i = 5; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i);
+            $m = Carbon::today()->startOfMonth()->subMonths($i);
             $row = ['label' => $m->format('M Y')];
             foreach (['draft', 'sent', 'accepted', 'rejected', 'expired'] as $s) {
                 $row[$s] = Quotation::where('status', $s)
@@ -230,7 +230,7 @@ class DashboardsController extends Controller
         // Volume trend last 12 months (opened vs closed)
         $volumeTrend = [];
         for ($i = 11; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i);
+            $m = Carbon::today()->startOfMonth()->subMonths($i);
             $volumeTrend[] = [
                 'label'  => $m->format('M Y'),
                 'opened' => ServiceTicket::whereYear('opened_at', $m->year)->whereMonth('opened_at', $m->month)->count(),
@@ -361,7 +361,7 @@ class DashboardsController extends Controller
                 if (! $p) continue;
                 $data = [];
                 for ($i = 5; $i >= 0; $i--) {
-                    $m = Carbon::today()->subMonths($i);
+                    $m = Carbon::today()->startOfMonth()->subMonths($i);
                     $key = $m->format('Y-m');
                     $hit = ($byProd[$pid] ?? collect())->firstWhere('ym', $key);
                     $data[] = ['x' => $m->format('M'), 'y' => (int) ($hit->qty ?? 0)];
@@ -474,7 +474,7 @@ class DashboardsController extends Controller
         // Monthly PO spend (last 12 months)
         $spendTrend = [];
         for ($i = 11; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i);
+            $m = Carbon::today()->startOfMonth()->subMonths($i);
             $spendTrend[] = [
                 'label' => $m->format('M Y'),
                 'value' => (float) PurchaseOrder::whereNotIn('status', ['cancelled'])
@@ -568,7 +568,7 @@ class DashboardsController extends Controller
         // Acquisition trend (last 12 months)
         $acquisition = [];
         for ($i = 11; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i);
+            $m = Carbon::today()->startOfMonth()->subMonths($i);
             $acquisition[] = [
                 'label' => $m->format('M Y'),
                 'value' => Customer::whereYear('created_at', $m->year)->whereMonth('created_at', $m->month)->count(),
@@ -731,7 +731,7 @@ class DashboardsController extends Controller
         // Cash flow dual-line (last 12 months: invoiced vs paid vs po)
         $cashFlow = [];
         for ($i = 11; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i);
+            $m = Carbon::today()->startOfMonth()->subMonths($i);
             $cashFlow[] = [
                 'label'    => $m->format('M Y'),
                 'invoiced' => (float) Invoice::whereYear('invoice_date', $m->year)->whereMonth('invoice_date', $m->month)->sum('grand_total'),
@@ -744,7 +744,7 @@ class DashboardsController extends Controller
         // Working capital: receivables - payables over time
         $workingCap = [];
         for ($i = 5; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i)->endOfMonth();
+            $m = Carbon::today()->startOfMonth()->subMonths($i)->endOfMonth();
             $recv = (float) Invoice::where('invoice_date', '<=', $m)
                 ->whereIn('status', ['unpaid', 'partial', 'overdue'])->sum('balance_due');
             // Payables approximation: PO value not received yet as of month end
@@ -779,7 +779,7 @@ class DashboardsController extends Controller
         // Margin trend (revenue - po cost, last 6 months)
         $marginTrend = [];
         for ($i = 5; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i);
+            $m = Carbon::today()->startOfMonth()->subMonths($i);
             $rev = (float) Invoice::whereYear('invoice_date', $m->year)->whereMonth('invoice_date', $m->month)->sum('grand_total');
             $cost = (float) PurchaseOrder::whereNotIn('status', ['cancelled'])
                 ->whereYear('po_date', $m->year)->whereMonth('po_date', $m->month)->sum('grand_total');
