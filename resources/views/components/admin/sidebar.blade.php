@@ -720,7 +720,7 @@
                 @endcan
 
                 {{-- Internal Helpdesk --}}
-                @can('internal_tickets.view')
+                @can('helpdesk.view')
                 @php $openTickets = \App\Models\InternalTicket::whereNotIn('status', ['resolved','closed'])->count(); @endphp
                 <li class="menu nav-item">
                     <a href="{{ route('admin.hr.internal-tickets.index') }}" class="nav-link group w-full">

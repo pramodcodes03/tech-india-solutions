@@ -19,7 +19,7 @@ class InternalTicketController extends Controller
 
     public function index(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('internal_tickets.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('helpdesk.view'), 403);
 
         $tickets = InternalTicket::with(['employee', 'assignee', 'category'])
             ->when($request->filled('department'), fn ($q) => $q->where('department', $request->department))
@@ -46,7 +46,7 @@ class InternalTicketController extends Controller
 
     public function show(InternalTicket $internalTicket)
     {
-        abort_unless(Auth::guard('admin')->user()->can('internal_tickets.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('helpdesk.view'), 403);
         $internalTicket->load(['employee.department', 'assignee', 'category', 'comments.authorAdmin', 'comments.authorEmployee']);
         $admins = Admin::where('status', 'active')
             ->where('business_id', app(CurrentBusiness::class)->id())
@@ -57,7 +57,7 @@ class InternalTicketController extends Controller
 
     public function assign(Request $request, InternalTicket $internalTicket)
     {
-        abort_unless(Auth::guard('admin')->user()->can('internal_tickets.manage'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('helpdesk.manage'), 403);
         $request->validate(['assigned_to' => ['required', 'exists:admins,id']]);
         $this->service->assign($internalTicket, (int) $request->assigned_to);
 
@@ -66,7 +66,7 @@ class InternalTicketController extends Controller
 
     public function status(Request $request, InternalTicket $internalTicket)
     {
-        abort_unless(Auth::guard('admin')->user()->can('internal_tickets.manage'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('helpdesk.manage'), 403);
         $request->validate(['status' => ['required', 'in:open,assigned,in_review,resolved,closed']]);
         $this->service->changeStatus($internalTicket, $request->status);
 
@@ -75,7 +75,7 @@ class InternalTicketController extends Controller
 
     public function comment(Request $request, InternalTicket $internalTicket)
     {
-        abort_unless(Auth::guard('admin')->user()->can('internal_tickets.manage'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('helpdesk.manage'), 403);
         $request->validate([
             'body' => ['required', 'string', 'max:2000'],
             'is_internal_note' => ['nullable', 'boolean'],

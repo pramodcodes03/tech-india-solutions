@@ -32,7 +32,7 @@
                         <p class="text-gray-400 text-sm">No comments.</p>
                     @endforelse
                 </div>
-                @can('internal_tickets.manage')
+                @can('helpdesk.manage')
                 <form method="POST" action="{{ route('admin.hr.internal-tickets.comment', $ticket) }}" class="space-y-2">
                     @csrf
                     <textarea name="body" rows="2" class="form-textarea" placeholder="Reply…" required></textarea>
@@ -45,7 +45,7 @@
 
         <div class="panel p-6 space-y-4">
             <div class="text-xs font-semibold text-gray-500 uppercase">Manage</div>
-            @can('internal_tickets.manage')
+            @can('helpdesk.manage')
                 <form method="POST" action="{{ route('admin.hr.internal-tickets.assign', $ticket) }}" class="space-y-2">
                     @csrf
                     <label class="text-xs text-gray-500">Assign To</label>

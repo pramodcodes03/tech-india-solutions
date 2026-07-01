@@ -19,7 +19,7 @@ class HelpdeskConfigController extends Controller
 
     public function index()
     {
-        abort_unless(Auth::guard('admin')->user()->can('internal_tickets.configure'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('helpdesk.configure'), 403);
 
         $categories = InternalTicketCategory::with('assignedAdmin')->orderBy('department')->orderBy('name')->get();
         $levels = TicketEscalationLevel::with('owner')->orderBy('department')->orderBy('level')->get();
@@ -32,7 +32,7 @@ class HelpdeskConfigController extends Controller
 
     public function storeCategory(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('internal_tickets.configure'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('helpdesk.configure'), 403);
         $data = $request->validate([
             'department' => ['required', 'in:hr,it,admin,accounts'],
             'name' => ['required', 'string', 'max:100'],
@@ -53,7 +53,7 @@ class HelpdeskConfigController extends Controller
      */
     public function adminsByRole(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('internal_tickets.configure'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('helpdesk.configure'), 403);
 
         $role = (string) $request->input('role', '');
         if ($role === '') {
@@ -71,7 +71,7 @@ class HelpdeskConfigController extends Controller
 
     public function destroyCategory(InternalTicketCategory $category)
     {
-        abort_unless(Auth::guard('admin')->user()->can('internal_tickets.configure'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('helpdesk.configure'), 403);
         $category->delete();
 
         return back()->with('success', 'Category removed.');
@@ -79,7 +79,7 @@ class HelpdeskConfigController extends Controller
 
     public function storeLevel(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('internal_tickets.configure'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('helpdesk.configure'), 403);
         $data = $request->validate([
             'department' => ['required', 'in:hr,it,admin,accounts'],
             'level' => ['required', 'integer', 'min:1', 'max:10'],
@@ -95,7 +95,7 @@ class HelpdeskConfigController extends Controller
 
     public function destroyLevel(TicketEscalationLevel $level)
     {
-        abort_unless(Auth::guard('admin')->user()->can('internal_tickets.configure'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('helpdesk.configure'), 403);
         $level->delete();
 
         return back()->with('success', 'Escalation level removed.');

@@ -2,7 +2,7 @@
     <x-admin.breadcrumb :items="[['label' => 'HR'], ['label' => 'Helpdesk']]" />
     <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
         <h1 class="text-2xl font-extrabold">Internal Helpdesk</h1>
-        @can('internal_tickets.configure')<a href="{{ route('admin.hr.internal-tickets.config') }}" class="btn btn-outline-secondary">Configure</a>@endcan
+        @can('helpdesk.configure')<a href="{{ route('admin.hr.internal-tickets.config') }}" class="btn btn-outline-secondary">Configure</a>@endcan
     </div>
 
     @if(session('success'))<div class="alert alert-success mb-4">{{ session('success') }}</div>@endif
