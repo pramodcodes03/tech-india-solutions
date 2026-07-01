@@ -120,6 +120,12 @@
                                         @endcan
                                     @endif
                                     @can('expenses.edit')<a href="{{ route('admin.expenses.edit', $exp) }}" class="btn btn-sm btn-outline-warning">Edit</a>@endcan
+                                    @can('expenses.delete')
+                                        <form method="POST" action="{{ route('admin.expenses.destroy', $exp) }}" class="inline" onsubmit="return confirm('Delete payment {{ $exp->expense_code }}? This cannot be undone.');">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                        </form>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>
