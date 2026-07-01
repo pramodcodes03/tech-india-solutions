@@ -11,6 +11,10 @@
         ? \App\Models\LeaveRequest::whereHas('employee', fn ($q) => $q->where('reporting_manager_id', $emp->id))
             ->where('status', 'pending')->count()
         : 0;
+    $pendingTeamCompOff = $isDeptHead
+        ? \App\Models\CompOffRequest::whereHas('employee', fn ($q) => $q->where('reporting_manager_id', $emp->id))
+            ->where('status', 'pending')->count()
+        : 0;
 @endphp
 
 <div :class="{ 'dark text-white-dark': $store.app.semidark }">
@@ -146,6 +150,19 @@
                             <span class="ltr:pl-3 text-black dark:text-[#506690]">Team Leaves</span>
                             @if($pendingTeamLeaves > 0)
                             <span class="ml-auto inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-danger text-white">{{ $pendingTeamLeaves }}</span>
+                            @endif
+                        </div>
+                    </a>
+                </li>
+
+                {{-- Team Comp-Off — reporting-manager approvals --}}
+                <li class="menu nav-item">
+                    <a href="{{ route('employee.team-comp-off.index') }}" class="nav-link group {{ request()->routeIs('employee.team-comp-off.*') ? 'active' : '' }}">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path opacity="0.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span class="ltr:pl-3 text-black dark:text-[#506690]">Team Comp-Off</span>
+                            @if($pendingTeamCompOff > 0)
+                            <span class="ml-auto inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-danger text-white">{{ $pendingTeamCompOff }}</span>
                             @endif
                         </div>
                     </a>

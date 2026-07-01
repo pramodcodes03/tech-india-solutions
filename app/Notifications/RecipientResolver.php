@@ -97,6 +97,9 @@ class RecipientResolver
             'admin.role' => $this->adminsByRole($business, (string) $param),
             'admin.super' => $this->superAdmins(),
             'reporting_manager' => $this->reportingManager($entity),
+            // Reporting manager, or — when the employee has none — the business
+            // admins (+ super admins) so leave / comp-off is never left unrouted.
+            'reporting_manager_or_admin' => $this->reportingManagerOrAdmin($entity, $business),
             'lead.assignee' => $this->fromRelation($entity, 'assignedTo'),
             'lead.assignee_manager' => $this->reportingManagerOf(
                 $entity?->assignedTo ?? null
@@ -248,6 +251,26 @@ class RecipientResolver
             ->whereHas('roles', fn ($q) => $q->where('name', 'Super Admin'))
             ->get(['name', 'email'])
             ->map(fn ($a) => ['email' => $a->email, 'name' => $a->name]);
+    }
+
+    /**
+     * The employee's reporting manager, or the business admins + super admins
+     * when the employee has no manager — so requests from manager-less employees
+     * are routed to the main business admin for approval.
+     */
+    protected function reportingManagerOrAdmin(?Model $entity, Business $business): Collection
+    {
+        $manager = $this->reportingManager($entity);
+        if ($manager->isNotEmpty()) {
+            return $manager;
+        }
+
+        // Start from a base collection so merging the (Eloquent) role collections
+        // of recipient arrays doesn't invoke Eloquent's key-based merge.
+        return collect()
+            ->merge($this->adminsByRole($business, 'Business Admin'))
+            ->merge($this->adminsByRole($business, 'Admin'))
+            ->merge($this->superAdmins());
     }
 
     protected function reportingManager(?Model $entity): Collection

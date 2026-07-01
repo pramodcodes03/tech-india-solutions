@@ -640,6 +640,10 @@ Route::prefix('employee')->name('employee.')->group(function () {
         Route::get('team-leaves', [\App\Http\Controllers\Employee\TeamLeaveController::class, 'index'])->name('team-leaves.index');
         Route::post('team-leaves/{leaveRequest}/approve', [\App\Http\Controllers\Employee\TeamLeaveController::class, 'approve'])->name('team-leaves.approve');
         Route::post('team-leaves/{leaveRequest}/reject', [\App\Http\Controllers\Employee\TeamLeaveController::class, 'reject'])->name('team-leaves.reject');
+        // Team Comp-Off — reporting-manager approvals
+        Route::get('team-comp-off', [\App\Http\Controllers\Employee\TeamCompOffController::class, 'index'])->name('team-comp-off.index');
+        Route::post('team-comp-off/{compOff}/approve', [\App\Http\Controllers\Employee\TeamCompOffController::class, 'approve'])->name('team-comp-off.approve');
+        Route::post('team-comp-off/{compOff}/reject', [\App\Http\Controllers\Employee\TeamCompOffController::class, 'reject'])->name('team-comp-off.reject');
 
         // Comp-Off
         Route::get('comp-off', [\App\Http\Controllers\Employee\CompOffController::class, 'index'])->name('comp-off.index');

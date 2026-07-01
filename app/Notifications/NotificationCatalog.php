@@ -234,7 +234,7 @@ class NotificationCatalog
                 'name' => 'Leave application submitted',
                 'description' => 'Sent to the reporting manager + HR.',
                 'subject' => 'Leave request from {entity.employee.first_name}',
-                'recipients' => ['reporting_manager', 'admin.role:HR Manager'],
+                'recipients' => ['reporting_manager_or_admin', 'admin.role:HR Manager'],
                 'related' => 'leave_request',
             ],
             'leave.approved' => [
@@ -258,15 +258,15 @@ class NotificationCatalog
                 'name' => 'Leave cancelled by employee',
                 'description' => 'Sent to manager + HR when employee cancels their leave.',
                 'subject' => 'Leave cancelled — {entity.employee.first_name}',
-                'recipients' => ['reporting_manager', 'admin.role:HR Manager'],
+                'recipients' => ['reporting_manager_or_admin', 'admin.role:HR Manager'],
                 'related' => 'leave_request',
             ],
             'comp_off.requested' => [
                 'module' => 'HR — Leaves',
                 'name' => 'Comp-off request submitted',
-                'description' => 'Sent to the reporting manager, HR Manager, and the admins/super admins who can approve it — so the request lights up in the bell for whoever is empowered to act on it.',
+                'description' => 'Sent to the reporting manager (or the business admin when the employee has no manager) + HR, so whoever can approve it sees it.',
                 'subject' => 'Comp-off request from {entity.employee.first_name}',
-                'recipients' => ['reporting_manager', 'admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin', 'admin.super'],
+                'recipients' => ['reporting_manager_or_admin', 'admin.role:HR Manager'],
                 'related' => 'comp_off_request',
             ],
             'comp_off.approved' => [
