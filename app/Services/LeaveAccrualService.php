@@ -130,7 +130,14 @@ class LeaveAccrualService
         }
 
         return DB::transaction(function () use ($emp, $type, $year, $periodKey, $amount) {
-            $exists = LeaveAccrualLog::where('employee_id', $emp->id)
+            // The lal_unique index is (employee_id, leave_type_id, period_key,
+            // event) — business-independent. Strip the tenant scope so this
+            // idempotency check matches the constraint exactly; otherwise, when
+            // accrual runs across businesses and the active business differs from
+            // the type's, the scoped check misses the existing row and the insert
+            // hits a duplicate-key error.
+            $exists = LeaveAccrualLog::withoutGlobalScopes()
+                ->where('employee_id', $emp->id)
                 ->where('leave_type_id', $type->id)
                 ->where('period_key', $periodKey)
                 ->where('event', 'accrual')

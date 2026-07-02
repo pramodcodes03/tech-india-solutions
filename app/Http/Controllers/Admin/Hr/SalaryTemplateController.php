@@ -78,7 +78,7 @@ class SalaryTemplateController extends Controller
 
     private function validateTemplate(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'level' => ['required', 'in:department,category,generic'],
             'department_id' => ['nullable', 'exists:departments,id'],
@@ -93,5 +93,21 @@ class SalaryTemplateController extends Controller
             'esi_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'professional_tax' => ['nullable', 'numeric', 'min:0'],
         ]);
+
+        // These columns are NOT NULL — a blank field arrives as null and would
+        // violate the constraint. Default the optional components (allowances to
+        // 0, statutory rates to their standard values).
+        $defaults = [
+            'hra' => 0, 'conveyance' => 0, 'medical' => 0, 'special' => 0,
+            'other_allowance' => 0, 'professional_tax' => 0,
+            'pf_percent' => 12, 'esi_percent' => 0.75,
+        ];
+        foreach ($defaults as $field => $default) {
+            if (! isset($data[$field]) || $data[$field] === null || $data[$field] === '') {
+                $data[$field] = $default;
+            }
+        }
+
+        return $data;
     }
 }
