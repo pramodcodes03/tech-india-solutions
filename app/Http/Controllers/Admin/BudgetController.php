@@ -83,7 +83,19 @@ class BudgetController extends Controller
     public function update(Request $request, ExpenseBudget $budget)
     {
         abort_unless(Auth::guard('admin')->user()->can('budgets.manage'), 403);
+
+        $previousEmployeeId = $budget->employee_id;
         $budget->update($this->validateBudget($request));
+
+        // Notify the employee when a budget is (re)assigned via edit — e.g. a
+        // budget created without an employee and assigned later, or moved to a
+        // different employee. Only fire when the assignee actually changed.
+        if ($budget->employee_id && $budget->employee_id !== $previousEmployeeId) {
+            \App\Notifications\NotificationDispatcher::fire(
+                'budget.assigned',
+                $budget->loadMissing('employee', 'category', 'business'),
+            );
+        }
 
         return back()->with('success', 'Budget updated.');
     }

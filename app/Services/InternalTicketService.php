@@ -114,7 +114,11 @@ class InternalTicketService
     {
         $escalated = 0;
 
-        $tickets = InternalTicket::whereNotIn('status', ['resolved', 'closed'])->get();
+        // Runs from the scheduler, which has no active business — strip the
+        // tenant scope so ALL businesses' open tickets are considered (otherwise
+        // the BelongsToBusiness scope fail-closes and nothing ever escalates).
+        $tickets = InternalTicket::withoutGlobalScopes()
+            ->whereNotIn('status', ['resolved', 'closed'])->get();
 
         foreach ($tickets as $ticket) {
             // Mark TAT breach.
@@ -122,9 +126,10 @@ class InternalTicketService
                 $ticket->tat_breached = true;
             }
 
-            // Walk the escalation matrix for this department.
+            // Walk the escalation matrix for this department (also scope-free).
             $ageDays = $ticket->created_at->diffInDays(now());
-            $nextLevel = TicketEscalationLevel::where('business_id', $ticket->business_id)
+            $nextLevel = TicketEscalationLevel::withoutGlobalScopes()
+                ->where('business_id', $ticket->business_id)
                 ->where('department', $ticket->department)
                 ->where('status', true)
                 ->where('level', '>', $ticket->escalation_level)
