@@ -29,6 +29,7 @@ class HrSettings
         'break_half_day_minutes' => 60,
         'el_carry_forward_cap' => 30,
         'leave_accrual_frequency' => 'monthly', // monthly | half_yearly | annual
+        'leave_accrual_day' => 11, // day of the month leave is credited (1-28)
         'leave_cycle' => 'calendar', // calendar (Jan-Dec)
     ];
 

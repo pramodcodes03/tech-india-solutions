@@ -73,11 +73,19 @@ class LeaveAccrualService
         // set its own.
         $frequency = $type->accrual_frequency ?: HrSettings::get('leave_accrual_frequency', 'monthly');
 
+        // Credit on the configured day of the period (default: 11th). Using >=
+        // means a missed run still credits later that month — never before the
+        // day — and the once-per-period ledger check keeps it to a single credit.
+        $accrualDay = HrSettings::int('leave_accrual_day', 11);
+        if ($asOf->day < $accrualDay) {
+            return null;
+        }
+
         return match ($frequency) {
             'monthly' => $asOf->format('Y-m'),
-            // Credit at the start of each half (Jan & Jul). Other months: null.
+            // Credit at the start of each half (Jan & Jul) — on the accrual day.
             'half_yearly' => in_array($asOf->month, [1, 7]) ? $asOf->format('Y').'-H'.($asOf->month === 1 ? '1' : '2') : null,
-            // Credit at the start of the year (Jan).
+            // Credit at the start of the year (Jan) — on the accrual day.
             'annual' => $asOf->month === 1 ? $asOf->format('Y') : null,
             default => null,
         };

@@ -33,6 +33,11 @@
                 </select>
             </div>
             <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase">Accrual Credit Day (of month)</label>
+                <input type="number" name="leave_accrual_day" min="1" max="28" value="{{ $settings['leave_accrual_day'] }}" class="form-input mt-1" required>
+                <p class="text-[11px] text-gray-400 mt-1">Leave is credited on this day each month (e.g. 11 = 11th).</p>
+            </div>
+            <div>
                 <label class="text-xs font-semibold text-gray-500 uppercase">EL Working-days Required</label>
                 <input type="number" name="el_working_days_required" value="{{ $settings['el_working_days_required'] }}" class="form-input mt-1" required>
             </div>
