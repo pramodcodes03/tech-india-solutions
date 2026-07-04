@@ -283,7 +283,7 @@ class LeaveService
                 ['employee_id' => $employeeId, 'leave_type_id' => $leaveTypeId, 'year' => $year],
                 ['allocated' => 0, 'used' => 0, 'pending' => 0, 'carried_forward' => 0]
             );
-            $update = array_intersect_key($fields, array_flip(['allocated', 'used', 'pending', 'carried_forward']));
+            $update = array_intersect_key($fields, array_flip(['allocated', 'used', 'pending', 'carried_forward', 'accrual_rate']));
             if (! empty($update)) {
                 $balance->update($update);
             }

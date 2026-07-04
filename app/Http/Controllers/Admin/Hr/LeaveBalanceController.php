@@ -79,6 +79,7 @@ class LeaveBalanceController extends Controller
             'balances' => ['required', 'array'],
             'balances.*.allocated' => ['nullable', 'numeric', 'min:0'],
             'balances.*.carried_forward' => ['nullable', 'numeric', 'min:0'],
+            'balances.*.accrual_rate' => ['nullable', 'numeric', 'min:0', 'max:31'],
         ]);
 
         $year = (int) $data['year'];
@@ -92,6 +93,10 @@ class LeaveBalanceController extends Controller
                     [
                         'allocated' => isset($fields['allocated']) ? (float) $fields['allocated'] : 0,
                         'carried_forward' => isset($fields['carried_forward']) ? (float) $fields['carried_forward'] : 0,
+                        // Blank = clear the override (fall back to the type's default rate).
+                        'accrual_rate' => (isset($fields['accrual_rate']) && $fields['accrual_rate'] !== '')
+                            ? (float) $fields['accrual_rate']
+                            : null,
                     ]
                 );
             }

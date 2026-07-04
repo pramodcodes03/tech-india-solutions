@@ -55,7 +55,16 @@ class LeaveAccrualService
                     continue;
                 }
 
-                $done = $this->credit($emp, $type, $asOf->year, $periodKey, (float) $type->accrual_rate);
+                // Per-employee override: if this employee's balance row carries a
+                // custom accrual_rate, use it instead of the leave type's default.
+                $override = LeaveBalance::withoutGlobalScopes()
+                    ->where('employee_id', $emp->id)
+                    ->where('leave_type_id', $type->id)
+                    ->where('year', $asOf->year)
+                    ->value('accrual_rate');
+                $rate = $override !== null ? (float) $override : (float) $type->accrual_rate;
+
+                $done = $this->credit($emp, $type, $asOf->year, $periodKey, $rate);
                 $done ? $credited++ : $skipped++;
             }
         }

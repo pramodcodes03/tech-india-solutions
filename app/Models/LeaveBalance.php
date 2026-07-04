@@ -13,7 +13,7 @@ class LeaveBalance extends Model
     protected $fillable = [
         'business_id',
         'employee_id', 'leave_type_id', 'year',
-        'allocated', 'used', 'pending', 'carried_forward',
+        'allocated', 'used', 'pending', 'carried_forward', 'accrual_rate',
     ];
 
     protected function casts(): array
@@ -23,6 +23,7 @@ class LeaveBalance extends Model
             'used' => 'decimal:2',
             'pending' => 'decimal:2',
             'carried_forward' => 'decimal:2',
+            'accrual_rate' => 'decimal:2',
         ];
     }
 
