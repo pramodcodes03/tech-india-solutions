@@ -809,10 +809,12 @@ class AttendanceService
             return 'absent';
         }
 
-        // Mid-day: punched in but not out yet. The biometric sync (or a later
-        // manual edit) will recompute this once a check-out arrives.
+        // Missed punch-out: a check-in with no check-out can't be credited as a
+        // worked day, so it's marked Absent — the employee then files an
+        // attendance correction to fix it. (If a check-out arrives later, the
+        // biometric sync / a manual edit recomputes this from the real hours.)
         if (empty($data['check_out'])) {
-            return 'present';
+            return 'absent';
         }
 
         $hours = $this->calcHours($data['check_in'], $data['check_out']);
