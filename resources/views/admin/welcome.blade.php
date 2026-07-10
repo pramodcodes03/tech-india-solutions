@@ -161,7 +161,7 @@
         {{-- Empty state: user has no module permissions at all --}}
         @php
             $hasAny = $visibleDashboards->isNotEmpty()
-                || collect($sections)->contains(function ($section) use ($u) {
+                || collect($sections)->contains(function ($section) use ($u, $hasModule) {
                     return collect($section['tiles'])->contains(fn ($t) => $hasModule($t['perm']) && \Illuminate\Support\Facades\Route::has($t['route']));
                 });
         @endphp
