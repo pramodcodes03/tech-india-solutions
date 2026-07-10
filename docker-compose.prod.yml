@@ -42,6 +42,9 @@ services:
       - app
     networks:
       - erp
+      # Shared edge: also join the alt.nextgeniusinfotech.com stack's network
+      # so this nginx can proxy that domain to its `alt_nginx` container.
+      - altnextgenius
 
   mysql:
     image: mysql:8.0
@@ -123,3 +126,8 @@ volumes:
 networks:
   erp:
     driver: bridge
+  # External network created by the alt.nextgeniusinfotech.com stack
+  # (docker compose -p altnextgenius). Lets erp_nginx reach alt_nginx.
+  altnextgenius:
+    external: true
+    name: altnextgenius_erp

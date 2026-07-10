@@ -600,7 +600,7 @@
                 @endcan
 
                 {{-- ========== HR ========== --}}
-                @canany(['employees.view','departments.view','designations.view','attendance.view','leaves.view','payroll.view','warnings.view','penalties.view','feedback.view','appraisals.view','holidays.view','leave_types.view','shifts.view'])
+                @canany(['employees.view','departments.view','designations.view','attendance.view','leaves.view','payroll.view','warnings.view','penalties.view','feedback.view','appraisals.view','holidays.view','leave_types.view','shifts.view','recruitment.view','recruitment.create','recruitment.edit','recruitment.delete','recruitment.manage_stages','helpdesk.view','helpdesk.manage','helpdesk.configure'])
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Human Resources</span>
                 </h2>
@@ -691,7 +691,7 @@
                 @endif
 
                 {{-- Recruitment --}}
-                @can('recruitment.view')
+                @canany(['recruitment.view','recruitment.create','recruitment.edit','recruitment.delete','recruitment.manage_stages'])
                 <li class="menu nav-item">
                     <button type="button" class="nav-link group w-full"
                         :class="{ 'active': activeDropdown === 'hr-recruitment' }"
@@ -717,10 +717,10 @@
                         <li><a href="{{ route('admin.hr.recruitment.reports') }}">Reports</a></li>
                     </ul>
                 </li>
-                @endcan
+                @endcanany
 
                 {{-- Internal Helpdesk --}}
-                @can('helpdesk.view')
+                @canany(['helpdesk.view','helpdesk.manage','helpdesk.configure'])
                 @php $openTickets = \App\Models\InternalTicket::whereNotIn('status', ['resolved','closed'])->count(); @endphp
                 <li class="menu nav-item">
                     <a href="{{ route('admin.hr.internal-tickets.index') }}" class="nav-link group w-full">
@@ -731,7 +731,7 @@
                         </div>
                     </a>
                 </li>
-                @endcan
+                @endcanany
 
                 {{-- Employees --}}
                 @can('employees.view')

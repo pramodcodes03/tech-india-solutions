@@ -58,4 +58,51 @@ class HrSettings
         Setting::updateOrCreate(['key' => $key], ['value' => $value, 'group' => $group]);
         Cache::forget('settings.all');
     }
+
+    /**
+     * Per-business variant of get(): read a business-scoped override first,
+     * then fall back to the global value, then the coded default. Lets a single
+     * setting (e.g. leave_accrual_day) differ per business while the rest of the
+     * panel stays global. A null $businessId behaves exactly like get().
+     */
+    public static function getForBusiness(string $key, ?int $businessId, mixed $default = null): mixed
+    {
+        if ($businessId !== null) {
+            $scoped = Setting::where('key', self::businessKey($key, $businessId))->value('value');
+            if ($scoped !== null && $scoped !== '') {
+                return $scoped;
+            }
+        }
+
+        return self::get($key, $default);
+    }
+
+    public static function intForBusiness(string $key, ?int $businessId, ?int $default = null): int
+    {
+        return (int) self::getForBusiness($key, $businessId, $default);
+    }
+
+    /**
+     * Per-business variant of set(): stores under a business-namespaced key so
+     * each business keeps its own value. A null $businessId writes the global key.
+     */
+    public static function setForBusiness(string $key, ?int $businessId, mixed $value, string $group = 'hr'): void
+    {
+        if ($businessId === null) {
+            self::set($key, $value, $group);
+
+            return;
+        }
+
+        Setting::updateOrCreate(
+            ['key' => self::businessKey($key, $businessId)],
+            ['value' => $value, 'group' => $group]
+        );
+        Cache::forget('settings.all');
+    }
+
+    private static function businessKey(string $key, int $businessId): string
+    {
+        return $key.'.b'.$businessId;
+    }
 }

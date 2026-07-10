@@ -66,16 +66,30 @@ class AdminUserController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('users.create'), 403);
 
-        $admin = Admin::create([
+        $data = [
             'business_id' => app(CurrentBusiness::class)->id(),
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => $request->password,
             'status' => $request->status ?? 'active',
-        ]);
+        ];
 
-        $admin->assignRole(Role::findById($request->role_id, 'admin'));
+        // If this email belonged to a previously-deleted (soft-deleted) admin,
+        // revive that row and overwrite it with the fresh details instead of
+        // failing on the DB's unique-email constraint. Validation already
+        // blocks emails still held by an ACTIVE admin, so this only ever
+        // resurrects a trashed record.
+        $admin = Admin::onlyTrashed()->where('email', $request->email)->first();
+
+        if ($admin) {
+            $admin->restore();
+            $admin->update($data);
+            $admin->syncRoles([Role::findById($request->role_id, 'admin')]);
+        } else {
+            $admin = Admin::create($data);
+            $admin->assignRole(Role::findById($request->role_id, 'admin'));
+        }
 
         return redirect()->route('admin.admin-users.index')->with('success', 'Admin user created successfully.');
     }

@@ -85,7 +85,9 @@ class LeaveAccrualService
         // Credit on the configured day of the period (default: 11th). Using >=
         // means a missed run still credits later that month — never before the
         // day — and the once-per-period ledger check keeps it to a single credit.
-        $accrualDay = HrSettings::int('leave_accrual_day', 11);
+        // The credit day is per-business, so read it for this type's business
+        // (falls back to the global value, then 11).
+        $accrualDay = HrSettings::intForBusiness('leave_accrual_day', $type->business_id, 11);
         if ($asOf->day < $accrualDay) {
             return null;
         }

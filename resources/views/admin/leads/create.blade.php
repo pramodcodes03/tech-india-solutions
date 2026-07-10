@@ -38,6 +38,15 @@
                         <label for="email">Email</label>
                         <input id="email" name="email" type="email" class="form-input" value="{{ old('email') }}" />
                     </div>
+                    <x-admin.india-location />
+                    <div>
+                        <label for="bid_number">Bid Number</label>
+                        <input id="bid_number" name="bid_number" type="text" class="form-input" value="{{ old('bid_number') }}" />
+                    </div>
+                    <div>
+                        <label for="ra_emd">RA/EMD</label>
+                        <input id="ra_emd" name="ra_emd" type="text" class="form-input" value="{{ old('ra_emd') }}" />
+                    </div>
                     <div>
                         <label for="source">Source <span class="text-danger">*</span></label>
                         <x-admin.searchable-select name="source" :options="$sources" placeholder="-- Select Source --" required />

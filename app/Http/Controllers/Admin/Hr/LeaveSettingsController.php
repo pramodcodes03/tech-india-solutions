@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Hr;
 use App\Http\Controllers\Controller;
 use App\Services\LeaveAccrualService;
 use App\Support\HrSettings;
+use App\Support\Tenancy\CurrentBusiness;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -21,13 +22,22 @@ class LeaveSettingsController extends Controller
         'leave_policy_document',
     ];
 
+    /** Keys stored per-business rather than globally. */
+    private array $perBusinessKeys = [
+        'leave_accrual_day',
+    ];
+
     public function index()
     {
         abort_unless(Auth::guard('admin')->user()->can('leave_types.view'), 403);
 
+        $businessId = app(CurrentBusiness::class)->id();
+
         $settings = [];
         foreach ($this->keys as $k) {
-            $settings[$k] = HrSettings::get($k);
+            $settings[$k] = in_array($k, $this->perBusinessKeys, true)
+                ? HrSettings::getForBusiness($k, $businessId)
+                : HrSettings::get($k);
         }
 
         return view('admin.hr.leave-settings.index', compact('settings'));
@@ -48,8 +58,14 @@ class LeaveSettingsController extends Controller
             'leave_policy_document' => ['nullable', 'string'],
         ]);
 
+        $businessId = app(CurrentBusiness::class)->id();
+
         foreach ($data as $key => $value) {
-            HrSettings::set($key, $value, 'leave');
+            if (in_array($key, $this->perBusinessKeys, true)) {
+                HrSettings::setForBusiness($key, $businessId, $value, 'leave');
+            } else {
+                HrSettings::set($key, $value, 'leave');
+            }
         }
 
         // Make the EL-specific policy actually take effect: the accrual / year-end

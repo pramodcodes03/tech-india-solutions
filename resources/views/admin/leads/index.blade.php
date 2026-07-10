@@ -1,5 +1,5 @@
 <x-layout.admin title="Leads">
-    @php $leadColspan = (auth('admin')->user()?->canany(['leads.edit','leads.delete'])) ? 12 : 11; @endphp
+    @php $leadColspan = (auth('admin')->user()?->canany(['leads.edit','leads.delete'])) ? 16 : 15; @endphp
     <div x-data="leadList">
         <x-admin.breadcrumb :items="[['label' => 'Leads']]" />
 
@@ -11,6 +11,17 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
                     Leads Board
                 </a>
+                <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button type="button" class="btn btn-outline-success gap-2 whitespace-nowrap" @click="open = !open">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div x-show="open" x-cloak class="absolute z-10 mt-1 ltr:right-0 rtl:left-0 w-44 rounded-md bg-white dark:bg-[#1b2e4b] shadow-lg border border-gray-200 dark:border-gray-700 py-1">
+                        <a href="#" @click.prevent="open = false; window.location = exportUrl('xlsx')" class="block px-4 py-2 text-sm text-gray-700 dark:text-white-light hover:bg-gray-100 dark:hover:bg-gray-700">Excel (.xlsx)</a>
+                        <a href="#" @click.prevent="open = false; window.location = exportUrl('csv')" class="block px-4 py-2 text-sm text-gray-700 dark:text-white-light hover:bg-gray-100 dark:hover:bg-gray-700">CSV (.csv)</a>
+                    </div>
+                </div>
                 @can('leads.create')
                 <a href="{{ route('admin.leads.import.form') }}" class="btn btn-outline-secondary gap-2 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L7 8m4-4v12"/></svg>
@@ -26,9 +37,9 @@
 
         {{-- Filters row --}}
         <div class="panel px-4 py-3 mb-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3 items-end">
                 <div class="relative xl:col-span-1">
-                    <input type="text" placeholder="Search name/company/code..."
+                    <input type="text" placeholder="Search name/company/code/mobile..."
                         class="form-input py-2 w-full ltr:pr-11 rtl:pl-11 peer"
                         x-model="searchText"
                         @keyup.debounce.300ms="fetchData(1)" />
@@ -60,6 +71,12 @@
                         <option value="{{ $admin->id }}">{{ $admin->name }}</option>
                     @endforeach
                 </select>
+                <select class="form-select py-2 w-full" x-model="filterCity" @change="fetchData(1)">
+                    <option value="">-- All Cities --</option>
+                    @foreach($cities as $c)
+                        <option value="{{ $c }}">{{ $c }}</option>
+                    @endforeach
+                </select>
                 {{-- Lead Received Date range. Empty fields = unbounded on that side. --}}
                 <div>
                     <label class="text-[10px] font-semibold text-gray-400 uppercase block mb-1">Received from</label>
@@ -70,7 +87,7 @@
                     <input type="date" class="form-input py-2 w-full" x-model="filterToDate" @change="fetchData(1)" />
                 </div>
             </div>
-            <div class="mt-3" x-show="searchText || filterStatus || filterSource || filterAssignedTo || filterFromDate || filterToDate" x-cloak>
+            <div class="mt-3" x-show="searchText || filterStatus || filterSource || filterAssignedTo || filterCity || filterFromDate || filterToDate" x-cloak>
                 <button type="button" class="btn btn-outline-danger btn-sm" @click="clearFilters()">Clear Filters</button>
             </div>
         </div>
@@ -100,7 +117,11 @@
                             <th class="px-4 py-2">#</th>
                             <th class="px-4 py-2">Code</th>
                             <th class="px-4 py-2">Name</th>
+                            <th class="px-4 py-2">Mobile</th>
                             <th class="px-4 py-2">Company</th>
+                            <th class="px-4 py-2">City / State</th>
+                            <th class="px-4 py-2">Bid No.</th>
+                            <th class="px-4 py-2">RA/EMD</th>
                             <th class="px-4 py-2">Source</th>
                             <th class="px-4 py-2">Status</th>
                             <th class="px-4 py-2">Assigned To</th>
@@ -119,7 +140,21 @@
                                 <td class="px-4 py-2" x-text="(pagination.current_page - 1) * pagination.per_page + index + 1"></td>
                                 <td class="px-4 py-2" x-text="item.code ? item.code.replace('LEAD-', '') : '-'"></td>
                                 <td class="px-4 py-2" x-text="item.name"></td>
+                                <td class="px-4 py-2 whitespace-nowrap">
+                                    <template x-if="item.phone">
+                                        <a :href="`tel:${item.phone}`" class="text-primary hover:underline" x-text="item.phone"></a>
+                                    </template>
+                                    <template x-if="!item.phone"><span>-</span></template>
+                                </td>
                                 <td class="px-4 py-2" x-text="item.company || '-'"></td>
+                                <td class="px-4 py-2 whitespace-nowrap">
+                                    <span x-text="item.city || '-'"></span>
+                                    <template x-if="item.state">
+                                        <span class="block text-xs text-gray-400" x-text="item.state"></span>
+                                    </template>
+                                </td>
+                                <td class="px-4 py-2 whitespace-nowrap" x-text="item.bid_number || '-'"></td>
+                                <td class="px-4 py-2 whitespace-nowrap" x-text="item.ra_emd || '-'"></td>
                                 <td class="px-4 py-2">
                                     <span class="badge bg-secondary" x-text="sourceLabel(item.source)"></span>
                                 </td>
@@ -279,6 +314,7 @@
                 filterStatus: '',
                 filterSource: '',
                 filterAssignedTo: '',
+                filterCity: '',
                 filterFromDate: '',
                 filterToDate: '',
                 perPage: {{ $leads->perPage() }},
@@ -355,6 +391,7 @@
                     if (this.filterStatus) url += `&status=${this.filterStatus}`;
                     if (this.filterSource) url += `&source=${encodeURIComponent(this.filterSource)}`;
                     if (this.filterAssignedTo) url += `&assigned_to=${this.filterAssignedTo}`;
+                    if (this.filterCity) url += `&city=${encodeURIComponent(this.filterCity)}`;
                     if (this.filterFromDate) url += `&from_date=${this.filterFromDate}`;
                     if (this.filterToDate)   url += `&to_date=${this.filterToDate}`;
                     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, cache: 'no-store' })
@@ -364,6 +401,20 @@
 
                 changePage(page) {
                     if (page >= 1 && page <= this.pagination.last_page) this.fetchData(page);
+                },
+
+                // Build the Export URL carrying the CURRENT filters so the
+                // downloaded file matches what's on screen. format = xlsx | csv.
+                exportUrl(format) {
+                    let url = `{{ route('admin.leads.export') }}?format=${format}`;
+                    if (this.searchText) url += `&search=${encodeURIComponent(this.searchText)}`;
+                    if (this.filterStatus) url += `&status=${this.filterStatus}`;
+                    if (this.filterSource) url += `&source=${encodeURIComponent(this.filterSource)}`;
+                    if (this.filterAssignedTo) url += `&assigned_to=${this.filterAssignedTo}`;
+                    if (this.filterCity) url += `&city=${encodeURIComponent(this.filterCity)}`;
+                    if (this.filterFromDate) url += `&from_date=${this.filterFromDate}`;
+                    if (this.filterToDate)   url += `&to_date=${this.filterToDate}`;
+                    return url;
                 },
 
                 getVisiblePages() {
@@ -380,6 +431,7 @@
                     this.filterStatus = '';
                     this.filterSource = '';
                     this.filterAssignedTo = '';
+                    this.filterCity = '';
                     this.filterFromDate = '';
                     this.filterToDate = '';
                     this.fetchData(1);

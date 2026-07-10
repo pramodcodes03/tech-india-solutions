@@ -40,7 +40,7 @@
 
     {{-- Filters --}}
     <form method="GET" class="panel mb-4">
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
             <input type="text" name="search" value="{{ request('search') }}" placeholder="Search title / code…" class="form-input">
             <select name="type" class="form-select">
                 <option value="">All types</option>
@@ -59,6 +59,16 @@
                     <option value="{{ $c->id }}" @selected(request('category_id') == $c->id)>{{ $c->name }}</option>
                 @endforeach
             </select>
+            {{-- Due-date range picker (shared component, filters on the Due column). --}}
+            <div class="flex items-center">
+                @include('admin.dashboards._daterange', [
+                    'rangeFrom' => $rangeFrom,
+                    'rangeTo' => $rangeTo,
+                    'drId' => 'expenseDueRange',
+                    'drMode' => 'submit',
+                    'drPlaceholder' => 'Due date range',
+                ])
+            </div>
             <div class="flex gap-2">
                 <button type="submit" class="btn btn-primary flex-1">Filter</button>
                 <a href="{{ route('admin.expenses.index') }}" class="btn btn-outline-secondary">Clear</a>

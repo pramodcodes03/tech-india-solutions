@@ -110,7 +110,7 @@ class LeadService
         if (array_key_exists('expected_value', $data) && ($data['expected_value'] === null || $data['expected_value'] === '')) {
             $data['expected_value'] = 0;
         }
-        foreach (['next_follow_up_at', 'assigned_to', 'phone', 'email', 'company', 'notes', 'product_id', 'lead_date'] as $k) {
+        foreach (['next_follow_up_at', 'assigned_to', 'phone', 'email', 'company', 'notes', 'product_id', 'lead_date', 'city', 'state', 'bid_number', 'ra_emd'] as $k) {
             if (array_key_exists($k, $data) && $data[$k] === '') {
                 $data[$k] = null;
             }

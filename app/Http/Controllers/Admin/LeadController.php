@@ -37,11 +37,17 @@ class LeadController extends Controller
                 $q->where('name', 'like', "%{$s}%")
                     ->orWhere('company', 'like', "%{$s}%")
                     ->orWhere('code', 'like', "%{$s}%")
-                    ->orWhere('email', 'like', "%{$s}%");
+                    ->orWhere('email', 'like', "%{$s}%")
+                    ->orWhere('phone', 'like', "%{$s}%")
+                    ->orWhere('city', 'like', "%{$s}%")
+                    ->orWhere('state', 'like', "%{$s}%")
+                    ->orWhere('bid_number', 'like', "%{$s}%")
+                    ->orWhere('ra_emd', 'like', "%{$s}%");
             }))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->source, fn ($q, $s) => $q->where('source', $s))
             ->when($request->product_id, fn ($q, $p) => $q->where('product_id', $p))
+            ->when($request->city, fn ($q, $c) => $q->where('city', $c))
             ->when($request->assigned_to, fn ($q, $a) => $q->where('assigned_to', $a))
             // Date-range filter on the Lead Received Date (lead_date). Either
             // end is optional. Old leads without a lead_date fall back to
@@ -92,10 +98,37 @@ class LeadController extends Controller
             ->orderBy('name')->get();
         $sources = Lead::SOURCES;
         $products = \App\Models\Product::orderBy('name')->get(['id', 'name']);
+        // Cities that actually appear on leads — powers the City filter dropdown.
+        $cities = Lead::whereNotNull('city')->where('city', '!=', '')
+            ->distinct()->orderBy('city')->pluck('city');
 
         $pageSizes = self::PAGE_SIZES;
 
-        return view('admin.leads.index', compact('leads', 'items', 'admins', 'sources', 'products', 'pageSizes'));
+        return view('admin.leads.index', compact('leads', 'items', 'admins', 'sources', 'products', 'cities', 'pageSizes'));
+    }
+
+    /**
+     * Export the Leads list (respecting the current search/filters) to
+     * Excel (.xlsx) or CSV. Called from the "Export" dropdown on the list.
+     */
+    public function export(Request $request)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('leads.view'), 403);
+
+        $filters = $request->only(['search', 'status', 'source', 'assigned_to', 'city', 'from_date', 'to_date']);
+
+        $format = $request->get('format') === 'csv' ? 'csv' : 'xlsx';
+        $filename = 'leads-'.date('Y-m-d').'.'.$format;
+
+        $writerType = $format === 'csv'
+            ? \Maatwebsite\Excel\Excel::CSV
+            : \Maatwebsite\Excel\Excel::XLSX;
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\LeadsExport($filters),
+            $filename,
+            $writerType
+        );
     }
 
     /**

@@ -133,6 +133,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Lead Management
         Route::get('leads/kanban', [LeadController::class, 'kanban'])->name('leads.kanban');
         Route::get('leads/report', [LeadController::class, 'report'])->name('leads.report');
+        Route::get('leads/export', [LeadController::class, 'export'])->name('leads.export');
         // Bulk operations + CSV import (declared before the resource route so
         // these paths aren't captured as a {lead} show parameter).
         Route::get('leads/import', [LeadController::class, 'importForm'])->name('leads.import.form');
