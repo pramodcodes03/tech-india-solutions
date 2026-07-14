@@ -33,6 +33,14 @@ class EmployeeService
             if (empty($data['employee_code'])) {
                 $data['employee_code'] = $this->generateCode();
             }
+
+            // Reuse identifiers freed up by a previously-deleted employee.
+            // Active-record uniqueness is enforced by the form request; here we
+            // purge any SOFT-DELETED employee that still holds one of the
+            // DB-level unique keys (email / employee_code / legacy_employee_id /
+            // card_no) so the fresh insert can't hit a duplicate-key error. The
+            // old record and all its data are permanently removed first.
+            $this->purgeTrashedConflicts($data);
             $data['created_by'] = Auth::guard('admin')->id();
 
             // Default password is the employee code (employee must change on first login)
@@ -54,6 +62,42 @@ class EmployeeService
 
             return $employee;
         });
+    }
+
+    /**
+     * Permanently remove any soft-deleted employee(s) whose unique identifier
+     * would collide with the incoming data, so a fresh employee can reuse those
+     * values. Only trashed rows are touched — an active employee holding one of
+     * these values is already blocked by the form request's uniqueness rules.
+     *
+     * The unique keys mirror the DB constraints: email, employee_code,
+     * legacy_employee_id (all global) and card_no (per business). We strip the
+     * tenant scope so a deleted row in the same business is found even before an
+     * active-business context is fully resolved.
+     */
+    private function purgeTrashedConflicts(array $data): void
+    {
+        $query = Employee::withoutGlobalScopes()->onlyTrashed();
+
+        $matched = false;
+        $query->where(function ($q) use ($data, &$matched) {
+            foreach (['email', 'employee_code', 'legacy_employee_id', 'card_no'] as $col) {
+                if (! empty($data[$col])) {
+                    $q->orWhere($col, $data[$col]);
+                    $matched = true;
+                }
+            }
+        });
+
+        // No identifier to match on → nothing to purge (avoids a bare WHERE that
+        // would match every trashed row).
+        if (! $matched) {
+            return;
+        }
+
+        foreach ($query->get() as $trashed) {
+            $this->hardDelete($trashed);
+        }
     }
 
     public function update(Employee $employee, array $data): Employee
