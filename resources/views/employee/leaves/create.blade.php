@@ -18,10 +18,23 @@
                 'color' => $t->color,
             ];
         }
+        // Working-days eligibility map for JS: whether each type is unlocked and,
+        // if not, why + when it unlocks.
+        $eligMap = [];
+        foreach ($types as $t) {
+            $e = $leaveEligibility[$t->id] ?? null;
+            $eligMap[$t->id] = [
+                'eligible' => $e['eligible'] ?? true,
+                'required' => $e['required'] ?? 0,
+                'completed' => $e['completed'] ?? 0,
+                'remaining' => $e['remaining'] ?? 0,
+                'reason' => $e['reason'] ?? null,
+            ];
+        }
     @endphp
 
     <form method="POST" action="{{ route('employee.leaves.store') }}"
-          x-data="leaveForm({{ \Illuminate\Support\Js::from($balanceMap) }}, {{ \Illuminate\Support\Js::from($weekOffDays) }}, {{ \Illuminate\Support\Js::from($holidayDates) }})"
+          x-data="leaveForm({{ \Illuminate\Support\Js::from($balanceMap) }}, {{ \Illuminate\Support\Js::from($weekOffDays) }}, {{ \Illuminate\Support\Js::from($holidayDates) }}, {{ \Illuminate\Support\Js::from($eligMap) }})"
           class="grid grid-cols-12 gap-4">
         @csrf
 
@@ -31,14 +44,32 @@
                 <select name="leave_type_id" x-model.number="type" required class="form-select mt-1">
                     <option value="">-- Select --</option>
                     @foreach($types as $t)
-                        @php $bal = $balances->get($t->id); $avail = $bal ? $bal->allocated + $bal->carried_forward - $bal->used - $bal->pending : 0; @endphp
-                        @if($t->is_paid)
-                            <option value="{{ $t->id }}">{{ $t->name }} ({{ $t->code }}) — {{ number_format($avail, 1) }} days available</option>
-                        @else
-                            <option value="{{ $t->id }}">{{ $t->name }} ({{ $t->code }}) — Unpaid / no balance required</option>
-                        @endif
+                        @php
+                            $bal = $balances->get($t->id);
+                            $avail = $bal ? $bal->allocated + $bal->carried_forward - $bal->used - $bal->pending : 0;
+                            $elig = $leaveEligibility[$t->id] ?? ['eligible' => true, 'remaining' => 0];
+                            $lock = ($t->is_paid && ! ($elig['eligible'] ?? true)) ? '🔒 ' : '';
+                            $suffix = ($t->is_paid && ! ($elig['eligible'] ?? true))
+                                ? ' — locked ('.$elig['remaining'].' more working days)'
+                                : ($t->is_paid ? ' — '.number_format($avail, 1).' days available' : ' — Unpaid / no balance required');
+                        @endphp
+                        <option value="{{ $t->id }}">{{ $lock }}{{ $t->name }} ({{ $t->code }}){{ $suffix }}</option>
                     @endforeach
                 </select>
+
+                {{-- Live eligibility notice for the chosen leave type --}}
+                <template x-if="type && elig[type] && !elig[type].eligible">
+                    <div class="mt-2 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+                        <span class="font-semibold">🔒 Not yet available:</span>
+                        <span x-text="elig[type].reason"></span>
+                    </div>
+                </template>
+                <template x-if="type && elig[type] && elig[type].eligible && elig[type].required > 0">
+                    <div class="mt-2 rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-700 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
+                        <span class="font-semibold">✓ Available.</span>
+                        <span x-text="'You have completed ' + elig[type].completed + ' working days (' + elig[type].required + ' required).'"></span>
+                    </div>
+                </template>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -136,7 +167,11 @@
             </div>
 
             <div class="flex gap-3 pt-2">
-                <button type="submit" class="btn btn-primary">Submit Request</button>
+                <button type="submit" class="btn btn-primary"
+                        :disabled="type && elig[type] && !elig[type].eligible"
+                        :class="(type && elig[type] && !elig[type].eligible) ? 'opacity-50 cursor-not-allowed' : ''">
+                    Submit Request
+                </button>
                 <a href="{{ route('employee.leaves.index') }}" class="btn btn-outline-secondary">Cancel</a>
             </div>
         </div>
@@ -162,8 +197,9 @@
     @push('scripts')
     <script>
         document.addEventListener('alpine:init', () => {
-            Alpine.data('leaveForm', (balanceMap, weekOffDays = [], holidayDates = []) => ({
+            Alpine.data('leaveForm', (balanceMap, weekOffDays = [], holidayDates = [], elig = {}) => ({
                 balanceMap,
+                elig,                              // leave_type_id → eligibility {eligible, required, completed, remaining, reason}
                 weekOffDays,                       // [0..6] week-off weekdays
                 holidayDates: new Set(holidayDates), // 'YYYY-MM-DD' public holidays
                 type: {{ old('leave_type_id') ? (int) old('leave_type_id') : 'null' }},

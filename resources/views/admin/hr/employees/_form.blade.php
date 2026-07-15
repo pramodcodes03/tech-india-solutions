@@ -181,6 +181,16 @@
                 <input type="date" name="probation_end_date" value="{{ old('probation_end_date', $emp?->probation_end_date?->format('Y-m-d')) }}" class="form-input mt-1" />
             </div>
             <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase">CL &amp; SL Working-days</label>
+                <input type="number" min="0" max="1000" name="cl_sl_working_days" value="{{ old('cl_sl_working_days', $emp?->cl_sl_working_days) }}" placeholder="Inherit (dept / global)" class="form-input mt-1" />
+                <div class="text-[10px] text-gray-400 mt-1">Days since joining before Casual &amp; Sick Leave unlock for this employee. Blank = inherit from department, then global.</div>
+            </div>
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase">EL Working-days Required</label>
+                <input type="number" min="0" max="1000" name="el_working_days_required" value="{{ old('el_working_days_required', $emp?->el_working_days_required) }}" placeholder="Inherit (dept / global)" class="form-input mt-1" />
+                <div class="text-[10px] text-gray-400 mt-1">Days since joining before Earned Leave unlocks for this employee. Blank = inherit from department, then global.</div>
+            </div>
+            <div>
                 <label class="text-xs font-semibold text-gray-500 uppercase">Employment Type <span class="text-danger">*</span></label>
                 <select name="employment_type" required class="form-select mt-1">
                     @foreach(['full_time','part_time','contract','intern'] as $t)

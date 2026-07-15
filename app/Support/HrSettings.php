@@ -23,6 +23,10 @@ class HrSettings
         'leave_accrual_rate_cl' => 0.5,
         'leave_accrual_rate_el' => 0.5,
         'el_working_days_required' => 240,
+        // Working days (calendar days since joining) before CL & SL unlock.
+        // The EL bucket uses el_working_days_required above. Both are the
+        // business-level default; department / employee rows may override.
+        'cl_sl_working_days_required' => 90,
         'leave_application_window_hours' => 72,
         'attendance_correction_tat_hours' => 48,
         'ticket_escalation_days' => 3,

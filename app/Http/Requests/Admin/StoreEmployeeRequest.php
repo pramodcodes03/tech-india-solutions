@@ -23,6 +23,9 @@ class StoreEmployeeRequest extends FormRequest
         if ($this->input('el_working_days_required') === '') {
             $this->merge(['el_working_days_required' => null]);
         }
+        if ($this->input('cl_sl_working_days') === '') {
+            $this->merge(['cl_sl_working_days' => null]);
+        }
     }
 
     public function rules(): array
@@ -66,6 +69,7 @@ class StoreEmployeeRequest extends FormRequest
             'joining_date' => ['required', 'date'],
             'probation_end_date' => ['nullable', 'date', 'after_or_equal:joining_date'],
             'el_working_days_required' => ['nullable', 'integer', 'min:0', 'max:1000'],
+            'cl_sl_working_days' => ['nullable', 'integer', 'min:0', 'max:1000'],
             'confirmation_date' => ['nullable', 'date', 'after_or_equal:joining_date'],
             'employment_type' => ['required', Rule::in(['full_time', 'part_time', 'contract', 'intern'])],
             'work_mode' => ['required', Rule::in(['on_site', 'remote', 'hybrid'])],

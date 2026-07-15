@@ -23,6 +23,16 @@
             </select>
         </div>
         <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase">CL &amp; SL Working-days</label>
+            <input type="number" min="0" max="1000" name="cl_sl_working_days" value="{{ old('cl_sl_working_days', $department?->cl_sl_working_days) }}" placeholder="Inherit (global)" class="form-input mt-1" />
+            <div class="text-[10px] text-gray-400 mt-1">Days since joining before Casual &amp; Sick Leave unlock for this department. Blank = inherit the global Leave Settings value.</div>
+        </div>
+        <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase">EL Working-days Required</label>
+            <input type="number" min="0" max="1000" name="el_working_days_required" value="{{ old('el_working_days_required', $department?->el_working_days_required) }}" placeholder="Inherit (global)" class="form-input mt-1" />
+            <div class="text-[10px] text-gray-400 mt-1">Days since joining before Earned Leave unlocks. Blank = inherit the global Leave Settings value. An employee's own override wins over this.</div>
+        </div>
+        <div>
             <label class="text-xs font-semibold text-gray-500 uppercase">Status *</label>
             <select name="status" required class="form-select mt-1">
                 <option value="active" @selected(old('status', $department?->status ?? 'active') === 'active')>Active</option>

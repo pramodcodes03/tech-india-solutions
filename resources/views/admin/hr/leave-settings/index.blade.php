@@ -38,8 +38,14 @@
                 <p class="text-[11px] text-gray-400 mt-1">Leave is credited on this day each month (e.g. 11 = 11th). Set per business — applies to the currently selected business only.</p>
             </div>
             <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase">CL &amp; SL Working-days</label>
+                <input type="number" min="0" max="1000" name="cl_sl_working_days_required" value="{{ $settings['cl_sl_working_days_required'] }}" class="form-input mt-1" required>
+                <p class="text-[11px] text-gray-400 mt-1">Days since joining before Casual &amp; Sick Leave unlock. Business default — a department or employee can override. Set per business.</p>
+            </div>
+            <div>
                 <label class="text-xs font-semibold text-gray-500 uppercase">EL Working-days Required</label>
-                <input type="number" name="el_working_days_required" value="{{ $settings['el_working_days_required'] }}" class="form-input mt-1" required>
+                <input type="number" min="0" max="1000" name="el_working_days_required" value="{{ $settings['el_working_days_required'] }}" class="form-input mt-1" required>
+                <p class="text-[11px] text-gray-400 mt-1">Days since joining before Earned Leave unlocks. Business default — a department or employee can override.</p>
             </div>
             <div>
                 <label class="text-xs font-semibold text-gray-500 uppercase">EL Carry-forward Cap</label>

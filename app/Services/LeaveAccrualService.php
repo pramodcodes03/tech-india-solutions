@@ -45,6 +45,7 @@ class LeaveAccrualService
             }
 
             $employees = Employee::withoutGlobalScopes()
+                ->with(['department' => fn ($q) => $q->withoutGlobalScopes()])
                 ->where('business_id', $type->business_id)
                 ->where('status', 'active')
                 ->get();
@@ -113,17 +114,12 @@ class LeaveAccrualService
             }
         }
 
-        // Earned-leave style minimum-working-days rule. EL types fall back to the
-        // global "EL Working-Days Required" setting when no per-type value is set.
-        $minDays = (int) $type->min_working_days;
-        if ($minDays <= 0 && str_starts_with(strtoupper((string) $type->code), 'EL')) {
-            $minDays = HrSettings::int('el_working_days_required', 240);
-        }
-        if ($minDays > 0 && $this->workingDaysSinceJoining($emp) < $minDays) {
-            return false;
-        }
-
-        return true;
+        // Working-days gate, delegated to the shared resolver so the cron uses
+        // the exact same two-bucket (CL & SL vs EL), three-level (employee →
+        // department → business) rule as the leave-application screen. Calendar
+        // days since joining, no attendance lookup — safe in a scheduler with no
+        // business/session context.
+        return app(LeaveEligibilityService::class)->isEligible($emp, $type, $asOf);
     }
 
     /**
@@ -176,7 +172,12 @@ class LeaveAccrualService
                 'note' => 'Auto accrual',
             ]);
 
-            $balance = LeaveBalance::firstOrNew([
+            // Strip the tenant scope so the existing balance row is found even
+            // when accrual runs across businesses and the active business differs
+            // from the type's — otherwise firstOrNew misses it and the insert
+            // hits the (employee_id, leave_type_id, year) unique key, crashing
+            // the whole run. Same reasoning as the LeaveAccrualLog check above.
+            $balance = LeaveBalance::withoutGlobalScopes()->firstOrNew([
                 'employee_id' => $emp->id,
                 'leave_type_id' => $type->id,
                 'year' => $year,
@@ -236,7 +237,7 @@ class LeaveAccrualService
                 }
 
                 // Seed / update next year's balance with the carried amount.
-                $nextBal = LeaveBalance::firstOrNew([
+                $nextBal = LeaveBalance::withoutGlobalScopes()->firstOrNew([
                     'employee_id' => $bal->employee_id,
                     'leave_type_id' => $bal->leave_type_id,
                     'year' => $next,
@@ -257,7 +258,7 @@ class LeaveAccrualService
 
     private function logEvent(LeaveBalance $bal, int $year, string $periodKey, string $event, float $amount, string $note): void
     {
-        LeaveAccrualLog::firstOrCreate(
+        LeaveAccrualLog::withoutGlobalScopes()->firstOrCreate(
             [
                 'employee_id' => $bal->employee_id,
                 'leave_type_id' => $bal->leave_type_id,

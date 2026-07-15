@@ -40,6 +40,13 @@ class LeaveController extends Controller
             ->get()
             ->keyBy('leave_type_id');
 
+        // Working-days eligibility per leave type (locked / unlocked + when it
+        // unlocks), so the form can show it before the employee even applies.
+        $eligibility = app(\App\Services\LeaveEligibilityService::class);
+        $leaveEligibility = $types->mapWithKeys(fn ($t) => [
+            $t->id => $eligibility->evaluate($employee, $t),
+        ]);
+
         // Week-off weekdays (0=Sun..6=Sat) + public-holiday dates so the form's
         // "Days requested" preview excludes them — matching the server count.
         $weekOffDays = \App\Models\BusinessWeekOff::withoutGlobalScopes()
@@ -60,7 +67,7 @@ class LeaveController extends Controller
             ->map(fn ($h) => $h->date->toDateString())
             ->values();
 
-        return view('employee.leaves.create', compact('types', 'balances', 'weekOffDays', 'holidayDates'));
+        return view('employee.leaves.create', compact('types', 'balances', 'weekOffDays', 'holidayDates', 'leaveEligibility'));
     }
 
     public function store(Request $request)

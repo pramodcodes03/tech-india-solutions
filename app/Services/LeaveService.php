@@ -120,6 +120,18 @@ class LeaveService
                         .'You may apply for Leave Without Pay, or apply once your probation is completed.'
                     );
                 }
+
+                // Working-days gate (two buckets: CL & SL vs EL), resolved
+                // employee → department → business default. An employee cannot
+                // apply for a paid leave type until they have completed the
+                // required calendar days since joining. LWP is unaffected.
+                if ($employee) {
+                    $eligibility = app(LeaveEligibilityService::class)->evaluate($employee, $leaveType);
+                    if (! $eligibility['eligible']) {
+                        throw new \RuntimeException($eligibility['reason']
+                            ?? 'This leave type is not yet available based on your working days since joining.');
+                    }
+                }
             }
 
             $request = LeaveRequest::create($data);

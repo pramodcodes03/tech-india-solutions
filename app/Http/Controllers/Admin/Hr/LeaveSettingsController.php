@@ -18,6 +18,7 @@ class LeaveSettingsController extends Controller
         'leave_accrual_frequency',
         'leave_accrual_day',
         'el_working_days_required',
+        'cl_sl_working_days_required',
         'el_carry_forward_cap',
         'leave_policy_document',
     ];
@@ -25,6 +26,8 @@ class LeaveSettingsController extends Controller
     /** Keys stored per-business rather than globally. */
     private array $perBusinessKeys = [
         'leave_accrual_day',
+        'el_working_days_required',
+        'cl_sl_working_days_required',
     ];
 
     public function index()
@@ -54,6 +57,7 @@ class LeaveSettingsController extends Controller
             'leave_accrual_frequency' => ['required', 'in:monthly,half_yearly,annual'],
             'leave_accrual_day' => ['required', 'integer', 'min:1', 'max:28'],
             'el_working_days_required' => ['required', 'integer', 'min:0', 'max:1000'],
+            'cl_sl_working_days_required' => ['required', 'integer', 'min:0', 'max:1000'],
             'el_carry_forward_cap' => ['required', 'numeric', 'min:0'],
             'leave_policy_document' => ['nullable', 'string'],
         ]);
