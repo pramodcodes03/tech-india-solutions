@@ -69,12 +69,15 @@ class NotificationDispatcher
 
             $extraRecipients = $setting?->extra_recipients ?? [];
 
-            // Resolve catalog-defined recipients.
+            // Resolve catalog-defined recipients. The event's module permission
+            // (when declared) keeps the resolver from ever reaching admins who
+            // don't have access to that module.
             $recipients = $this->resolver->resolve(
                 $event['recipients'] ?? [],
                 $entity,
                 $business,
                 $context,
+                $event['permission'] ?? null,
             );
 
             // Tack on extra_recipients (raw email strings).

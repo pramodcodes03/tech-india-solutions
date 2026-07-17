@@ -15,29 +15,41 @@ use Illuminate\Support\Collection;
  */
 class RecipientResolver
 {
-    public function resolve(array $roleKeys, ?Model $entity, Business $business, array $context = []): Collection
+    /**
+     * @param  string|null  $permission  Module permission this event belongs to
+     *                                   (e.g. 'leads.view'). When set, admins who
+     *                                   don't hold it are never notified — the
+     *                                   all-admins fallback is filtered down to
+     *                                   people who actually work that module.
+     */
+    public function resolve(array $roleKeys, ?Model $entity, Business $business, array $context = [], ?string $permission = null): Collection
     {
         $recipients = collect();
 
         foreach ($roleKeys as $role) {
-            $resolved = $this->resolveOne($role, $entity, $business, $context);
+            $resolved = $this->resolveOne($role, $entity, $business, $context, $permission);
             $recipients = $recipients->merge($resolved);
         }
 
         // Fallback for internal-staff-only events: if none of the requested
         // recipients are external (customer/vendor/employee), and we ended
-        // up with nobody, fall back to all active admins of the business +
-        // all super admins. This catches the common case where the event
-        // wants HR Manager / reporting_manager but the business hasn't
-        // assigned anyone to that role yet — without the fallback the
-        // notification silently fails with "No recipients resolved".
+        // up with nobody, fall back to the business's admins + super admins.
+        // This catches the common case where the event wants HR Manager /
+        // reporting_manager but the business hasn't assigned anyone to that
+        // role yet — without the fallback the notification silently fails
+        // with "No recipients resolved".
+        //
+        // When the event declares a permission, the fallback is restricted to
+        // admins holding it. Otherwise an unassigned lead's status change would
+        // email every admin in the business — including people with no access
+        // to the Leads module at all.
         //
         // External-recipient events (invoice to customer, payslip to
         // employee, etc.) intentionally do NOT fall back to admins —
         // we don't want to email the whole staff because one customer
         // record is missing an email.
         if ($recipients->isEmpty() && ! $this->hasExternalRecipient($roleKeys)) {
-            $recipients = $this->allAdmins($business)->merge($this->superAdmins());
+            $recipients = $this->allAdmins($business, $permission)->merge($this->superAdmins());
         }
 
         // Super-admin oversight: any event that targets internal admin staff
@@ -79,7 +91,7 @@ class RecipientResolver
             ->contains(fn ($p) => str_starts_with($r, $p)));
     }
 
-    protected function resolveOne(string $role, ?Model $entity, Business $business, array $context): Collection
+    protected function resolveOne(string $role, ?Model $entity, Business $business, array $context, ?string $permission = null): Collection
     {
         // Role with parameter: admin.role:HR Manager
         $param = null;
@@ -93,8 +105,9 @@ class RecipientResolver
             'employee.email' => $this->fromEmployee($entity, prefer: 'work'),
             'employee.personal' => $this->fromEmployee($entity, prefer: 'personal'),
             'admin.creator' => $this->fromRelation($entity, 'creator'),
-            'admin.all' => $this->allAdmins($business),
-            'admin.role' => $this->adminsByRole($business, (string) $param),
+            'admin.all' => $this->allAdmins($business, $permission),
+            'admin.role' => $this->adminsByRole($business, (string) $param, $permission),
+            'admin.permission' => $this->adminsByPermission($business, (string) $param),
             'admin.super' => $this->superAdmins(),
             'reporting_manager' => $this->reportingManager($entity),
             // Reporting manager, or — when the employee has none — the business
@@ -220,16 +233,27 @@ class RecipientResolver
         return collect([['email' => $email, 'name' => $fullName ?: null]]);
     }
 
-    protected function allAdmins(Business $business): Collection
+    /**
+     * Active admins of the business. When $permission is given, only those who
+     * actually hold it (directly or via a role) are returned — so a module's
+     * notifications never reach staff without access to that module.
+     */
+    protected function allAdmins(Business $business, ?string $permission = null): Collection
     {
         return Admin::where('business_id', $business->id)
             ->where('status', 'active')
             ->whereNotNull('email')
+            ->when($permission, fn ($q) => $q->permission($permission))
             ->get(['name', 'email'])
             ->map(fn ($a) => ['email' => $a->email, 'name' => $a->name]);
     }
 
-    protected function adminsByRole(Business $business, string $roleName): Collection
+    /**
+     * Admins holding a named role. A $permission (when the event declares one)
+     * further narrows it, so a role that no longer has module access stops
+     * receiving that module's mail.
+     */
+    protected function adminsByRole(Business $business, string $roleName, ?string $permission = null): Collection
     {
         if (! $roleName) {
             return collect();
@@ -239,8 +263,23 @@ class RecipientResolver
             ->where('status', 'active')
             ->whereNotNull('email')
             ->whereHas('roles', fn ($q) => $q->where('name', $roleName))
+            ->when($permission, fn ($q) => $q->permission($permission))
             ->get(['name', 'email'])
             ->map(fn ($a) => ['email' => $a->email, 'name' => $a->name]);
+    }
+
+    /**
+     * Every active admin of the business holding a specific permission — the
+     * explicit form of the same idea, usable directly from the catalog as
+     * `admin.permission:leads.view`.
+     */
+    protected function adminsByPermission(Business $business, string $permission): Collection
+    {
+        if (! $permission) {
+            return collect();
+        }
+
+        return $this->allAdmins($business, $permission);
     }
 
     protected function superAdmins(): Collection

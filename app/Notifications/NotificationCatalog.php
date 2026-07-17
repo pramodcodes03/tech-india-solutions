@@ -47,6 +47,7 @@ class NotificationCatalog
                 'subject' => 'New lead assigned to you: {entity.name}',
                 'recipients' => ['lead.assignee'],
                 'related' => 'lead',
+                'permission' => 'leads.view',
             ],
             'lead.status_changed' => [
                 'module' => 'Sales / CRM',
@@ -55,6 +56,7 @@ class NotificationCatalog
                 'subject' => 'Lead {entity.name} status changed to {context.new_status}',
                 'recipients' => ['lead.assignee', 'lead.assignee_manager'],
                 'related' => 'lead',
+                'permission' => 'leads.view',
             ],
             'lead.converted' => [
                 'module' => 'Sales / CRM',
@@ -63,6 +65,7 @@ class NotificationCatalog
                 'subject' => 'Lead {entity.name} converted to customer',
                 'recipients' => ['admin.role:Sales', 'admin.role:Admin'],
                 'related' => 'lead',
+                'permission' => 'leads.view',
             ],
             'quotation.sent' => [
                 'module' => 'Sales / CRM',
