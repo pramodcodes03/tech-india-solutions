@@ -702,6 +702,73 @@ class NotificationCatalog
         ];
     }
 
+    /**
+     * Module permission required to receive an event, keyed by the event-key
+     * prefix (the part before the dot).
+     *
+     * This is what stops a notification reaching admins who have no access to
+     * the module it belongs to. It matters most for events whose recipients are
+     * 'admin.all' / 'admin.role:*', and for the resolver's fallback — without it
+     * an unassigned lead or an overdue routine payment mailed every admin in the
+     * business. Only ADMIN recipients are filtered; external recipients
+     * (customer / vendor / employee) are never affected, so an employee still
+     * gets their own payslip or leave decision regardless.
+     *
+     * A prefix not listed here simply isn't permission-filtered.
+     */
+    private const PERMISSION_BY_PREFIX = [
+        // Sales / CRM
+        'lead' => 'leads.view',
+        'quotation' => 'quotations.view',
+        'proforma' => 'proforma_invoices.view',
+        'sales_order' => 'sales_orders.view',
+        'invoice' => 'invoices.view',
+        'payment' => 'payments.view',
+        // Inventory / Purchase
+        'stock' => 'inventory.view',
+        'purchase_order' => 'purchase_orders.view',
+        'goods_receipt' => 'goods_receipts.view',
+        'asset' => 'assets.view',
+        // Service
+        'service_ticket' => 'service_tickets.view',
+        'internal_ticket' => 'helpdesk.view',
+        // HR
+        'leave' => 'leaves.view',
+        'comp_off' => 'leaves.view',
+        'attendance' => 'attendance_corrections.view',
+        'document' => 'employee_documents.view',
+        'payslip' => 'payroll.view',
+        'payroll' => 'payroll.view',
+        'salary_structure' => 'salary_structures.view',
+        'bank_edit' => 'employees.view',
+        'warning' => 'warnings.view',
+        'penalty' => 'penalties.view',
+        'appraisal' => 'appraisals.view',
+        'feedback' => 'feedback.view',
+        'holiday' => 'holidays.view',
+        'employee' => 'employees.view',
+        'shift' => 'shifts.view',
+        // Finance / Expenses
+        'reimbursement' => 'reimbursements.view',
+        'requisition' => 'requisitions.view',
+        'expense' => 'expenses.view',
+        'budget' => 'budgets.view',
+    ];
+
+    /**
+     * The permission required for an event. An explicit 'permission' on the
+     * event definition wins; otherwise it's derived from the event-key prefix.
+     */
+    public static function permissionFor(string $eventKey): ?string
+    {
+        $event = self::events()[$eventKey] ?? null;
+        if (isset($event['permission'])) {
+            return $event['permission'];
+        }
+
+        return self::PERMISSION_BY_PREFIX[explode('.', $eventKey)[0]] ?? null;
+    }
+
     public static function get(string $key): ?array
     {
         return self::events()[$key] ?? null;

@@ -245,6 +245,7 @@ class RecipientResolver
             ->whereNotNull('email')
             ->when($permission, fn ($q) => $q->permission($permission))
             ->get(['name', 'email'])
+            ->toBase()
             ->map(fn ($a) => ['email' => $a->email, 'name' => $a->name]);
     }
 
@@ -265,6 +266,7 @@ class RecipientResolver
             ->whereHas('roles', fn ($q) => $q->where('name', $roleName))
             ->when($permission, fn ($q) => $q->permission($permission))
             ->get(['name', 'email'])
+            ->toBase()
             ->map(fn ($a) => ['email' => $a->email, 'name' => $a->name]);
     }
 
@@ -289,6 +291,7 @@ class RecipientResolver
             ->whereNotNull('email')
             ->whereHas('roles', fn ($q) => $q->where('name', 'Super Admin'))
             ->get(['name', 'email'])
+            ->toBase()
             ->map(fn ($a) => ['email' => $a->email, 'name' => $a->name]);
     }
 
