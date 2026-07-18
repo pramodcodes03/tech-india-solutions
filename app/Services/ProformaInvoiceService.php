@@ -38,6 +38,7 @@ class ProformaInvoiceService
             $data['proforma_number'] = $this->generateNumber();
             $data['created_by'] = Auth::guard('admin')->id();
 
+            $items = $this->normalizeItems($items);
             $totals = $this->calculateTotals(
                 $items,
                 $data['discount_type'] ?? 'percent',
@@ -67,6 +68,7 @@ class ProformaInvoiceService
         return DB::transaction(function () use ($proforma, $data, $items) {
             $data['updated_by'] = Auth::guard('admin')->id();
 
+            $items = $this->normalizeItems($items);
             $totals = $this->calculateTotals(
                 $items,
                 $data['discount_type'] ?? $proforma->discount_type ?? 'percent',
@@ -96,6 +98,26 @@ class ProformaInvoiceService
     {
         $proforma->update(['deleted_by' => Auth::guard('admin')->id()]);
         $proforma->delete();
+    }
+
+    /**
+     * Compute each line's amount and write it back onto the item, matching the
+     * form's live preview: line_total = (qty × rate − line discount%) + line tax%.
+     * Without this the per-item line_total saved as 0.
+     */
+    public function normalizeItems(array $items): array
+    {
+        foreach ($items as $i => $item) {
+            $qty = (float) ($item['quantity'] ?? 0);
+            $rate = (float) ($item['rate'] ?? 0);
+            $discPct = (float) ($item['discount_percent'] ?? 0);
+            $taxPct = (float) ($item['tax_percent'] ?? 0);
+
+            $afterDisc = ($qty * $rate) * (1 - $discPct / 100);
+            $items[$i]['line_total'] = round($afterDisc * (1 + $taxPct / 100), 2);
+        }
+
+        return $items;
     }
 
     public function calculateTotals(array $items, string $discountType, float $discountValue, float $taxPercent): array

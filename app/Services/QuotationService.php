@@ -41,6 +41,7 @@ class QuotationService
             $data['quotation_number'] = $this->generateNumber();
             $data['created_by'] = Auth::guard('admin')->id();
 
+            $items = $this->normalizeItems($items);
             $totals = $this->calculateTotals(
                 $items,
                 $data['discount_type'] ?? 'fixed',
@@ -70,6 +71,7 @@ class QuotationService
         return DB::transaction(function () use ($quotation, $data, $items) {
             $data['updated_by'] = Auth::guard('admin')->id();
 
+            $items = $this->normalizeItems($items);
             $totals = $this->calculateTotals(
                 $items,
                 $data['discount_type'] ?? $quotation->discount_type ?? 'fixed',
@@ -101,6 +103,29 @@ class QuotationService
     {
         $quotation->update(['deleted_by' => Auth::guard('admin')->id()]);
         $quotation->delete();
+    }
+
+    /**
+     * Compute each line's amount and write it back onto the item, matching the
+     * create/edit form's live preview exactly:
+     *   line_total = (qty × rate − line discount%) + line tax%.
+     * Without this the per-item line_total was never set, so the "Amount" column
+     * saved as 0 and the subtotal ignored per-line discount / tax. Mutates and
+     * returns the items array so callers store the correct value.
+     */
+    public function normalizeItems(array $items): array
+    {
+        foreach ($items as $i => $item) {
+            $qty = (float) ($item['quantity'] ?? 0);
+            $rate = (float) ($item['rate'] ?? 0);
+            $discPct = (float) ($item['discount_percent'] ?? 0);
+            $taxPct = (float) ($item['tax_percent'] ?? 0);
+
+            $afterDisc = ($qty * $rate) * (1 - $discPct / 100);
+            $items[$i]['line_total'] = round($afterDisc * (1 + $taxPct / 100), 2);
+        }
+
+        return $items;
     }
 
     /**
