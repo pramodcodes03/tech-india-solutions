@@ -182,6 +182,21 @@ class EmployeeService
     /**
      * Allocate annual leave quotas to an employee for a given year.
      * Prorates based on joining date if joined mid-year.
+     *
+     * IMPORTANT — this is the "upfront annual quota" path, and it deliberately
+     * does NOT grant leave for types that accrue monthly. A leave type with
+     * accrual_enabled is delivered 0.5/month by LeaveAccrualService; granting
+     * its full annual_quota here as well double-counted the entitlement (an
+     * employee ended up with up to 2× the policy). Only pure annual-quota types
+     * (accrual switched off) are seeded here.
+     *
+     * It is also non-destructive and gate-aware:
+     *  - never lowers an existing allocation, so accrued days are never wiped
+     *    if this runs again (Bulk Allocate is safe to press twice);
+     *  - honours the same working-days eligibility gate as accrual and the
+     *    apply screen, so EL can't be handed to someone who hasn't qualified.
+     *
+     * Safe to call from the nightly scheduler and from the admin UI.
      */
     public function allocateAnnualLeaves(Employee $employee, int $year): void
     {
@@ -202,23 +217,33 @@ class EmployeeService
         // automatically by the nightly probation-completion job). Unpaid (LWP)
         // types are unaffected.
         $onProbation = $employee->isOnProbation();
+        $eligibility = app(LeaveEligibilityService::class);
 
         foreach ($types as $type) {
-            $allocated = ($type->is_paid && $onProbation)
-                ? 0
-                : ($type->annual_quota > 0
-                    ? round(($type->annual_quota * $monthsWorked) / 12, 1)
-                    : 0);
+            // Monthly-accrual types are owned by LeaveAccrualService. Seed the
+            // balance row so it exists, but never pre-fill it here.
+            $accrues = (bool) $type->accrual_enabled;
 
-            LeaveBalance::withoutGlobalScopes()->updateOrCreate(
-                [
-                    'business_id' => $employee->business_id,
-                    'employee_id' => $employee->id,
-                    'leave_type_id' => $type->id,
-                    'year' => $year,
-                ],
-                ['allocated' => $allocated]
-            );
+            $allocated = 0.0;
+            if (! $accrues && ! ($type->is_paid && $onProbation) && $type->annual_quota > 0) {
+                // Working-days gate (CL & SL vs EL buckets, employee →
+                // department → business). Not yet qualified ⇒ no upfront grant.
+                if ($eligibility->isEligible($employee, $type)) {
+                    $allocated = round(($type->annual_quota * $monthsWorked) / 12, 1);
+                }
+            }
+
+            $balance = LeaveBalance::withoutGlobalScopes()->firstOrNew([
+                'business_id' => $employee->business_id,
+                'employee_id' => $employee->id,
+                'leave_type_id' => $type->id,
+                'year' => $year,
+            ]);
+
+            // Never reduce what's already there — accrual may have credited days
+            // since, and re-running this must not claw them back.
+            $balance->allocated = max((float) $balance->allocated, $allocated);
+            $balance->save();
         }
     }
 
