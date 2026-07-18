@@ -57,6 +57,7 @@ class RolePermissionSeeder extends Seeder
             'service_tickets' => ['view', 'create', 'edit', 'delete'],
             'reports' => ['view', 'export'],
             'settings' => ['view', 'edit'],
+            'locations' => ['view', 'create', 'edit', 'delete'],
             'expense_categories' => ['view', 'create', 'edit', 'delete'],
             'expenses' => ['view', 'create', 'edit', 'delete', 'mark_paid'],
             'reimbursements' => ['view', 'review'],
@@ -73,6 +74,7 @@ class RolePermissionSeeder extends Seeder
             'attendance' => ['view', 'create', 'edit', 'import'],
             'leaves' => ['view', 'create', 'approve', 'reject'],
             'leave_types' => ['view', 'create', 'edit', 'delete'],
+            'leave_settings' => ['view', 'edit', 'manage'],
             'payroll' => ['view', 'generate', 'approve', 'edit'],
             'salary_structures' => ['view', 'create', 'edit'],
             'warnings' => ['view', 'create', 'edit', 'delete'],
@@ -202,6 +204,7 @@ class RolePermissionSeeder extends Seeder
             // visibility for records/reporting across all departments.
             ['leaves.view', 'leaves.create'],
             $this->allActionsFor('leave_types', $modules),
+            $this->allActionsFor('leave_settings', $modules),
             $this->allActionsFor('payroll', $modules),
             $this->allActionsFor('salary_structures', $modules),
             $this->allActionsFor('warnings', $modules),

@@ -32,7 +32,7 @@ class LeaveSettingsController extends Controller
 
     public function index()
     {
-        abort_unless(Auth::guard('admin')->user()->can('leave_types.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('leave_settings.view'), 403);
 
         $businessId = app(CurrentBusiness::class)->id();
 
@@ -48,7 +48,7 @@ class LeaveSettingsController extends Controller
 
     public function update(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('leave_types.edit'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('leave_settings.edit'), 403);
 
         $data = $request->validate([
             'probation_period_days' => ['required', 'integer', 'min:0', 'max:730'],
@@ -97,7 +97,7 @@ class LeaveSettingsController extends Controller
      */
     public function run(Request $request, LeaveAccrualService $service)
     {
-        abort_unless(Auth::guard('admin')->user()->can('leave_types.edit'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('leave_settings.manage'), 403);
         $request->validate(['job' => ['required', 'in:accrue,year_end']]);
 
         if ($request->job === 'accrue') {

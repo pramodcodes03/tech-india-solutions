@@ -194,9 +194,9 @@
                 </li>
                 @endcan
 
-                {{-- Locations (States & Cities) — gated on settings.view since
-                     they're configuration data referenced by user / customer forms. --}}
-                @can('settings.view')
+                {{-- Locations (States & Cities) — gated on the dedicated
+                     locations.view permission so it can be granted per-role. --}}
+                @can('locations.view')
                 <li class="menu nav-item">
                     <button type="button" class="nav-link group w-full"
                         :class="{ 'active': activeDropdown === 'locations' }"
@@ -215,8 +215,8 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'locations'" class="sub-menu text-gray-500">
-                        @can('settings.view')<li><a href="{{ route('admin.states.index') }}">States</a></li>@endcan
-                        @can('settings.view')<li><a href="{{ route('admin.cities.index') }}">Cities</a></li>@endcan
+                        @can('locations.view')<li><a href="{{ route('admin.states.index') }}">States</a></li>@endcan
+                        @can('locations.view')<li><a href="{{ route('admin.cities.index') }}">Cities</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -600,7 +600,7 @@
                 @endcan
 
                 {{-- ========== HR ========== --}}
-                @canany(['employees.view','departments.view','designations.view','attendance.view','leaves.view','payroll.view','warnings.view','penalties.view','feedback.view','appraisals.view','holidays.view','leave_types.view','shifts.view','recruitment.view','recruitment.create','recruitment.edit','recruitment.delete','recruitment.manage_stages','helpdesk.view','helpdesk.manage','helpdesk.configure'])
+                @canany(['employees.view','departments.view','designations.view','attendance.view','leaves.view','payroll.view','warnings.view','penalties.view','feedback.view','appraisals.view','holidays.view','leave_types.view','leave_settings.view','shifts.view','recruitment.view','recruitment.create','recruitment.edit','recruitment.delete','recruitment.manage_stages','helpdesk.view','helpdesk.manage','helpdesk.configure'])
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Human Resources</span>
                 </h2>
@@ -824,7 +824,7 @@
                         <li><a href="{{ route('admin.hr.leaves.index', ['status' => 'pending']) }}">Pending @if($pendingLeaves > 0)({{ $pendingLeaves }})@endif</a></li>
                         <li><a href="{{ route('admin.hr.leave-balances.index') }}">Leave Balances</a></li>
                         @can('leave_types.view')<li><a href="{{ route('admin.hr.leave-types.index') }}">Leave Types</a></li>@endcan
-                        @can('leave_types.view')<li><a href="{{ route('admin.hr.leave-settings.index') }}">Leave Settings</a></li>@endcan
+                        @can('leave_settings.view')<li><a href="{{ route('admin.hr.leave-settings.index') }}">Leave Settings</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
