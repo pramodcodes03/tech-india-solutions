@@ -51,6 +51,16 @@
                 <label class="text-xs font-semibold text-gray-500 uppercase">EL Carry-forward Cap</label>
                 <input type="number" step="0.5" name="el_carry_forward_cap" value="{{ $settings['el_carry_forward_cap'] }}" class="form-input mt-1" required>
             </div>
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase">Full Day Hours</label>
+                <input type="number" step="0.5" min="1" max="24" name="full_day_hours" value="{{ $settings['full_day_hours'] }}" class="form-input mt-1" required>
+                <p class="text-[11px] text-gray-400 mt-1">Worked hours needed to be marked <b>Present</b>. Set per business.</p>
+            </div>
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase">Half Day Hours</label>
+                <input type="number" step="0.5" min="0.5" name="half_day_hours" value="{{ $settings['half_day_hours'] }}" class="form-input mt-1" required>
+                <p class="text-[11px] text-gray-400 mt-1">At least this many hours (but under Full Day) = <b>Half Day</b>. Below it = <b>Absent</b>.</p>
+            </div>
         </div>
         <div>
             <label class="text-xs font-semibold text-gray-500 uppercase">Company Leave Policy (shown to employees)</label>

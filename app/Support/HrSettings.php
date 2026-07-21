@@ -31,6 +31,13 @@ class HrSettings
         'attendance_correction_tat_hours' => 48,
         'ticket_escalation_days' => 3,
         'break_half_day_minutes' => 60,
+        // Worked-hours thresholds that decide the daily attendance status:
+        //   >= full_day_hours              → Present
+        //   >= half_day_hours (and < full) → Half Day
+        //   <  half_day_hours              → Absent
+        // Set per business, so a 9-hour shift and an 8-hour shift can coexist.
+        'full_day_hours' => 9.0,
+        'half_day_hours' => 4.5,
         'el_carry_forward_cap' => 30,
         'leave_accrual_frequency' => 'monthly', // monthly | half_yearly | annual
         'leave_accrual_day' => 11, // day of the month leave is credited (1-28)
@@ -84,6 +91,11 @@ class HrSettings
     public static function intForBusiness(string $key, ?int $businessId, ?int $default = null): int
     {
         return (int) self::getForBusiness($key, $businessId, $default);
+    }
+
+    public static function floatForBusiness(string $key, ?int $businessId, ?float $default = null): float
+    {
+        return (float) self::getForBusiness($key, $businessId, $default);
     }
 
     /**

@@ -783,25 +783,28 @@ class AttendanceService
         }
     }
 
-    /** Minimum worked hours to qualify as a full Present day. */
-    private const FULL_DAY_HOURS = 8.0;
+    /** Fallback worked hours for a full Present day when nothing is configured. */
+    private const FULL_DAY_HOURS = 9.0;
 
-    /** Minimum worked hours to qualify as a Half day (4 hrs 30 min). */
+    /** Fallback worked hours for a Half day (4 hrs 30 min). */
     private const HALF_DAY_HOURS = 4.5;
 
     /**
      * Derive an attendance status from punch times.
      *
      * Rules:
-     *   - no check-in              → absent
-     *   - check-in, no check-out   → present (mid-day; biometric will recompute on punch-out)
-     *   - completed day, ≥ 8 hrs       → present
-     *   - completed day, ≥ 4h30m & < 8 → half_day
-     *   - completed day, < 4h30m       → absent
+     *   - no check-in                          → absent
+     *   - check-in, no check-out               → absent (employee files a correction)
+     *   - completed day, ≥ full-day hours      → present
+     *   - completed day, ≥ half-day & < full   → half_day
+     *   - completed day, < half-day hours      → absent
      *
-     * The boundaries are strict: a 4h29m day is Absent, exactly 4h30m is a
-     * Half day, and exactly 8h is Present. This stops a few minutes of logged
-     * time from being credited as a Half day.
+     * Both thresholds come from HR Settings and are per-business (defaults 9h
+     * and 4h30m), so a 9-hour and an 8-hour shift can coexist across businesses.
+     *
+     * The boundaries are strict: with a 9h full day, an 8h59m day is a Half day
+     * and exactly 9h is Present. This stops a few minutes of logged time from
+     * being credited as a full day.
      */
     private function deriveStatus(array $data): string
     {
@@ -819,10 +822,14 @@ class AttendanceService
 
         $hours = $this->calcHours($data['check_in'], $data['check_out']);
 
-        if ($hours >= self::FULL_DAY_HOURS) {
+        $businessId = (int) ($data['business_id'] ?? 0) ?: null;
+        $fullDay = \App\Support\HrSettings::floatForBusiness('full_day_hours', $businessId, self::FULL_DAY_HOURS);
+        $halfDay = \App\Support\HrSettings::floatForBusiness('half_day_hours', $businessId, self::HALF_DAY_HOURS);
+
+        if ($hours >= $fullDay) {
             return 'present';
         }
-        if ($hours >= self::HALF_DAY_HOURS) {
+        if ($hours >= $halfDay) {
             return 'half_day';
         }
 

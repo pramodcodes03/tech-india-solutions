@@ -20,6 +20,8 @@ class LeaveSettingsController extends Controller
         'el_working_days_required',
         'cl_sl_working_days_required',
         'el_carry_forward_cap',
+        'full_day_hours',
+        'half_day_hours',
         'leave_policy_document',
     ];
 
@@ -28,6 +30,8 @@ class LeaveSettingsController extends Controller
         'leave_accrual_day',
         'el_working_days_required',
         'cl_sl_working_days_required',
+        'full_day_hours',
+        'half_day_hours',
     ];
 
     public function index()
@@ -59,6 +63,8 @@ class LeaveSettingsController extends Controller
             'el_working_days_required' => ['required', 'integer', 'min:0', 'max:1000'],
             'cl_sl_working_days_required' => ['required', 'integer', 'min:0', 'max:1000'],
             'el_carry_forward_cap' => ['required', 'numeric', 'min:0'],
+            'full_day_hours' => ['required', 'numeric', 'min:1', 'max:24'],
+            'half_day_hours' => ['required', 'numeric', 'min:0.5', 'lt:full_day_hours'],
             'leave_policy_document' => ['nullable', 'string'],
         ]);
 
