@@ -41,6 +41,10 @@
                         <input id="company_email" name="settings[company_email]" type="email" class="form-input" value="{{ old('settings.company_email', $settings['company_email'] ?? '') }}" />
                     </div>
                     <div>
+                        <label for="feedback_notification_email">Feedback Email (department feedback goes here)</label>
+                        <input id="feedback_notification_email" name="settings[feedback_notification_email]" type="email" class="form-input" placeholder="e.g. feedback@yourcompany.com" value="{{ old('settings.feedback_notification_email', $settings['feedback_notification_email'] ?? '') }}" />
+                    </div>
+                    <div>
                         <label for="company_gst">Company GST Number</label>
                         <input id="company_gst" name="settings[company_gst]" type="text" class="form-input" value="{{ old('settings.company_gst', $settings['company_gst'] ?? '') }}" />
                     </div>

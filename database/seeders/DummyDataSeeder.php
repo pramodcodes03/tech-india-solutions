@@ -555,7 +555,7 @@ class DummyDataSeeder extends Seeder
             'Dabur India','Marico','Godrej Consumer','Pidilite Industries',
         ];
         $sources = ['website','referral','cold_call','exhibition','social_media','email','walk_in','partner'];
-        $statuses = ['new','contacted','qualified','proposal','negotiation','won','lost'];
+        $statuses = ['new','attempted','contacted','qualified','evaluation','won','lost'];
         $statusWeights = [5,8,6,8,5,10,8]; // weighted distribution
 
         $count = 0;

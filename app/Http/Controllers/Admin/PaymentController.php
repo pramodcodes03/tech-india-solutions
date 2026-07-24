@@ -13,15 +13,25 @@ use Illuminate\Support\Facades\Auth;
 
 class PaymentController extends Controller
 {
+    private const PAGE_SIZES = [10, 25, 50, 100];
+
     public function __construct(
         protected PaymentService $paymentService,
     ) {}
+
+    /** Resolve a safe per-page size from the request (defaults to 50). */
+    private function paymentsPerPage(Request $request): int
+    {
+        $size = (int) $request->input('per_page', 50);
+
+        return in_array($size, self::PAGE_SIZES, true) ? $size : 50;
+    }
 
     public function index(Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('payments.view'), 403);
 
-        $payments = Payment::with(['invoice', 'customer'])
+        $payments = Payment::with(['invoice.customer', 'customer'])
             ->when($request->search, fn ($q, $s) => $q->where(function ($q) use ($s) {
                 $q->where('payment_number', 'like', "%{$s}%")
                     ->orWhere('reference_no', 'like', "%{$s}%")
@@ -32,7 +42,7 @@ class PaymentController extends Controller
             ->when($request->date_from, fn ($q, $d) => $q->where('payment_date', '>=', $d))
             ->when($request->date_to, fn ($q, $d) => $q->where('payment_date', '<=', $d))
             ->latest()
-            ->paginate(10);
+            ->paginate($this->paymentsPerPage($request));
 
         if ($request->ajax()) {
             return response()->json([
@@ -49,8 +59,9 @@ class PaymentController extends Controller
         }
 
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $pageSizes = self::PAGE_SIZES;
 
-        return view('admin.payments.index', compact('payments', 'customers'));
+        return view('admin.payments.index', compact('payments', 'customers', 'pageSizes'));
     }
 
     public function create()

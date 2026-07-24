@@ -6,7 +6,8 @@
             <h1 class="text-2xl font-extrabold">Asset Dashboard</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400">Register health, depreciation, maintenance & warranty alerts.</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+            @include('admin.dashboards._daterange')
             <a href="{{ route('admin.assets.assets.create') }}" class="btn btn-sm btn-primary">+ Asset</a>
             <a href="{{ route('admin.assets.depreciation.index') }}" class="btn btn-sm btn-outline-warning">Depreciation Run</a>
         </div>
@@ -49,6 +50,36 @@
             <div class="text-xs uppercase opacity-80">Warranty &lt;60d</div>
             <div class="text-3xl font-extrabold mt-1"><span data-count="{{ $kpi['warranty_soon'] }}">0</span></div>
             <div class="text-xs opacity-80 mt-1">{{ $kpi['lost'] }} lost</div>
+        </div>
+    </div>
+
+    {{-- Activity in selected period (honours the date-range picker) --}}
+    <div class="panel mb-6 dash-animate">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h5 class="text-lg font-semibold">Activity — {{ $rangeFrom->format('d M Y') }} to {{ $rangeTo->format('d M Y') }}</h5>
+            <span class="text-xs text-gray-400">Period-based metrics only; totals above are point-in-time.</span>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="rounded-lg border border-gray-100 dark:border-[#1b2e4b] p-4">
+                <div class="text-xs uppercase text-gray-500">Assets Acquired</div>
+                <div class="text-2xl font-extrabold mt-1"><span data-count="{{ $kpi['acquired'] }}">0</span></div>
+                <div class="text-xs text-gray-400 mt-1">By purchase date</div>
+            </div>
+            <div class="rounded-lg border border-gray-100 dark:border-[#1b2e4b] p-4">
+                <div class="text-xs uppercase text-gray-500">Acquisition Value</div>
+                <div class="text-2xl font-extrabold mt-1">&#8377;<span data-count="{{ (int) $kpi['acquired_value'] }}">0</span></div>
+                <div class="text-xs text-gray-400 mt-1">Purchase cost in period</div>
+            </div>
+            <div class="rounded-lg border border-gray-100 dark:border-[#1b2e4b] p-4">
+                <div class="text-xs uppercase text-gray-500">Maintenance Spend</div>
+                <div class="text-2xl font-extrabold mt-1">&#8377;<span data-count="{{ (int) $kpi['maint_cost_period'] }}">0</span></div>
+                <div class="text-xs text-gray-400 mt-1">Logged in period</div>
+            </div>
+            <div class="rounded-lg border border-gray-100 dark:border-[#1b2e4b] p-4">
+                <div class="text-xs uppercase text-gray-500">Assignment Actions</div>
+                <div class="text-2xl font-extrabold mt-1"><span data-count="{{ $kpi['assigned_period'] }}">0</span></div>
+                <div class="text-xs text-gray-400 mt-1">Recorded in period</div>
+            </div>
         </div>
     </div>
 

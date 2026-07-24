@@ -79,6 +79,7 @@ class LeaveBalanceController extends Controller
             'balances' => ['required', 'array'],
             'balances.*.allocated' => ['nullable', 'numeric', 'min:0'],
             'balances.*.carried_forward' => ['nullable', 'numeric', 'min:0'],
+            'balances.*.accrual_rate' => ['nullable', 'numeric', 'min:0', 'max:31'],
         ]);
 
         $year = (int) $data['year'];
@@ -92,6 +93,10 @@ class LeaveBalanceController extends Controller
                     [
                         'allocated' => isset($fields['allocated']) ? (float) $fields['allocated'] : 0,
                         'carried_forward' => isset($fields['carried_forward']) ? (float) $fields['carried_forward'] : 0,
+                        // Blank = clear the override (fall back to the type's default rate).
+                        'accrual_rate' => (isset($fields['accrual_rate']) && $fields['accrual_rate'] !== '')
+                            ? (float) $fields['accrual_rate']
+                            : null,
                     ]
                 );
             }
@@ -112,18 +117,23 @@ class LeaveBalanceController extends Controller
 
         $data = $request->validate([
             'year' => ['required', 'integer', 'between:2020,2100'],
+            'department_id' => ['nullable', 'exists:departments,id'],
         ]);
         $year = (int) $data['year'];
 
-        $employees = Employee::whereIn('status', ['active', 'probation', 'on_notice'])->get();
+        $employees = Employee::whereIn('status', ['active', 'probation', 'on_notice'])
+            ->when($data['department_id'] ?? null, fn ($q, $id) => $q->where('department_id', $id))
+            ->get();
         $count = 0;
         foreach ($employees as $emp) {
             $this->employeeService->allocateAnnualLeaves($emp, $year);
             $count++;
         }
 
+        $scope = ($data['department_id'] ?? null) ? 'the selected department' : 'all active employees';
+
         return redirect()
             ->route('admin.hr.leave-balances.index', ['year' => $year])
-            ->with('success', "Allocated {$year} leave balances for {$count} employees.");
+            ->with('success', "Allocated {$year} leave balances for {$count} employees in {$scope}.");
     }
 }

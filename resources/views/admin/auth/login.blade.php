@@ -496,8 +496,8 @@
                     </svg>
                 </div>
                 <div>
-                    <div class="brand-name">Tech India</div>
-                    <div class="brand-sub">Solutions</div>
+                    <div class="brand-name">{{ config('branding.name') }}</div>
+                    <div class="brand-sub">{{ config('branding.sub') }}</div>
                 </div>
             </div>
 
@@ -560,7 +560,7 @@
                     <span>Secure Access</span>
                 </div>
                 <h1>Welcome<br>Back</h1>
-                <p>Sign in to your Tech India Solutions admin panel</p>
+                <p>Sign in to your {{ config('branding.full') }} admin panel</p>
             </div>
 
             <!-- Errors -->
@@ -637,7 +637,7 @@
 
             <div class="divider">
                 <div class="divider-line"></div>
-                <span>Tech India Solutions © {{ date('Y') }}</span>
+                <span>{{ config('branding.full') }} © {{ date('Y') }}</span>
                 <div class="divider-line"></div>
             </div>
 

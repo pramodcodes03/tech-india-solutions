@@ -6,6 +6,13 @@
         // one tile inside is visible.
         $u = $admin;
 
+        // A module tile shows if the user can view it OR holds ANY permission for
+        // that module (e.g. only recruitment.create) — so a single permission is
+        // enough to reach the module. Super admins pass via can() (Gate::before).
+        $permNames = $u->getAllPermissions()->pluck('name');
+        $hasModule = fn ($perm) => $u->can($perm)
+            || $permNames->contains(fn ($p) => str_starts_with($p, \Illuminate\Support\Str::before($perm, '.').'.'));
+
         $hour = now()->setTimezone(config('app.timezone'))->hour;
         $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
 
@@ -42,10 +49,12 @@
 
         $hrTiles = [
             ['perm' => 'employees.view',          'label' => 'Employees',         'route' => 'admin.hr.employees.index'],
+            ['perm' => 'recruitment.view',        'label' => 'Recruitment',       'route' => 'admin.hr.recruitment.index'],
             ['perm' => 'attendance.view',         'label' => 'Attendance',        'route' => 'admin.hr.attendance.index'],
             ['perm' => 'leaves.view',             'label' => 'Leaves',            'route' => 'admin.hr.leaves.index'],
             ['perm' => 'payroll.view',            'label' => 'Payroll',           'route' => 'admin.hr.payroll.index'],
             ['perm' => 'holidays.view',           'label' => 'Holidays',          'route' => 'admin.hr.holidays.index'],
+            ['perm' => 'helpdesk.view',           'label' => 'Helpdesk',          'route' => 'admin.hr.internal-tickets.index'],
         ];
 
         $assetTiles = [
@@ -66,8 +75,8 @@
             ['perm' => 'reports.view',            'label' => 'Reports',           'route' => 'admin.reports.sales'],
         ];
 
-        $renderTile = function ($tile, $accent = 'primary') use ($u) {
-            if (! $u->can($tile['perm']) || ! \Illuminate\Support\Facades\Route::has($tile['route'])) {
+        $renderTile = function ($tile, $accent = 'primary') use ($u, $hasModule) {
+            if (! $hasModule($tile['perm']) || ! \Illuminate\Support\Facades\Route::has($tile['route'])) {
                 return null;
             }
             return $tile;
@@ -94,7 +103,7 @@
         </div>
 
         {{-- Dashboards (per-area analytics) --}}
-        @php $visibleDashboards = collect($dashboardTiles)->filter(fn ($t) => $u->can($t['perm']) && \Illuminate\Support\Facades\Route::has($t['route'])); @endphp
+        @php $visibleDashboards = collect($dashboardTiles)->filter(fn ($t) => $hasModule($t['perm']) && \Illuminate\Support\Facades\Route::has($t['route'])); @endphp
         @if($visibleDashboards->isNotEmpty())
         <div class="mb-5">
             <h5 class="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">Dashboards</h5>
@@ -130,7 +139,7 @@
         @endphp
 
         @foreach($sections as $section)
-            @php $visible = collect($section['tiles'])->filter(fn ($t) => $u->can($t['perm']) && \Illuminate\Support\Facades\Route::has($t['route'])); @endphp
+            @php $visible = collect($section['tiles'])->filter(fn ($t) => $hasModule($t['perm']) && \Illuminate\Support\Facades\Route::has($t['route'])); @endphp
             @if($visible->isNotEmpty())
             <div class="mb-5">
                 <h5 class="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">{{ $section['title'] }}</h5>
@@ -152,8 +161,8 @@
         {{-- Empty state: user has no module permissions at all --}}
         @php
             $hasAny = $visibleDashboards->isNotEmpty()
-                || collect($sections)->contains(function ($section) use ($u) {
-                    return collect($section['tiles'])->contains(fn ($t) => $u->can($t['perm']) && \Illuminate\Support\Facades\Route::has($t['route']));
+                || collect($sections)->contains(function ($section) use ($u, $hasModule) {
+                    return collect($section['tiles'])->contains(fn ($t) => $hasModule($t['perm']) && \Illuminate\Support\Facades\Route::has($t['route']));
                 });
         @endphp
         @if(! $hasAny)

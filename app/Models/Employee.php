@@ -20,12 +20,12 @@ class Employee extends Authenticatable
 
     protected $fillable = [
         'business_id',
-        'employee_code', 'card_no', 'email', 'personal_email', 'password', 'last_login_at',
+        'employee_code', 'legacy_employee_id', 'card_no', 'email', 'personal_email', 'password', 'last_login_at',
         'first_name', 'last_name', 'phone', 'alt_phone', 'whatsapp_number',
         'date_of_birth', 'gender', 'marital_status', 'blood_group', 'profile_photo',
         'current_address', 'permanent_address', 'city', 'state', 'pincode', 'country',
         'department_id', 'designation_id', 'shift_id', 'reporting_manager_id',
-        'joining_date', 'probation_end_date', 'confirmation_date',
+        'joining_date', 'probation_end_date', 'el_working_days_required', 'cl_sl_working_days', 'confirmation_date',
         'resignation_date', 'last_working_date',
         'employment_type', 'work_mode',
         'pan_number', 'aadhar_number', 'pf_number', 'uan_number', 'esi_number',
@@ -45,12 +45,35 @@ class Employee extends Authenticatable
             'date_of_birth' => 'date',
             'joining_date' => 'date',
             'probation_end_date' => 'date',
+            'el_working_days_required' => 'integer',
+            'cl_sl_working_days' => 'integer',
             'confirmation_date' => 'date',
             'resignation_date' => 'date',
             'last_working_date' => 'date',
             'bgv_completed_at' => 'date',
             'last_login_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Whether the employee is still serving probation. Used to gate paid-leave
+     * allocation and applications until probation is completed.
+     *
+     * Confirmed (NOT on probation) when a confirmation_date has passed.
+     * Otherwise on probation while probation_end_date is in the future, falling
+     * back to the explicit 'probation' status flag when no dates are set.
+     */
+    public function isOnProbation(): bool
+    {
+        if ($this->confirmation_date) {
+            return $this->confirmation_date->isFuture();
+        }
+
+        if ($this->probation_end_date) {
+            return $this->probation_end_date->isFuture();
+        }
+
+        return $this->status === 'probation';
     }
 
     public function getActivitylogOptions(): LogOptions

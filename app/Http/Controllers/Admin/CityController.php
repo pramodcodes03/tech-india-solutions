@@ -12,7 +12,7 @@ class CityController extends Controller
 {
     public function index(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('settings.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('locations.view'), 403);
 
         $cities = City::query()
             ->when($request->search, fn ($q, $s) => $q->where(fn ($q) => $q->where('name', 'like', "%{$s}%")->orWhere('state', 'like', "%{$s}%")))
@@ -41,7 +41,7 @@ class CityController extends Controller
 
     public function create()
     {
-        abort_unless(Auth::guard('admin')->user()->can('settings.edit'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('locations.create'), 403);
         $states = State::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
         return view('admin.cities.create', compact('states'));
@@ -49,7 +49,7 @@ class CityController extends Controller
 
     public function store(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('settings.edit'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('locations.create'), 403);
         $request->validate([
             'name' => 'required|string|max:255',
             'state' => 'nullable|string|max:255',
@@ -62,7 +62,7 @@ class CityController extends Controller
 
     public function edit($id)
     {
-        abort_unless(Auth::guard('admin')->user()->can('settings.edit'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('locations.edit'), 403);
         $city = City::findOrFail($id);
         $states = State::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
@@ -71,7 +71,7 @@ class CityController extends Controller
 
     public function update(Request $request, $id)
     {
-        abort_unless(Auth::guard('admin')->user()->can('settings.edit'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('locations.edit'), 403);
         $request->validate([
             'name' => 'required|string|max:255',
             'state' => 'nullable|string|max:255',
@@ -85,7 +85,7 @@ class CityController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        abort_unless(Auth::guard('admin')->user()->can('settings.edit'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('locations.delete'), 403);
         $city = City::findOrFail($id);
         $city->delete();
 
@@ -98,7 +98,7 @@ class CityController extends Controller
 
     public function toggleStatus(Request $request, $id)
     {
-        abort_unless(Auth::guard('admin')->user()->can('settings.edit'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('locations.edit'), 403);
         $city = City::findOrFail($id);
         $city->update(['is_active' => ! $city->is_active]);
 

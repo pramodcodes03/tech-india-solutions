@@ -16,9 +16,17 @@ class Department extends Model
 
     protected $fillable = [
         'business_id',
-        'code', 'name', 'description', 'head_id', 'status',
+        'code', 'name', 'description', 'head_id', 'el_working_days_required', 'cl_sl_working_days', 'status',
         'created_by', 'updated_by', 'deleted_by',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'el_working_days_required' => 'integer',
+            'cl_sl_working_days' => 'integer',
+        ];
+    }
 
     public function getActivitylogOptions(): LogOptions
     {

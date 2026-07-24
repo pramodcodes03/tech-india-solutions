@@ -42,8 +42,15 @@ class DepartmentController extends Controller
             'name' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
             'head_id' => ['nullable', 'exists:employees,id'],
+            'el_working_days_required' => ['nullable', 'integer', 'min:0', 'max:1000'],
+            'cl_sl_working_days' => ['nullable', 'integer', 'min:0', 'max:1000'],
             'status' => ['required', 'in:active,inactive'],
         ]);
+        // Blank = inherit (null), not "0 days required".
+        $data['el_working_days_required'] = ($data['el_working_days_required'] ?? '') === ''
+            ? null : (int) $data['el_working_days_required'];
+        $data['cl_sl_working_days'] = ($data['cl_sl_working_days'] ?? '') === ''
+            ? null : (int) $data['cl_sl_working_days'];
         $data['created_by'] = Auth::guard('admin')->id();
         Department::create($data);
 
@@ -66,8 +73,15 @@ class DepartmentController extends Controller
             'name' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
             'head_id' => ['nullable', 'exists:employees,id'],
+            'el_working_days_required' => ['nullable', 'integer', 'min:0', 'max:1000'],
+            'cl_sl_working_days' => ['nullable', 'integer', 'min:0', 'max:1000'],
             'status' => ['required', 'in:active,inactive'],
         ]);
+        // Blank = inherit (null), not "0 days required".
+        $data['el_working_days_required'] = ($data['el_working_days_required'] ?? '') === ''
+            ? null : (int) $data['el_working_days_required'];
+        $data['cl_sl_working_days'] = ($data['cl_sl_working_days'] ?? '') === ''
+            ? null : (int) $data['cl_sl_working_days'];
         $data['updated_by'] = Auth::guard('admin')->id();
         $department->update($data);
 

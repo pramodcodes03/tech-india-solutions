@@ -20,6 +20,7 @@
     <div class="grid grid-cols-2 gap-3 mb-5 text-sm">
         <div><span class="text-gray-500">Name:</span> <strong>{{ $emp->full_name }}</strong></div>
         <div><span class="text-gray-500">Employee Code:</span> <strong>{{ $emp->employee_code }}</strong></div>
+        @if($emp->legacy_employee_id)<div><span class="text-gray-500">Employee ID:</span> <strong>{{ $emp->legacy_employee_id }}</strong></div>@endif
         <div><span class="text-gray-500">Department:</span> {{ $emp->department?->name ?? '—' }}</div>
         <div><span class="text-gray-500">Designation:</span> {{ $emp->designation?->name ?? '—' }}</div>
         <div><span class="text-gray-500">Period:</span> {{ $p->period_start->format('d M') }} – {{ $p->period_end->format('d M Y') }}</div>

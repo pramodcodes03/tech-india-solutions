@@ -11,7 +11,7 @@ class StateController extends Controller
 {
     public function index(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('settings.view'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('locations.view'), 403);
 
         $states = State::when($request->search, fn ($q, $s) => $q->where('name', 'like', "%{$s}%")->orWhere('code', 'like', "%{$s}%"))
             ->latest()
@@ -36,13 +36,13 @@ class StateController extends Controller
 
     public function create()
     {
-        abort_unless(Auth::guard('admin')->user()->can('settings.edit'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('locations.create'), 403);
         return view('admin.states.create');
     }
 
     public function store(Request $request)
     {
-        abort_unless(Auth::guard('admin')->user()->can('settings.edit'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('locations.create'), 403);
         $request->validate([
             'name' => 'required|string|max:255|unique:states,name',
             'code' => 'nullable|string|max:10',
@@ -55,7 +55,7 @@ class StateController extends Controller
 
     public function edit($id)
     {
-        abort_unless(Auth::guard('admin')->user()->can('settings.edit'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('locations.edit'), 403);
         $state = State::findOrFail($id);
 
         return view('admin.states.edit', compact('state'));
@@ -63,7 +63,7 @@ class StateController extends Controller
 
     public function update(Request $request, $id)
     {
-        abort_unless(Auth::guard('admin')->user()->can('settings.edit'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('locations.edit'), 403);
         $state = State::findOrFail($id);
 
         $request->validate([
@@ -78,7 +78,7 @@ class StateController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        abort_unless(Auth::guard('admin')->user()->can('settings.edit'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('locations.delete'), 403);
         $state = State::findOrFail($id);
         $state->delete();
 
@@ -91,7 +91,7 @@ class StateController extends Controller
 
     public function toggleStatus(Request $request, $id)
     {
-        abort_unless(Auth::guard('admin')->user()->can('settings.edit'), 403);
+        abort_unless(Auth::guard('admin')->user()->can('locations.edit'), 403);
         $state = State::findOrFail($id);
         $state->update(['is_active' => ! $state->is_active]);
 

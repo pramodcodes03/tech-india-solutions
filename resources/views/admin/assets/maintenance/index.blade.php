@@ -18,7 +18,7 @@
 
     <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4">
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by asset..." class="form-input" />
-        <select name="type" class="form-select"><option value="">All types</option>@foreach(['corrective','preventive','inspection','audit'] as $t)<option value="{{ $t }}" @selected(request('type') === $t)>{{ ucfirst($t) }}</option>@endforeach</select>
+        <select name="type" class="form-select"><option value="">All types</option>@foreach($maintenanceTypes as $t)<option value="{{ $t->key }}" @selected(request('type') === $t->key)>{{ $t->label }}</option>@endforeach</select>
         <select name="status" class="form-select"><option value="">All status</option>@foreach(['scheduled','in_progress','completed','cancelled'] as $s)<option value="{{ $s }}" @selected(request('status') === $s)>{{ ucwords(str_replace('_',' ', $s)) }}</option>@endforeach</select>
         <button class="btn btn-primary">Filter</button>
     </form>

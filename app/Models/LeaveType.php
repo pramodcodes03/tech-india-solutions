@@ -13,6 +13,8 @@ class LeaveType extends Model
     protected $fillable = [
         'business_id',
         'code', 'name', 'annual_quota',
+        'accrual_enabled', 'accrual_rate', 'accrual_frequency',
+        'accrue_after_probation', 'min_working_days',
         'is_paid', 'carry_forward', 'max_carry_forward',
         'encashable', 'color', 'description', 'status',
     ];
@@ -22,6 +24,9 @@ class LeaveType extends Model
         return [
             'annual_quota' => 'decimal:1',
             'max_carry_forward' => 'decimal:1',
+            'accrual_rate' => 'decimal:2',
+            'accrual_enabled' => 'boolean',
+            'accrue_after_probation' => 'boolean',
             'is_paid' => 'boolean',
             'carry_forward' => 'boolean',
             'encashable' => 'boolean',

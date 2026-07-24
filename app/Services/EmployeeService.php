@@ -33,6 +33,14 @@ class EmployeeService
             if (empty($data['employee_code'])) {
                 $data['employee_code'] = $this->generateCode();
             }
+
+            // Reuse identifiers freed up by a previously-deleted employee.
+            // Active-record uniqueness is enforced by the form request; here we
+            // purge any SOFT-DELETED employee that still holds one of the
+            // DB-level unique keys (email / employee_code / legacy_employee_id /
+            // card_no) so the fresh insert can't hit a duplicate-key error. The
+            // old record and all its data are permanently removed first.
+            $this->purgeTrashedConflicts($data);
             $data['created_by'] = Auth::guard('admin')->id();
 
             // Default password is the employee code (employee must change on first login)
@@ -54,6 +62,42 @@ class EmployeeService
 
             return $employee;
         });
+    }
+
+    /**
+     * Permanently remove any soft-deleted employee(s) whose unique identifier
+     * would collide with the incoming data, so a fresh employee can reuse those
+     * values. Only trashed rows are touched — an active employee holding one of
+     * these values is already blocked by the form request's uniqueness rules.
+     *
+     * The unique keys mirror the DB constraints: email, employee_code,
+     * legacy_employee_id (all global) and card_no (per business). We strip the
+     * tenant scope so a deleted row in the same business is found even before an
+     * active-business context is fully resolved.
+     */
+    private function purgeTrashedConflicts(array $data): void
+    {
+        $query = Employee::withoutGlobalScopes()->onlyTrashed();
+
+        $matched = false;
+        $query->where(function ($q) use ($data, &$matched) {
+            foreach (['email', 'employee_code', 'legacy_employee_id', 'card_no'] as $col) {
+                if (! empty($data[$col])) {
+                    $q->orWhere($col, $data[$col]);
+                    $matched = true;
+                }
+            }
+        });
+
+        // No identifier to match on → nothing to purge (avoids a bare WHERE that
+        // would match every trashed row).
+        if (! $matched) {
+            return;
+        }
+
+        foreach ($query->get() as $trashed) {
+            $this->hardDelete($trashed);
+        }
     }
 
     public function update(Employee $employee, array $data): Employee
@@ -138,25 +182,110 @@ class EmployeeService
     /**
      * Allocate annual leave quotas to an employee for a given year.
      * Prorates based on joining date if joined mid-year.
+     *
+     * IMPORTANT — this is the "upfront annual quota" path, and it deliberately
+     * does NOT grant leave for types that accrue monthly. A leave type with
+     * accrual_enabled is delivered 0.5/month by LeaveAccrualService; granting
+     * its full annual_quota here as well double-counted the entitlement (an
+     * employee ended up with up to 2× the policy). Only pure annual-quota types
+     * (accrual switched off) are seeded here.
+     *
+     * It is also non-destructive and gate-aware:
+     *  - never lowers an existing allocation, so accrued days are never wiped
+     *    if this runs again (Bulk Allocate is safe to press twice);
+     *  - honours the same working-days eligibility gate as accrual and the
+     *    apply screen, so EL can't be handed to someone who hasn't qualified.
+     *
+     * Safe to call from the nightly scheduler and from the admin UI.
      */
     public function allocateAnnualLeaves(Employee $employee, int $year): void
     {
-        $types = LeaveType::where('status', 'active')->get();
+        // Business-explicit (+ scope-free) so this works both in the admin UI
+        // and from the nightly scheduler, which has no active business context.
+        $types = LeaveType::withoutGlobalScopes()
+            ->where('business_id', $employee->business_id)
+            ->where('status', 'active')
+            ->get();
 
         $joinedThisYear = $employee->joining_date && $employee->joining_date->year === $year;
         $monthsWorked = $joinedThisYear
             ? max(1, 12 - $employee->joining_date->month + 1)
             : 12;
 
-        foreach ($types as $type) {
-            $allocated = $type->annual_quota > 0
-                ? round(($type->annual_quota * $monthsWorked) / 12, 1)
-                : 0;
+        // Employees still on probation do not accrue PAID leave — it's allocated
+        // once they're confirmed (manually via EmployeeController::update, or
+        // automatically by the nightly probation-completion job). Unpaid (LWP)
+        // types are unaffected.
+        $onProbation = $employee->isOnProbation();
+        $eligibility = app(LeaveEligibilityService::class);
 
-            LeaveBalance::updateOrCreate(
-                ['employee_id' => $employee->id, 'leave_type_id' => $type->id, 'year' => $year],
-                ['allocated' => $allocated]
-            );
+        foreach ($types as $type) {
+            // Monthly-accrual types are owned by LeaveAccrualService. Seed the
+            // balance row so it exists, but never pre-fill it here.
+            $accrues = (bool) $type->accrual_enabled;
+
+            $allocated = 0.0;
+            if (! $accrues && ! ($type->is_paid && $onProbation) && $type->annual_quota > 0) {
+                // Working-days gate (CL & SL vs EL buckets, employee →
+                // department → business). Not yet qualified ⇒ no upfront grant.
+                if ($eligibility->isEligible($employee, $type)) {
+                    $allocated = round(($type->annual_quota * $monthsWorked) / 12, 1);
+                }
+            }
+
+            $balance = LeaveBalance::withoutGlobalScopes()->firstOrNew([
+                'business_id' => $employee->business_id,
+                'employee_id' => $employee->id,
+                'leave_type_id' => $type->id,
+                'year' => $year,
+            ]);
+
+            // Never reduce what's already there — accrual may have credited days
+            // since, and re-running this must not claw them back.
+            $balance->allocated = max((float) $balance->allocated, $allocated);
+            $balance->save();
         }
+    }
+
+    /**
+     * Nightly job: confirm employees whose probation period has completed.
+     * Probation end = the employee's own probation_end_date, else joining_date
+     * + the global default (HR Settings → Probation Period Days). On completion
+     * the employee is flipped to 'active', stamped with a confirmation_date, and
+     * their leave quotas are allocated for ALL active leave types.
+     *
+     * @return int number of employees confirmed
+     */
+    public function confirmCompletedProbations(?\Carbon\Carbon $asOf = null): int
+    {
+        $asOf = $asOf ?? now();
+        $defaultDays = \App\Support\HrSettings::int('probation_period_days', 90);
+        $confirmed = 0;
+
+        Employee::withoutGlobalScopes()
+            ->where('status', 'probation')
+            ->whereNull('confirmation_date')
+            ->whereNotNull('joining_date')
+            ->get()
+            ->each(function (Employee $emp) use ($asOf, $defaultDays, &$confirmed) {
+                // The employee's own probation end date wins; else DOJ + default.
+                $probEnd = $emp->probation_end_date
+                    ?: $emp->joining_date->copy()->addDays($defaultDays);
+
+                if ($asOf->lt($probEnd)) {
+                    return; // probation not complete yet
+                }
+
+                $emp->update([
+                    'status' => 'active',
+                    'confirmation_date' => $probEnd->toDateString(),
+                ]);
+
+                // Allocate leaves now that they're confirmed (all leave types).
+                $this->allocateAnnualLeaves($emp->fresh(), (int) $asOf->year);
+                $confirmed++;
+            });
+
+        return $confirmed;
     }
 }

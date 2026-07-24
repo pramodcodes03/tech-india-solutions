@@ -31,11 +31,17 @@ class ExpenseController extends Controller
                    ->orWhere('expense_code', 'like', "%{$s}%")
                    ->orWhere('description', 'like', "%{$s}%");
             }))
+            ->when($request->from, fn ($q, $d) => $q->whereDate('due_date', '>=', $d))
+            ->when($request->to, fn ($q, $d) => $q->whereDate('due_date', '<=', $d))
             ->latest()
             ->paginate(20)
             ->withQueryString();
 
         $categories = ExpenseCategory::where('is_active', true)->orderBy('name')->get();
+
+        // Active due-date range for the shared date-range picker (blank = no filter).
+        $rangeFrom = $request->from;
+        $rangeTo = $request->to;
 
         $stats = [
             'total_unpaid' => (float) Expense::where('status', Expense::STATUS_UNPAID)->sum('amount'),
@@ -51,7 +57,7 @@ class ExpenseController extends Controller
                 ->count(),
         ];
 
-        return view('admin.expenses.index', compact('expenses', 'categories', 'stats'));
+        return view('admin.expenses.index', compact('expenses', 'categories', 'stats', 'rangeFrom', 'rangeTo'));
     }
 
     public function create()

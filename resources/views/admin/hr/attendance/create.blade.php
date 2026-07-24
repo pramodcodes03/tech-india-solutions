@@ -14,7 +14,7 @@
         <div><label class="text-xs font-semibold text-gray-500 uppercase">Check-out</label><input type="time" name="check_out" class="form-input mt-1" /></div>
         <div><label class="text-xs font-semibold text-gray-500 uppercase">Status *</label>
             <select name="status" required class="form-select mt-1">
-                @foreach(['present','absent','half_day','late','on_leave','holiday','weekend'] as $s)
+                @foreach(['present','absent','half_day','on_leave','holiday','weekend'] as $s)
                     <option value="{{ $s }}">{{ ucfirst(str_replace('_',' ',$s)) }}</option>
                 @endforeach
             </select>

@@ -7,7 +7,8 @@
             <h1 class="text-2xl font-extrabold">HR Dashboard</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400">Live overview of workforce, attendance, payroll and performance.</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+            @include('admin.dashboards._daterange')
             <a href="{{ route('admin.hr.employees.create') }}" class="btn btn-sm btn-primary">+ Add Employee</a>
             <a href="{{ route('admin.hr.attendance.create') }}" class="btn btn-sm btn-outline-info">Mark Attendance</a>
             <a href="{{ route('admin.hr.payroll.generate-form') }}" class="btn btn-sm btn-outline-success">Generate Payroll</a>
@@ -25,7 +26,7 @@
 
         <div class="panel relative overflow-hidden bg-gradient-to-br from-success to-[#008853] text-white">
             <div class="absolute -right-4 -top-4 w-20 h-20 bg-white/10 rounded-full"></div>
-            <div class="text-xs uppercase tracking-wide opacity-80">Present Today</div>
+            <div class="text-xs uppercase tracking-wide opacity-80">Present {{ $isToday ? 'Today' : $snapshotDate->format('d M') }}</div>
             <div class="text-3xl font-extrabold mt-1" data-count="{{ $presentToday }}">0</div>
             <div class="text-xs mt-1 opacity-80">{{ $attendanceRate }}% attendance</div>
         </div>
@@ -39,21 +40,21 @@
 
         <div class="panel relative overflow-hidden bg-gradient-to-br from-danger to-[#a4323b] text-white">
             <div class="absolute -right-4 -top-4 w-20 h-20 bg-white/10 rounded-full"></div>
-            <div class="text-xs uppercase tracking-wide opacity-80">Absent Today</div>
+            <div class="text-xs uppercase tracking-wide opacity-80">Absent {{ $isToday ? 'Today' : $snapshotDate->format('d M') }}</div>
             <div class="text-3xl font-extrabold mt-1" data-count="{{ $absentToday }}">0</div>
-            <div class="text-xs mt-1 opacity-80">{{ $lateToday }} late · {{ $halfDayToday }} half day</div>
+            <div class="text-xs mt-1 opacity-80">{{ $halfDayToday }} half day</div>
         </div>
 
         <div class="panel relative overflow-hidden bg-gradient-to-br from-info to-[#0b8caf] text-white">
             <div class="absolute -right-4 -top-4 w-20 h-20 bg-white/10 rounded-full"></div>
-            <div class="text-xs uppercase tracking-wide opacity-80">New This Month</div>
+            <div class="text-xs uppercase tracking-wide opacity-80">New Joiners (Period)</div>
             <div class="text-3xl font-extrabold mt-1" data-count="{{ $newThisMonth }}">0</div>
             <div class="text-xs mt-1 opacity-80">{{ $exitsThisMonth }} exits</div>
         </div>
 
         <div class="panel relative overflow-hidden bg-gradient-to-br from-[#805dca] to-[#5b3fa0] text-white">
             <div class="absolute -right-4 -top-4 w-20 h-20 bg-white/10 rounded-full"></div>
-            <div class="text-xs uppercase tracking-wide opacity-80">Payroll (Month)</div>
+            <div class="text-xs uppercase tracking-wide opacity-80">Payroll (Period)</div>
             <div class="text-2xl font-extrabold mt-1">&#8377; <span data-count="{{ (int) $payrollThisMonth }}" data-format="money">0</span></div>
             <div class="text-xs mt-1 opacity-80">{{ $payslipsPaid }}/{{ $payslipsTotal }} payslips paid</div>
         </div>
@@ -70,7 +71,7 @@
         </div>
 
         <div class="panel">
-            <h5 class="text-lg font-semibold mb-3">Today's Attendance</h5>
+            <h5 class="text-lg font-semibold mb-3">Attendance — {{ $isToday ? 'Today' : $snapshotDate->format('d M Y') }}</h5>
             <div id="chart-attendance-radial" style="min-height:320px;"></div>
             <div class="grid grid-cols-3 gap-2 text-center text-xs mt-2">
                 <div><div class="font-bold text-success">{{ $presentToday }}</div><div class="text-gray-500">Present</div></div>
@@ -104,7 +105,6 @@
             <h5 class="text-lg font-semibold">Attendance — Last 30 Days</h5>
             <div class="flex gap-3 text-xs">
                 <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-success"></span> Present</span>
-                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-warning"></span> Late</span>
                 <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-info"></span> Half Day</span>
                 <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-danger"></span> Absent</span>
             </div>
@@ -405,12 +405,11 @@
             chart: { type: 'area', height: 320, stacked: true, toolbar: { show: false }, animations: anim, fontFamily: 'inherit' },
             series: [
                 { name: 'Present', data: a30.map(r => r.present) },
-                { name: 'Late', data: a30.map(r => r.late) },
                 { name: 'Half Day', data: a30.map(r => r.half_day) },
                 { name: 'Absent', data: a30.map(r => r.absent) },
             ],
             xaxis: { categories: a30.map(r => r.date), labels: { style: { colors: '#8a8a8a' } } },
-            colors: [P.success, P.warning, P.info, P.danger],
+            colors: [P.success, P.info, P.danger],
             stroke: { curve: 'smooth', width: 2 },
             fill: { type: 'gradient', gradient: { opacityFrom: 0.55, opacityTo: 0.1 } },
             dataLabels: { enabled: false },

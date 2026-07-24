@@ -12,7 +12,7 @@
     <p>A new feedback entry has been submitted for one of the departments. Please log in to the HR portal for full details and any required action.</p>
 
     <table class="meta-table">
-        <tr><td class="label">Department</td><td class="val">{{ $entity?->department->name ?? '—' }}</td></tr>
+        <tr><td class="label">Department</td><td class="val">{{ $entity?->department?->name ?? '—' }}</td></tr>
         <tr><td class="label">Rating</td><td class="val">{{ $entity?->rating ?? '—' }}</td></tr>
     </table>
 

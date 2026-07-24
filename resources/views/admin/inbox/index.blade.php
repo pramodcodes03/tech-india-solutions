@@ -64,7 +64,7 @@
                             </div>
                         </div>
                         <div class="text-xs text-primary shrink-0">
-                            @if($n->link)Open →@else View@endif
+                            @if($n->link)Open &rarr;@else View @endif
                         </div>
                     </a>
                 @endforeach

@@ -12,35 +12,75 @@ use App\Models\Payslip;
 use App\Models\Penalty;
 use App\Models\Warning;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    /**
+     * Resolve the dashboard date window from the request, defaulting to the
+     * current month. Returns [Carbon $from (start of day), Carbon $to (end of
+     * day)]. Used by the period-based metrics on every analytics dashboard;
+     * point-in-time metrics (stock, receivables, totals) ignore it.
+     */
+    private function dateRange(\Illuminate\Http\Request $request): array
+    {
+        $today = Carbon::today();
+
+        try {
+            $from = $request->filled('from')
+                ? Carbon::parse($request->input('from'))->startOfDay()
+                : $today->copy()->startOfMonth();
+        } catch (\Throwable) {
+            $from = $today->copy()->startOfMonth();
+        }
+
+        try {
+            $to = $request->filled('to')
+                ? Carbon::parse($request->input('to'))->endOfDay()
+                : $today->copy()->endOfMonth();
+        } catch (\Throwable) {
+            $to = $today->copy()->endOfMonth();
+        }
+
+        // Guard against an inverted range (user picked to < from).
+        if ($to->lt($from)) {
+            [$from, $to] = [$to->copy()->startOfDay(), $from->copy()->endOfDay()];
+        }
+
+        return [$from, $to];
+    }
+
+    public function index(Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('analytics_hr.view'), 403);
 
         $today = Carbon::today();
-        $monthStart = $today->copy()->startOfMonth();
-        $monthEnd = $today->copy()->endOfMonth();
+        [$rangeFrom, $rangeTo] = $this->dateRange($request);
+
+        // The attendance snapshot is a single-day view (one record per employee
+        // per day), so it tracks the SELECTED day — the range's end date. When
+        // the user picks one day, that day; for a span, the period-end day.
+        $snapshotDate = $rangeTo->copy()->startOfDay();
+        $isToday = $snapshotDate->isSameDay($today);
 
         // ── Headline counters ─────────────────────────────────────────────
         $totalEmployees = Employee::count();
         $activeEmployees = Employee::where('status', 'active')->count();
         $onProbation = Employee::where('status', 'probation')->count();
         $onNotice = Employee::where('status', 'on_notice')->count();
-        $newThisMonth = Employee::whereBetween('joining_date', [$monthStart, $monthEnd])->count();
-        $exitsThisMonth = Employee::whereBetween('last_working_date', [$monthStart, $monthEnd])->count();
+        // Period-based: new joiners and exits within the selected range.
+        $newThisMonth = Employee::whereBetween('joining_date', [$rangeFrom, $rangeTo])->count();
+        $exitsThisMonth = Employee::whereBetween('last_working_date', [$rangeFrom, $rangeTo])->count();
 
-        // Today's attendance snapshot
-        $presentToday = Attendance::whereDate('date', $today)->where('status', 'present')->count();
-        $absentToday = Attendance::whereDate('date', $today)->where('status', 'absent')->count();
-        $lateToday = Attendance::whereDate('date', $today)->where('status', 'late')->count();
-        $halfDayToday = Attendance::whereDate('date', $today)->where('status', 'half_day')->count();
+        // Attendance snapshot for the selected day.
+        $presentToday = Attendance::whereDate('date', $snapshotDate)->where('status', 'present')->count();
+        $absentToday = Attendance::whereDate('date', $snapshotDate)->where('status', 'absent')->count();
+        $halfDayToday = Attendance::whereDate('date', $snapshotDate)->where('status', 'half_day')->count();
         $onLeaveToday = LeaveRequest::where('status', 'approved')
-            ->whereDate('from_date', '<=', $today)
-            ->whereDate('to_date', '>=', $today)
+            ->whereDate('from_date', '<=', $snapshotDate)
+            ->whereDate('to_date', '>=', $snapshotDate)
             ->count();
 
         $attendanceRate = $totalEmployees > 0
@@ -51,17 +91,23 @@ class DashboardController extends Controller
         $activeWarnings = Warning::where('status', 'active')->count();
         $pendingPenalties = Penalty::where('status', 'pending')->sum('amount');
 
-        // Payroll this month
-        $payrollThisMonth = Payslip::where('month', $today->month)
-            ->where('year', $today->year)
-            ->sum('net_pay');
-        $payslipsPaid = Payslip::where('month', $today->month)
-            ->where('year', $today->year)
-            ->where('status', 'paid')
-            ->count();
-        $payslipsTotal = Payslip::where('month', $today->month)
-            ->where('year', $today->year)
-            ->count();
+        // Payroll across every month the selected range touches.
+        $rangeMonths = [];
+        $cursor = $rangeFrom->copy()->startOfMonth();
+        while ($cursor->lte($rangeTo)) {
+            $rangeMonths[] = ['y' => $cursor->year, 'm' => $cursor->month];
+            $cursor->addMonth();
+        }
+        $payslipInRange = function ($q) use ($rangeMonths) {
+            $q->where(function ($w) use ($rangeMonths) {
+                foreach ($rangeMonths as $ym) {
+                    $w->orWhere(fn ($c) => $c->where('year', $ym['y'])->where('month', $ym['m']));
+                }
+            });
+        };
+        $payrollThisMonth = Payslip::where($payslipInRange)->sum('net_pay');
+        $payslipsPaid = Payslip::where($payslipInRange)->where('status', 'paid')->count();
+        $payslipsTotal = Payslip::where($payslipInRange)->count();
 
         // ── Chart 1: Headcount trend (last 12 months, line) ──────────────
         $headcountTrend = [];
@@ -119,15 +165,14 @@ class DashboardController extends Controller
                 'date' => $day->format('d M'),
                 'present' => (int) ($byStatus['present'] ?? 0),
                 'absent' => (int) ($byStatus['absent'] ?? 0),
-                'late' => (int) ($byStatus['late'] ?? 0),
                 'half_day' => (int) ($byStatus['half_day'] ?? 0),
             ];
         }
 
-        // ── Chart 6: Leaves by type (horizontal bar) this year ──────────
+        // ── Chart 6: Leaves by type (horizontal bar) within range ───────
         $leavesByType = LeaveRequest::join('leave_types', 'leave_types.id', '=', 'leave_requests.leave_type_id')
             ->where('leave_requests.status', 'approved')
-            ->whereYear('from_date', $today->year)
+            ->whereBetween('from_date', [$rangeFrom, $rangeTo])
             ->select('leave_types.name', DB::raw('SUM(leave_requests.days) as total'))
             ->groupBy('leave_types.id', 'leave_types.name')
             ->orderByDesc('total')
@@ -221,13 +266,14 @@ class DashboardController extends Controller
         return view('admin.hr.dashboard', compact(
             'totalEmployees', 'activeEmployees', 'onProbation', 'onNotice',
             'newThisMonth', 'exitsThisMonth',
-            'presentToday', 'absentToday', 'lateToday', 'halfDayToday', 'onLeaveToday',
+            'presentToday', 'absentToday', 'halfDayToday', 'onLeaveToday',
             'attendanceRate', 'pendingLeaves', 'activeWarnings', 'pendingPenalties',
             'payrollThisMonth', 'payslipsPaid', 'payslipsTotal',
             'headcountTrend', 'deptHeadcount', 'genderSplit', 'employmentType',
             'attendance30', 'leavesByType', 'payrollTrend',
             'ageBuckets', 'tenureBuckets', 'ratingBuckets', 'hiringDepts',
-            'recentJoiners', 'upcomingBirthdays', 'recentPendingLeaves'
+            'recentJoiners', 'upcomingBirthdays', 'recentPendingLeaves',
+            'rangeFrom', 'rangeTo', 'snapshotDate', 'isToday'
         ));
     }
 }

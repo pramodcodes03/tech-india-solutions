@@ -6,7 +6,10 @@
             <h1 class="text-2xl font-extrabold">Executive & Finance Dashboard</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400">Top-level KPIs · cash flow · margin · working capital.</p>
         </div>
-        <a href="{{ route('admin.reports.index') }}" class="btn btn-sm btn-outline-primary">Reports</a>
+        <div class="flex items-center gap-2 flex-wrap">
+            @include('admin.dashboards._daterange')
+            <a href="{{ route('admin.reports.index') }}" class="btn btn-sm btn-outline-primary">Reports</a>
+        </div>
     </div>
 
     {{-- KPI Row --}}

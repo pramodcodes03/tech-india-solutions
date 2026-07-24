@@ -6,7 +6,10 @@
             <h1 class="text-2xl font-extrabold">Customer Analytics Dashboard</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400">Segmentation, lifetime value, acquisition, receivables & churn risk.</p>
         </div>
-        <a href="{{ route('admin.customers.create') }}" class="btn btn-sm btn-primary">+ Customer</a>
+        <div class="flex items-center gap-2 flex-wrap">
+            @include('admin.dashboards._daterange')
+            <a href="{{ route('admin.customers.create') }}" class="btn btn-sm btn-primary">+ Customer</a>
+        </div>
     </div>
 
     {{-- KPI Row --}}

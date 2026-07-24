@@ -69,12 +69,16 @@ class NotificationDispatcher
 
             $extraRecipients = $setting?->extra_recipients ?? [];
 
-            // Resolve catalog-defined recipients.
+            // Resolve catalog-defined recipients. The event's module permission
+            // keeps the resolver from ever reaching admins who don't have access
+            // to that module — this drives both the email and the in-app bell,
+            // since both are built from this recipient list.
             $recipients = $this->resolver->resolve(
                 $event['recipients'] ?? [],
                 $entity,
                 $business,
                 $context,
+                NotificationCatalog::permissionFor($eventKey),
             );
 
             // Tack on extra_recipients (raw email strings).
@@ -319,6 +323,26 @@ class NotificationDispatcher
             'comp_off.requested' => ['admin.hr.comp-off.index', null],
             'comp_off.approved' => ['admin.hr.comp-off.index', null],
             'comp_off.rejected' => ['admin.hr.comp-off.index', null],
+            'internal_ticket.created' => ['admin.hr.internal-tickets.show', $entity?->id],
+            'internal_ticket.assigned' => ['admin.hr.internal-tickets.show', $entity?->id],
+            'internal_ticket.status_changed' => ['admin.hr.internal-tickets.show', $entity?->id],
+            'internal_ticket.escalated' => ['admin.hr.internal-tickets.show', $entity?->id],
+            'internal_ticket.closed' => ['admin.hr.internal-tickets.show', $entity?->id],
+            'reimbursement.submitted' => ['admin.reimbursements.show', $entity?->id],
+            'reimbursement.approved' => ['admin.reimbursements.show', $entity?->id],
+            'reimbursement.rejected' => ['admin.reimbursements.show', $entity?->id],
+            'reimbursement.disbursed' => ['admin.reimbursements.show', $entity?->id],
+            'requisition.submitted' => ['admin.requisitions.show', $entity?->id],
+            'requisition.approved' => ['admin.requisitions.show', $entity?->id],
+            'requisition.rejected' => ['admin.requisitions.show', $entity?->id],
+            'requisition.disbursed' => ['admin.requisitions.show', $entity?->id],
+            'document.uploaded' => ['admin.hr.employees.documents.index', $entity?->employee_id],
+            'document.verified' => ['admin.hr.employees.documents.index', $entity?->employee_id],
+            'document.rejected' => ['admin.hr.employees.documents.index', $entity?->employee_id],
+            'attendance.regularization_requested' => ['admin.hr.regularizations.show', $entity?->id],
+            'attendance.regularization_approved' => ['admin.hr.regularizations.show', $entity?->id],
+            'attendance.regularization_rejected' => ['admin.hr.regularizations.show', $entity?->id],
+            'attendance.regularization_escalated' => ['admin.hr.regularizations.show', $entity?->id],
             'feedback.submitted' => ['admin.hr.feedback.show', $entity?->id],
             'warning.issued' => ['admin.hr.warnings.show', $entity?->id],
             'warning.withdrawn' => ['admin.hr.warnings.show', $entity?->id],

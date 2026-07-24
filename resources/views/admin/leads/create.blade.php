@@ -38,19 +38,36 @@
                         <label for="email">Email</label>
                         <input id="email" name="email" type="email" class="form-input" value="{{ old('email') }}" />
                     </div>
+                    <x-admin.india-location />
+                    <div>
+                        <label for="bid_number">Bid Number</label>
+                        <input id="bid_number" name="bid_number" type="text" class="form-input" value="{{ old('bid_number') }}" />
+                    </div>
+                    <div>
+                        <label for="ra_emd">RA/EMD</label>
+                        <input id="ra_emd" name="ra_emd" type="text" class="form-input" value="{{ old('ra_emd') }}" />
+                    </div>
                     <div>
                         <label for="source">Source <span class="text-danger">*</span></label>
                         <x-admin.searchable-select name="source" :options="$sources" placeholder="-- Select Source --" required />
                     </div>
                     <div>
+                        <label for="product_id">Product</label>
+                        <select id="product_id" name="product_id" class="form-select">
+                            <option value="">-- Select Product --</option>
+                            @foreach($products as $p)<option value="{{ $p->id }}" {{ old('product_id') == $p->id ? 'selected' : '' }}>{{ $p->name }}</option>@endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label for="lead_date">Lead Received Date</label>
+                        <input id="lead_date" name="lead_date" type="date" class="form-input" value="{{ old('lead_date', date('Y-m-d')) }}" />
+                    </div>
+                    <div>
                         <label for="status">Status</label>
                         <select id="status" name="status" class="form-select">
-                            <option value="new" {{ old('status', 'new') === 'new' ? 'selected' : '' }}>New</option>
-                            <option value="contacted" {{ old('status') === 'contacted' ? 'selected' : '' }}>Contacted</option>
-                            <option value="qualified" {{ old('status') === 'qualified' ? 'selected' : '' }}>Qualified</option>
-                            <option value="proposal" {{ old('status') === 'proposal' ? 'selected' : '' }}>Proposal</option>
-                            <option value="won" {{ old('status') === 'won' ? 'selected' : '' }}>Won</option>
-                            <option value="lost" {{ old('status') === 'lost' ? 'selected' : '' }}>Lost</option>
+                            @foreach(\App\Models\Lead::STATUSES as $v => $l)
+                                <option value="{{ $v }}" {{ old('status', 'new') === $v ? 'selected' : '' }}>{{ $l }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div>

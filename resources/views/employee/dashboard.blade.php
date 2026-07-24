@@ -114,7 +114,7 @@
                         <span class="px-2 py-0.5 rounded text-xs font-semibold
                             @class([
                                 'bg-success/10 text-success' => in_array($todayRecord->status, ['present']),
-                                'bg-warning/10 text-warning' => in_array($todayRecord->status, ['late', 'half_day']),
+                                'bg-warning/10 text-warning' => $todayRecord->status === 'half_day',
                                 'bg-danger/10 text-danger' => $todayRecord->status === 'absent',
                                 'bg-info/10 text-info' => $todayRecord->status === 'on_leave',
                             ])">{{ ucfirst(str_replace('_', ' ', $todayRecord->status)) }}</span>
@@ -131,10 +131,10 @@
         <div class="col-span-12 lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-3">
             @php
                 $tiles = [
-                    ['label' => 'Present', 'value' => $summary['present'] + $summary['late'], 'bg' => 'from-success/15 to-success/5', 'text' => 'text-success', 'icon' => '✓'],
+                    ['label' => 'Present', 'value' => $summary['present'], 'bg' => 'from-success/15 to-success/5', 'text' => 'text-success', 'icon' => '✓'],
                     ['label' => 'Absent', 'value' => $summary['absent'], 'bg' => 'from-danger/15 to-danger/5', 'text' => 'text-danger', 'icon' => '✕'],
-                    ['label' => 'On Leave', 'value' => $summary['on_leave'], 'bg' => 'from-info/15 to-info/5', 'text' => 'text-info', 'icon' => '🌴'],
-                    ['label' => 'Half / Late', 'value' => $summary['half_day'].' / '.$summary['late'], 'bg' => 'from-warning/15 to-warning/5', 'text' => 'text-warning', 'icon' => '◐'],
+                    ['label' => 'On Leave', 'value' => $summary['paid_leave_days'] + $summary['unpaid_leave_days'], 'bg' => 'from-info/15 to-info/5', 'text' => 'text-info', 'icon' => '🌴'],
+                    ['label' => 'Half-day', 'value' => $summary['half_day'], 'bg' => 'from-warning/15 to-warning/5', 'text' => 'text-warning', 'icon' => '◐'],
                 ];
             @endphp
             @foreach($tiles as $t)
@@ -317,7 +317,6 @@
             chart: { type:'bar', stacked:true, height:280, toolbar:{show:false}, animations:anim, fontFamily:'inherit' },
             series: [
                 { name:'Present', data: at.map(r => r.present) },
-                { name:'Late',    data: at.map(r => r.late) },
                 { name:'Half Day',data: at.map(r => r.half_day) },
                 { name:'On Leave',data: at.map(r => r.on_leave) },
                 { name:'Absent',  data: at.map(r => r.absent) },
@@ -325,7 +324,7 @@
             xaxis: { categories: at.map(r => r.label), labels: { style: { colors: '#8a8a8a' } } },
             yaxis: { labels: { style: { colors: '#8a8a8a' } } },
             plotOptions: { bar: { borderRadius:4, columnWidth:'55%' } },
-            colors: [C.success, C.warning, C.info, '#805dca', C.danger],
+            colors: [C.success, C.info, '#805dca', C.danger],
             dataLabels: { enabled:false },
             legend: { position:'top', horizontalAlign:'right' },
             grid: { borderColor:'rgba(128,128,128,.1)', strokeDashArray:3 },
@@ -334,14 +333,14 @@
 
         // ── 2. Current month donut ─────────────────────────────────────
         const md = @json((object) $currentMonthDonut);
-        const labels = ['Present','Late','Half Day','On Leave','Absent'];
-        const values = ['present','late','half_day','on_leave','absent'].map(k => Number(md[k] || 0));
+        const labels = ['Present','Half Day','On Leave','Absent'];
+        const values = ['present','half_day','on_leave','absent'].map(k => Number(md[k] || 0));
         const hasAnyData = values.some(v => v > 0);
         new ApexCharts(document.querySelector('#chart-month-donut'), {
             chart: { type:'donut', height:280, animations:anim, fontFamily:'inherit' },
             series: hasAnyData ? values : [1],
             labels: hasAnyData ? labels : ['No data'],
-            colors: hasAnyData ? [C.success, C.warning, C.info, '#805dca', C.danger] : ['#e5e7eb'],
+            colors: hasAnyData ? [C.success, C.info, '#805dca', C.danger] : ['#e5e7eb'],
             stroke: { width:2, colors:[isDark ? '#1b2e4b' : '#fff'] },
             plotOptions: { pie: { donut: {
                 size:'68%',
@@ -422,12 +421,6 @@
                     const r = ct[dataPointIndex];
                     return '<div class="px-3 py-2"><b>' + r.label + '</b><br/>Check-in: <b>' + r.display + '</b></div>';
                 }
-            },
-            annotations: {
-                yaxis: [{
-                    y: 9.5, borderColor: '#e7515a', strokeDashArray: 4,
-                    label: { text: 'Late after 9:30 AM', style: { color:'#fff', background:'#e7515a', fontSize:'10px' } }
-                }]
             }
         }).render();
         @endif

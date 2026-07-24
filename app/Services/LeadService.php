@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Customer;
 use App\Models\Lead;
 use App\Models\LeadActivity;
+use App\Models\LeadStageLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -38,8 +39,53 @@ class LeadService
         $data = $this->normalize($data);
         $data['code'] = $this->generateCode();
         $data['created_by'] = Auth::guard('admin')->id();
+        $data['lead_date'] = $data['lead_date'] ?? now()->toDateString();
+        $data['last_stage_changed_at'] = now();
 
-        return Lead::create($data);
+        $lead = Lead::create($data);
+
+        LeadStageLog::create([
+            'business_id' => $lead->business_id,
+            'lead_id' => $lead->id,
+            'from_status' => null,
+            'to_status' => $lead->status,
+            'remarks' => 'Lead created',
+            'duration_seconds' => 0,
+            'changed_by' => Auth::guard('admin')->id(),
+        ]);
+
+        return $lead;
+    }
+
+    /**
+     * Record a stage transition: append a stage log with the time spent in the
+     * previous stage and the assigned employee's remark, then move the lead.
+     */
+    public function changeStatus(Lead $lead, string $newStatus, ?string $remarks = null): Lead
+    {
+        return DB::transaction(function () use ($lead, $newStatus, $remarks) {
+            $from = $lead->status;
+            $since = $lead->last_stage_changed_at ?? $lead->created_at;
+            $duration = $since ? (int) $since->diffInSeconds(now()) : null;
+
+            LeadStageLog::create([
+                'business_id' => $lead->business_id,
+                'lead_id' => $lead->id,
+                'from_status' => $from,
+                'to_status' => $newStatus,
+                'remarks' => $remarks,
+                'duration_seconds' => $duration,
+                'changed_by' => Auth::guard('admin')->id(),
+            ]);
+
+            $lead->update([
+                'status' => $newStatus,
+                'last_stage_changed_at' => now(),
+                'updated_by' => Auth::guard('admin')->id(),
+            ]);
+
+            return $lead->refresh();
+        });
     }
 
     /**
@@ -64,7 +110,7 @@ class LeadService
         if (array_key_exists('expected_value', $data) && ($data['expected_value'] === null || $data['expected_value'] === '')) {
             $data['expected_value'] = 0;
         }
-        foreach (['next_follow_up_at', 'assigned_to', 'phone', 'email', 'company', 'notes'] as $k) {
+        foreach (['next_follow_up_at', 'assigned_to', 'phone', 'email', 'company', 'notes', 'product_id', 'lead_date', 'city', 'state', 'bid_number', 'ra_emd'] as $k) {
             if (array_key_exists($k, $data) && $data[$k] === '') {
                 $data[$k] = null;
             }

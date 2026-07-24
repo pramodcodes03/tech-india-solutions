@@ -4,10 +4,14 @@
     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h1 class="text-2xl font-extrabold">Leave Balances · {{ $year }}</h1>
         @can('leaves.approve')
-        <form method="POST" action="{{ route('admin.hr.leave-balances.bulk-allocate') }}" onsubmit="return confirm('Allocate {{ $year }} balances (from leave-type quotas, prorated by joining date) for ALL active employees? Existing allocated values will be overwritten only when a balance row is created for the first time; existing rows are left untouched.')">
+        <form method="POST" action="{{ route('admin.hr.leave-balances.bulk-allocate') }}" class="flex items-center gap-2" onsubmit="return confirm('Allocate {{ $year }} balances (from leave-type quotas, prorated by joining date) for the selected scope? Existing balance rows are left untouched.')">
             @csrf
             <input type="hidden" name="year" value="{{ $year }}" />
-            <button class="btn btn-outline-primary">Bulk Allocate for {{ $year }}</button>
+            <select name="department_id" class="form-select">
+                <option value="">All Departments (company-wide)</option>
+                @foreach($departments as $d)<option value="{{ $d->id }}">{{ $d->name }}</option>@endforeach
+            </select>
+            <button class="btn btn-outline-primary whitespace-nowrap">Bulk Allocate {{ $year }}</button>
         </form>
         @endcan
     </div>

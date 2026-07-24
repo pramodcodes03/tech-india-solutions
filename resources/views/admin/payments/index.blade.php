@@ -47,7 +47,7 @@
                             <th class="px-4 py-2">Date</th>
                             <th class="px-4 py-2 text-right">Amount</th>
                             <th class="px-4 py-2">Mode</th>
-                            <th class="px-4 py-2">Reference</th>
+                            <th class="px-4 py-2">Reference / UTR</th>
                             <th class="px-4 py-2 !text-center">Actions</th>
                         </tr>
                     </thead>
@@ -59,13 +59,13 @@
                                 <td class="px-4 py-2">
                                     <a :href="`{{ url('admin/invoices') }}/${item.invoice_id}`" class="text-primary hover:underline" x-text="item.invoice ? item.invoice.invoice_number : '-'"></a>
                                 </td>
-                                <td class="px-4 py-2" x-text="item.invoice && item.invoice.customer ? item.invoice.customer.name : '-'"></td>
+                                <td class="px-4 py-2" x-text="item.customer ? item.customer.name : (item.invoice && item.invoice.customer ? item.invoice.customer.name : '-')"></td>
                                 <td class="px-4 py-2" x-text="formatDate(item.payment_date)"></td>
                                 <td class="px-4 py-2 text-right font-semibold" x-text="formatCurrency(item.amount)"></td>
                                 <td class="px-4 py-2">
                                     <span class="badge bg-primary" x-text="formatMode(item.mode)"></span>
                                 </td>
-                                <td class="px-4 py-2" x-text="item.reference_number || '-'"></td>
+                                <td class="px-4 py-2" x-text="item.reference_no || '-'"></td>
                                 <td class="px-4 py-2">
                                     <div class="flex items-center justify-center gap-2">
                                         <a :href="`{{ url('admin/payments') }}/${item.id}`" class="btn btn-sm btn-outline-info p-1.5" data-tippy-content="View Details"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></a>
@@ -89,11 +89,18 @@
             </div>
 
             {{-- Pagination --}}
-            <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3" x-show="pagination.last_page > 1">
-                <div class="text-sm text-gray-500 dark:text-gray-400">
-                    Showing <span x-text="pagination.from"></span> to <span x-text="pagination.to"></span> of <span x-text="pagination.total"></span> entries
+            <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                <div class="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                    <span>Showing <span x-text="pagination.from"></span> to <span x-text="pagination.to"></span> of <span x-text="pagination.total"></span> entries</span>
+                    <span class="flex items-center gap-1">
+                        <span>Show</span>
+                        <select class="form-select form-select-sm w-auto py-1" x-model.number="perPage" @change="fetchData(1)">
+                            @foreach($pageSizes as $size)<option value="{{ $size }}">{{ $size }}</option>@endforeach
+                        </select>
+                        <span>per page</span>
+                    </span>
                 </div>
-                <div class="flex flex-wrap gap-1">
+                <div class="flex flex-wrap gap-1" x-show="pagination.last_page > 1">
                     <button type="button" class="btn btn-sm btn-outline-primary px-2.5" @click="changePage(pagination.current_page - 1)" :disabled="pagination.current_page === 1" :class="pagination.current_page === 1 && 'opacity-40 cursor-not-allowed'">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                     </button>
@@ -128,9 +135,10 @@
                 filterMode: '',
                 filterDateFrom: '',
                 filterDateTo: '',
+                perPage: {{ $payments->perPage() }},
 
                 fetchData(page = 1) {
-                    let url = `{{ route('admin.payments.index') }}?page=${page}`;
+                    let url = `{{ route('admin.payments.index') }}?page=${page}&per_page=${this.perPage}`;
                     if (this.searchText) url += `&search=${encodeURIComponent(this.searchText)}`;
                     if (this.filterMode) url += `&mode=${this.filterMode}`;
                     if (this.filterDateFrom) url += `&date_from=${this.filterDateFrom}`;

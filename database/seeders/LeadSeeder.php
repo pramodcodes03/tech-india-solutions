@@ -28,9 +28,9 @@ class LeadSeeder extends Seeder
             // 2 qualified
             ['code' => 'LEAD-0005', 'name' => 'Dinesh Choudhary',    'company' => 'Choudhary Exports',             'phone' => '+91 94140 31005', 'email' => 'dinesh@choudharyexp.com',   'source' => 'referral',   'status' => 'qualified', 'assigned_to' => $salesAdminId, 'expected_value' => 500000, 'next_follow_up_at' => $now->copy()->addDays(7)->format('Y-m-d H:i:s'),  'created_at' => $now->copy()->subDays(20)],
             ['code' => 'LEAD-0006', 'name' => 'Prakash Menon',       'company' => 'Menon Bags & Accessories',      'phone' => '+91 94470 31006', 'email' => 'prakash@menonbags.in',      'source' => 'cold_call',  'status' => 'qualified', 'assigned_to' => $salesAdminId, 'expected_value' => 280000, 'next_follow_up_at' => $now->copy()->addDays(4)->format('Y-m-d H:i:s'),  'created_at' => $now->copy()->subDays(15)],
-            // 2 proposal
-            ['code' => 'LEAD-0007', 'name' => 'Geeta Sharma',        'company' => 'Sharma Retail Chain',           'phone' => '+91 98720 31007', 'email' => 'geeta@sharmaretail.in',     'source' => 'trade_fair', 'status' => 'proposal',  'assigned_to' => $salesAdminId, 'expected_value' => 420000, 'next_follow_up_at' => $now->copy()->addDays(10)->format('Y-m-d H:i:s'), 'created_at' => $now->copy()->subDays(30)],
-            ['code' => 'LEAD-0008', 'name' => 'Manoj Jain',          'company' => 'Jain Leather International',    'phone' => '+91 98250 31008', 'email' => 'manoj@jainleather.com',     'source' => 'website',    'status' => 'proposal',  'assigned_to' => $adminId,      'expected_value' => 600000, 'next_follow_up_at' => $now->copy()->addDays(6)->format('Y-m-d H:i:s'),  'created_at' => $now->copy()->subDays(25)],
+            // 2 evaluation
+            ['code' => 'LEAD-0007', 'name' => 'Geeta Sharma',        'company' => 'Sharma Retail Chain',           'phone' => '+91 98720 31007', 'email' => 'geeta@sharmaretail.in',     'source' => 'trade_fair', 'status' => 'evaluation',  'assigned_to' => $salesAdminId, 'expected_value' => 420000, 'next_follow_up_at' => $now->copy()->addDays(10)->format('Y-m-d H:i:s'), 'created_at' => $now->copy()->subDays(30)],
+            ['code' => 'LEAD-0008', 'name' => 'Manoj Jain',          'company' => 'Jain Leather International',    'phone' => '+91 98250 31008', 'email' => 'manoj@jainleather.com',     'source' => 'website',    'status' => 'evaluation',  'assigned_to' => $adminId,      'expected_value' => 600000, 'next_follow_up_at' => $now->copy()->addDays(6)->format('Y-m-d H:i:s'),  'created_at' => $now->copy()->subDays(25)],
             // 1 won
             ['code' => 'LEAD-0009', 'name' => 'Ashok Reddy',         'company' => 'Reddy Leather Works',           'phone' => '+91 98490 31009', 'email' => 'ashok@reddyleather.in',     'source' => 'referral',   'status' => 'won',       'assigned_to' => $salesAdminId, 'expected_value' => 375000, 'next_follow_up_at' => null,                                              'created_at' => $now->copy()->subDays(45)],
             // 1 lost
@@ -75,7 +75,7 @@ class LeadSeeder extends Seeder
             'updated_at' => $base,
         ];
 
-        if (in_array($status, ['contacted', 'qualified', 'proposal', 'won', 'lost'])) {
+        if (in_array($status, ['contacted', 'qualified', 'evaluation', 'won', 'lost'])) {
             $activities[] = [
                 'business_id' => $businessId,
                 'lead_id' => $leadId,
@@ -87,7 +87,7 @@ class LeadSeeder extends Seeder
             ];
         }
 
-        if (in_array($status, ['qualified', 'proposal', 'won', 'lost'])) {
+        if (in_array($status, ['qualified', 'evaluation', 'won', 'lost'])) {
             $activities[] = [
                 'business_id' => $businessId,
                 'lead_id' => $leadId,
@@ -99,7 +99,7 @@ class LeadSeeder extends Seeder
             ];
         }
 
-        if (in_array($status, ['proposal', 'won'])) {
+        if (in_array($status, ['evaluation', 'won'])) {
             $activities[] = [
                 'business_id' => $businessId,
                 'lead_id' => $leadId,

@@ -16,7 +16,7 @@ class LeaveRequest extends Model
         'business_id',
         'request_code', 'employee_id', 'leave_type_id',
         'from_date', 'to_date', 'days', 'paid_days', 'unpaid_days', 'day_portion',
-        'reason', 'status', 'approver_id', 'actioned_at', 'approver_remarks',
+        'reason', 'status', 'approver_id', 'approver_employee_id', 'actioned_at', 'approver_remarks',
     ];
 
     protected function casts(): array
@@ -50,5 +50,27 @@ class LeaveRequest extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(Admin::class, 'approver_id');
+    }
+
+    /** Manager (Department Head) who actioned this from the employee portal. */
+    public function approverEmployee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'approver_employee_id');
+    }
+
+    /**
+     * Display name of whoever actioned the request — an Admin/HR or a
+     * Department Head manager — whichever path was used.
+     */
+    public function getApproverNameAttribute(): ?string
+    {
+        if ($this->approver_id && $this->approver) {
+            return $this->approver->name;
+        }
+        if ($this->approver_employee_id && $this->approverEmployee) {
+            return $this->approverEmployee->full_name.' (Manager)';
+        }
+
+        return null;
     }
 }

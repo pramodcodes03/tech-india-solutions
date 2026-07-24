@@ -17,6 +17,15 @@ class UpdateEmployeeRequest extends FormRequest
         if ($this->boolean('whatsapp_same_as_mobile')) {
             $this->merge(['whatsapp_number' => $this->input('phone')]);
         }
+
+        // Blank = inherit (null), not "0 days required". Guard against the integer
+        // cast turning an empty string into 0.
+        if ($this->input('el_working_days_required') === '') {
+            $this->merge(['el_working_days_required' => null]);
+        }
+        if ($this->input('cl_sl_working_days') === '') {
+            $this->merge(['cl_sl_working_days' => null]);
+        }
     }
 
     public function rules(): array
@@ -30,6 +39,8 @@ class UpdateEmployeeRequest extends FormRequest
                 'required', 'string', 'max:30', 'regex:/^[A-Za-z0-9\-_]+$/',
                 Rule::unique('employees', 'employee_code')->ignore($id),
             ],
+            // Optional legacy/old employee ID — unique when provided (skips self).
+            'legacy_employee_id' => ['nullable', 'string', 'max:50', Rule::unique('employees', 'legacy_employee_id')->ignore($id)],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
             'email' => ['required', 'email', Rule::unique('employees', 'email')->ignore($id)],
@@ -56,6 +67,8 @@ class UpdateEmployeeRequest extends FormRequest
             'reporting_manager_id' => ['nullable', 'exists:employees,id', Rule::notIn([$id])],
             'joining_date' => ['required', 'date'],
             'probation_end_date' => ['nullable', 'date', 'after_or_equal:joining_date'],
+            'el_working_days_required' => ['nullable', 'integer', 'min:0', 'max:1000'],
+            'cl_sl_working_days' => ['nullable', 'integer', 'min:0', 'max:1000'],
             'confirmation_date' => ['nullable', 'date', 'after_or_equal:joining_date'],
             'resignation_date' => ['nullable', 'date'],
             'last_working_date' => ['nullable', 'date', 'after_or_equal:resignation_date'],

@@ -35,6 +35,9 @@
                 @can('salary_structures.create')
                     <a href="{{ route('admin.hr.salary.form', $employee) }}" class="btn btn-sm btn-outline-info">Salary</a>
                 @endcan
+                @can('employee_documents.view')
+                    <a href="{{ route('admin.hr.employees.documents.index', $employee) }}" class="btn btn-sm btn-outline-secondary">Documents</a>
+                @endcan
                 @can('appraisals.create')
                     <a href="{{ route('admin.hr.employees.increments.create', $employee) }}" class="btn btn-sm btn-outline-success">💰 Give Increment</a>
                 @endcan

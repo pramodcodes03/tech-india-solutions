@@ -20,11 +20,17 @@ class StoreLeadRequest extends FormRequest
             'company' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
             'email' => ['nullable', 'email'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'state' => ['nullable', 'string', 'max:255'],
+            'bid_number' => ['nullable', 'string', 'max:255'],
+            'ra_emd' => ['nullable', 'string', 'max:255'],
             'source' => ['required', Rule::in(array_keys(Lead::SOURCES))],
-            'status' => ['required', 'in:new,contacted,qualified,proposal,won,lost'],
+            'product_id' => ['nullable', 'exists:products,id'],
+            'lead_date' => ['nullable', 'date'],
+            'status' => ['required', Rule::in(array_keys(Lead::STATUSES))],
             'assigned_to' => ['nullable', 'exists:admins,id'],
             'expected_value' => ['nullable', 'numeric', 'min:0'],
-            'next_follow_up_at' => ['nullable', 'date', 'after_or_equal:today'],
+            'next_follow_up_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }
@@ -39,7 +45,6 @@ class StoreLeadRequest extends FormRequest
             'status.in' => 'Invalid lead status selected.',
             'assigned_to.exists' => 'The selected assignee does not exist.',
             'expected_value.min' => 'Expected value cannot be negative.',
-            'next_follow_up_at.after_or_equal' => 'Next follow-up date must be today or a future date.',
         ];
     }
 }

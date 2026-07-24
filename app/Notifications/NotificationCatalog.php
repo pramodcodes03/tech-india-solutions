@@ -47,6 +47,7 @@ class NotificationCatalog
                 'subject' => 'New lead assigned to you: {entity.name}',
                 'recipients' => ['lead.assignee'],
                 'related' => 'lead',
+                'permission' => 'leads.view',
             ],
             'lead.status_changed' => [
                 'module' => 'Sales / CRM',
@@ -55,6 +56,7 @@ class NotificationCatalog
                 'subject' => 'Lead {entity.name} status changed to {context.new_status}',
                 'recipients' => ['lead.assignee', 'lead.assignee_manager'],
                 'related' => 'lead',
+                'permission' => 'leads.view',
             ],
             'lead.converted' => [
                 'module' => 'Sales / CRM',
@@ -63,6 +65,7 @@ class NotificationCatalog
                 'subject' => 'Lead {entity.name} converted to customer',
                 'recipients' => ['admin.role:Sales', 'admin.role:Admin'],
                 'related' => 'lead',
+                'permission' => 'leads.view',
             ],
             'quotation.sent' => [
                 'module' => 'Sales / CRM',
@@ -234,7 +237,7 @@ class NotificationCatalog
                 'name' => 'Leave application submitted',
                 'description' => 'Sent to the reporting manager + HR.',
                 'subject' => 'Leave request from {entity.employee.first_name}',
-                'recipients' => ['reporting_manager', 'admin.role:HR Manager'],
+                'recipients' => ['reporting_manager_or_admin', 'admin.role:HR Manager'],
                 'related' => 'leave_request',
             ],
             'leave.approved' => [
@@ -258,15 +261,15 @@ class NotificationCatalog
                 'name' => 'Leave cancelled by employee',
                 'description' => 'Sent to manager + HR when employee cancels their leave.',
                 'subject' => 'Leave cancelled — {entity.employee.first_name}',
-                'recipients' => ['reporting_manager', 'admin.role:HR Manager'],
+                'recipients' => ['reporting_manager_or_admin', 'admin.role:HR Manager'],
                 'related' => 'leave_request',
             ],
             'comp_off.requested' => [
                 'module' => 'HR — Leaves',
                 'name' => 'Comp-off request submitted',
-                'description' => 'Sent to the reporting manager, HR Manager, and the admins/super admins who can approve it — so the request lights up in the bell for whoever is empowered to act on it.',
+                'description' => 'Sent to the reporting manager (or the business admin when the employee has no manager) + HR, so whoever can approve it sees it.',
                 'subject' => 'Comp-off request from {entity.employee.first_name}',
-                'recipients' => ['reporting_manager', 'admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin', 'admin.super'],
+                'recipients' => ['reporting_manager_or_admin', 'admin.role:HR Manager'],
                 'related' => 'comp_off_request',
             ],
             'comp_off.approved' => [
@@ -285,6 +288,178 @@ class NotificationCatalog
                 'recipients' => ['employee.email'],
                 'related' => 'comp_off_request',
             ],
+            // ─────────────────────── INTERNAL HELPDESK ────────────────────────────────
+            'internal_ticket.created' => [
+                'module' => 'Internal Helpdesk',
+                'name' => 'Internal ticket raised',
+                'description' => 'Sent ONLY to the category\'s assigned user. If the category has no assigned user, it falls back to all admins of the business.',
+                'subject' => 'New {entity.department} ticket {entity.ticket_number}: {entity.subject}',
+                // The ticket is stamped with the category's assigned admin at
+                // creation, so ticket.assignee routes it to that single user.
+                // When a category has no assigned user, the resolver's built-in
+                // fallback delivers it to all business admins so it's not lost.
+                'recipients' => ['ticket.assignee'],
+                'related' => 'internal_ticket',
+            ],
+            'internal_ticket.assigned' => [
+                'module' => 'Internal Helpdesk',
+                'name' => 'Internal ticket assigned',
+                'description' => 'Sent to the assignee when an internal ticket is assigned to them.',
+                'subject' => 'Ticket {entity.ticket_number} assigned to you',
+                'recipients' => ['ticket.assignee'],
+                'related' => 'internal_ticket',
+            ],
+            'internal_ticket.status_changed' => [
+                'module' => 'Internal Helpdesk',
+                'name' => 'Internal ticket status changed',
+                'description' => 'Sent to the raiser when their ticket status changes.',
+                'subject' => 'Ticket {entity.ticket_number} is now {context.new_status}',
+                'recipients' => ['employee.email'],
+                'related' => 'internal_ticket',
+            ],
+            'internal_ticket.escalated' => [
+                'module' => 'Internal Helpdesk',
+                'name' => 'Internal ticket escalated',
+                'description' => 'Sent to the escalation-matrix Owner for the breached level (plus HR / Admin for visibility) when a ticket crosses its escalation threshold.',
+                'subject' => 'Ticket {entity.ticket_number} escalated to level {context.level}',
+                'recipients' => ['escalation.owner', 'admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin'],
+                'related' => 'internal_ticket',
+            ],
+            'internal_ticket.closed' => [
+                'module' => 'Internal Helpdesk',
+                'name' => 'Internal ticket closed',
+                'description' => 'Sent to the raiser when their ticket is closed.',
+                'subject' => 'Ticket {entity.ticket_number} has been closed',
+                'recipients' => ['employee.email'],
+                'related' => 'internal_ticket',
+            ],
+
+            // ─────────────────────── EXPENSE — REIMBURSEMENTS & REQUISITIONS ──────────
+            'reimbursement.submitted' => [
+                'module' => 'Expense — Reimbursements',
+                'name' => 'Reimbursement claim submitted',
+                'description' => 'Sent to Accounts / Admin when an employee submits a reimbursement claim.',
+                'subject' => 'Reimbursement claim {entity.claim_code} from {entity.employee.first_name}',
+                'recipients' => ['admin.role:Accounts', 'admin.role:Admin', 'admin.role:Business Admin'],
+                'related' => 'reimbursement_claim',
+            ],
+            'reimbursement.approved' => [
+                'module' => 'Expense — Reimbursements',
+                'name' => 'Reimbursement approved',
+                'description' => 'Sent to the employee when their claim is approved.',
+                'subject' => 'Your reimbursement claim {entity.claim_code} was approved',
+                'recipients' => ['employee.email'],
+                'related' => 'reimbursement_claim',
+            ],
+            'reimbursement.rejected' => [
+                'module' => 'Expense — Reimbursements',
+                'name' => 'Reimbursement rejected',
+                'description' => 'Sent to the employee when their claim is rejected.',
+                'subject' => 'Your reimbursement claim {entity.claim_code} was rejected',
+                'recipients' => ['employee.email'],
+                'related' => 'reimbursement_claim',
+            ],
+            'reimbursement.disbursed' => [
+                'module' => 'Expense — Reimbursements',
+                'name' => 'Reimbursement disbursed',
+                'description' => 'Sent to the employee when their claim is paid out.',
+                'subject' => 'Your reimbursement {entity.claim_code} has been disbursed',
+                'recipients' => ['employee.email'],
+                'related' => 'reimbursement_claim',
+            ],
+            'requisition.submitted' => [
+                'module' => 'Expense — Requisitions',
+                'name' => 'Requisition submitted',
+                'description' => 'Sent to the approval chain when a purchase requisition is raised.',
+                'subject' => 'Requisition {entity.requisition_code} pending approval',
+                'recipients' => ['admin.role:Admin', 'admin.role:Business Admin', 'admin.role:Accounts'],
+                'related' => 'requisition',
+            ],
+            'requisition.approved' => [
+                'module' => 'Expense — Requisitions',
+                'name' => 'Requisition fully approved',
+                'description' => 'Sent to the requester + Accounts when a requisition clears its approval chain.',
+                'subject' => 'Requisition {entity.requisition_code} approved',
+                'recipients' => ['admin.creator', 'admin.role:Accounts'],
+                'related' => 'requisition',
+            ],
+            'requisition.rejected' => [
+                'module' => 'Expense — Requisitions',
+                'name' => 'Requisition rejected',
+                'description' => 'Sent to the requester when a requisition is rejected.',
+                'subject' => 'Requisition {entity.requisition_code} rejected',
+                'recipients' => ['admin.creator'],
+                'related' => 'requisition',
+            ],
+            'requisition.disbursed' => [
+                'module' => 'Expense — Requisitions',
+                'name' => 'Requisition disbursed',
+                'description' => 'Sent to the requester when the requisition payment is recorded.',
+                'subject' => 'Requisition {entity.requisition_code} disbursed',
+                'recipients' => ['admin.creator'],
+                'related' => 'requisition',
+            ],
+
+            // ─────────────────────── HR — EMPLOYEE DOCUMENTS ──────────────────────────
+            'document.uploaded' => [
+                'module' => 'HR — Documents',
+                'name' => 'Employee uploaded a document',
+                'description' => 'Sent to HR / Admin when an employee self-uploads a new document for verification.',
+                'subject' => 'New document uploaded by {entity.employee.first_name}',
+                'recipients' => ['admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin'],
+                'related' => 'employee_document',
+            ],
+            'document.verified' => [
+                'module' => 'HR — Documents',
+                'name' => 'Document verified',
+                'description' => 'Sent to the employee when their document is marked verified.',
+                'subject' => 'Your document "{entity.title}" was verified',
+                'recipients' => ['employee.email'],
+                'related' => 'employee_document',
+            ],
+            'document.rejected' => [
+                'module' => 'HR — Documents',
+                'name' => 'Document rejected',
+                'description' => 'Sent to the employee with remarks when their document is rejected.',
+                'subject' => 'Your document "{entity.title}" needs attention',
+                'recipients' => ['employee.email'],
+                'related' => 'employee_document',
+            ],
+
+            // ─────────────────────── HR — ATTENDANCE REGULARIZATION ───────────────────
+            'attendance.regularization_requested' => [
+                'module' => 'HR — Attendance',
+                'name' => 'Attendance correction requested',
+                'description' => 'Sent to the reporting manager + HR when an employee raises a missed/incorrect punch correction.',
+                'subject' => 'Attendance correction request from {entity.employee.first_name}',
+                'recipients' => ['reporting_manager', 'admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin'],
+                'related' => 'attendance_regularization',
+            ],
+            'attendance.regularization_approved' => [
+                'module' => 'HR — Attendance',
+                'name' => 'Attendance correction approved',
+                'description' => 'Sent to the employee when HR approves their attendance correction.',
+                'subject' => 'Your attendance correction was approved',
+                'recipients' => ['employee.email'],
+                'related' => 'attendance_regularization',
+            ],
+            'attendance.regularization_rejected' => [
+                'module' => 'HR — Attendance',
+                'name' => 'Attendance correction rejected',
+                'description' => 'Sent to the employee when HR rejects their attendance correction.',
+                'subject' => 'Your attendance correction was rejected',
+                'recipients' => ['employee.email'],
+                'related' => 'attendance_regularization',
+            ],
+            'attendance.regularization_escalated' => [
+                'module' => 'HR — Attendance',
+                'name' => 'Attendance correction escalated (TAT breach)',
+                'description' => 'Sent to HR + Admin when a correction request stays open past the resolution TAT.',
+                'subject' => 'Attendance correction overdue — {entity.employee.first_name}',
+                'recipients' => ['admin.role:HR Manager', 'admin.role:Admin', 'admin.role:Business Admin'],
+                'related' => 'attendance_regularization',
+            ],
+
             // ──────────────────────────── 7. HR — PAYROLL ─────────────────────────────
             'payslip.generated' => [
                 'module' => 'HR — Payroll',
@@ -405,11 +580,11 @@ class NotificationCatalog
             'feedback.submitted' => [
                 'module' => 'HR — Discipline',
                 'name' => 'New feedback submitted',
-                'description' => 'Notify HR when feedback is submitted by an employee.',
+                'description' => 'Sent to the global company feedback email (Settings → Feedback Email) and HR when an employee submits department feedback.',
                 'subject' => 'New department feedback received',
-                'recipients' => ['admin.role:HR Manager'],
+                'recipients' => ['setting.email:feedback_notification_email', 'admin.role:HR Manager'],
                 'related' => 'department_feedback',
-                'default_on' => false,
+                'default_on' => true,
             ],
 
             // ──────────────────────── 9. HR — CALENDAR ────────────────────────────────
@@ -514,7 +689,84 @@ class NotificationCatalog
                 'recipients' => ['admin.all'],
                 'related' => 'expense',
             ],
+
+            // ─────────────────────── EXPENSES — BUDGETS ───────────────────────
+            'budget.assigned' => [
+                'module' => 'Expenses — Budgets',
+                'name' => 'Budget assigned to employee',
+                'description' => 'Sent to the employee when a budget is sanctioned to them.',
+                'subject' => 'A budget of ₹{entity.amount} has been assigned to you',
+                'recipients' => ['employee.email'],
+                'related' => 'expense_budget',
+            ],
         ];
+    }
+
+    /**
+     * Module permission required to receive an event, keyed by the event-key
+     * prefix (the part before the dot).
+     *
+     * This is what stops a notification reaching admins who have no access to
+     * the module it belongs to. It matters most for events whose recipients are
+     * 'admin.all' / 'admin.role:*', and for the resolver's fallback — without it
+     * an unassigned lead or an overdue routine payment mailed every admin in the
+     * business. Only ADMIN recipients are filtered; external recipients
+     * (customer / vendor / employee) are never affected, so an employee still
+     * gets their own payslip or leave decision regardless.
+     *
+     * A prefix not listed here simply isn't permission-filtered.
+     */
+    private const PERMISSION_BY_PREFIX = [
+        // Sales / CRM
+        'lead' => 'leads.view',
+        'quotation' => 'quotations.view',
+        'proforma' => 'proforma_invoices.view',
+        'sales_order' => 'sales_orders.view',
+        'invoice' => 'invoices.view',
+        'payment' => 'payments.view',
+        // Inventory / Purchase
+        'stock' => 'inventory.view',
+        'purchase_order' => 'purchase_orders.view',
+        'goods_receipt' => 'goods_receipts.view',
+        'asset' => 'assets.view',
+        // Service
+        'service_ticket' => 'service_tickets.view',
+        'internal_ticket' => 'helpdesk.view',
+        // HR
+        'leave' => 'leaves.view',
+        'comp_off' => 'leaves.view',
+        'attendance' => 'attendance_corrections.view',
+        'document' => 'employee_documents.view',
+        'payslip' => 'payroll.view',
+        'payroll' => 'payroll.view',
+        'salary_structure' => 'salary_structures.view',
+        'bank_edit' => 'employees.view',
+        'warning' => 'warnings.view',
+        'penalty' => 'penalties.view',
+        'appraisal' => 'appraisals.view',
+        'feedback' => 'feedback.view',
+        'holiday' => 'holidays.view',
+        'employee' => 'employees.view',
+        'shift' => 'shifts.view',
+        // Finance / Expenses
+        'reimbursement' => 'reimbursements.view',
+        'requisition' => 'requisitions.view',
+        'expense' => 'expenses.view',
+        'budget' => 'budgets.view',
+    ];
+
+    /**
+     * The permission required for an event. An explicit 'permission' on the
+     * event definition wins; otherwise it's derived from the event-key prefix.
+     */
+    public static function permissionFor(string $eventKey): ?string
+    {
+        $event = self::events()[$eventKey] ?? null;
+        if (isset($event['permission'])) {
+            return $event['permission'];
+        }
+
+        return self::PERMISSION_BY_PREFIX[explode('.', $eventKey)[0]] ?? null;
     }
 
     public static function get(string $key): ?array

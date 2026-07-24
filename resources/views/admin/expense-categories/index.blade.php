@@ -47,6 +47,9 @@
                             <td class="px-4 py-2 !text-center">
                                 <div class="flex items-center justify-center gap-2">
                                     <a href="{{ route('admin.expense-categories.show', $cat) }}" class="btn btn-sm btn-outline-info">Manage</a>
+                                    @can('expense_categories.create')
+                                        <a href="{{ route('admin.expense-categories.create', ['name' => $cat->name.' (Copy)', 'slug' => $cat->slug.'-copy', 'description' => $cat->description, 'color' => $cat->color]) }}" class="btn btn-sm btn-outline-secondary" title="Duplicate this category">Duplicate</a>
+                                    @endcan
                                     @can('expense_categories.edit')<a href="{{ route('admin.expense-categories.edit', $cat) }}" class="btn btn-sm btn-outline-warning">Edit</a>@endcan
                                     @can('expense_categories.delete')
                                         <form method="POST" action="{{ route('admin.expense-categories.destroy', $cat) }}" onsubmit="return confirm('Delete this category?');" class="inline">

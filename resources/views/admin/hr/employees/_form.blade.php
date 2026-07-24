@@ -58,6 +58,15 @@
                 </p>
             </div>
             <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase">Legacy Employee ID</label>
+                <input type="text" name="legacy_employee_id"
+                    value="{{ old('legacy_employee_id', $emp?->legacy_employee_id) }}"
+                    maxlength="50"
+                    class="form-input mt-1 font-mono"
+                    placeholder="Old / previous system ID (optional)" />
+                <p class="text-[11px] text-gray-500 mt-1">Optional. If set, must be unique. Shown on the payslip.</p>
+            </div>
+            <div>
                 <label class="text-xs font-semibold text-gray-500 uppercase">First Name <span class="text-danger">*</span></label>
                 <input type="text" name="first_name" value="{{ old('first_name', $emp?->first_name) }}" required class="form-input mt-1" />
             </div>
@@ -170,6 +179,16 @@
             <div>
                 <label class="text-xs font-semibold text-gray-500 uppercase">Probation End</label>
                 <input type="date" name="probation_end_date" value="{{ old('probation_end_date', $emp?->probation_end_date?->format('Y-m-d')) }}" class="form-input mt-1" />
+            </div>
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase">CL &amp; SL Working-days</label>
+                <input type="number" min="0" max="1000" name="cl_sl_working_days" value="{{ old('cl_sl_working_days', $emp?->cl_sl_working_days) }}" placeholder="Inherit (dept / global)" class="form-input mt-1" />
+                <div class="text-[10px] text-gray-400 mt-1">Days since joining before Casual &amp; Sick Leave unlock for this employee. Blank = inherit from department, then global.</div>
+            </div>
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase">EL Working-days Required</label>
+                <input type="number" min="0" max="1000" name="el_working_days_required" value="{{ old('el_working_days_required', $emp?->el_working_days_required) }}" placeholder="Inherit (dept / global)" class="form-input mt-1" />
+                <div class="text-[10px] text-gray-400 mt-1">Days since joining before Earned Leave unlocks for this employee. Blank = inherit from department, then global.</div>
             </div>
             <div>
                 <label class="text-xs font-semibold text-gray-500 uppercase">Employment Type <span class="text-danger">*</span></label>

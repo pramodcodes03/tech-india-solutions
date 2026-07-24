@@ -42,6 +42,7 @@ class Expense extends Model
     protected $fillable = [
         'business_id', 'expense_code',
         'expense_category_id', 'expense_subcategory_id',
+        'expense_budget_id', 'submitted_by_employee_id',
         'type',
         'title', 'description', 'amount',
         'expense_date', 'due_date', 'paid_date',
@@ -73,6 +74,18 @@ class Expense extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(ExpenseCategory::class, 'expense_category_id');
+    }
+
+    /** The budget this expense was spent against (employee "Utilize Budget"). */
+    public function budget(): BelongsTo
+    {
+        return $this->belongsTo(ExpenseBudget::class, 'expense_budget_id');
+    }
+
+    /** The employee who submitted this expense from their portal. */
+    public function submittedByEmployee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'submitted_by_employee_id');
     }
 
     public function subcategory(): BelongsTo

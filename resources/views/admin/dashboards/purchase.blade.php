@@ -6,7 +6,8 @@
             <h1 class="text-2xl font-extrabold">Purchase & Vendor Dashboard</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400">Procurement spend, vendor performance, receipts & aging.</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+            @include('admin.dashboards._daterange')
             <a href="{{ route('admin.vendors.create') }}" class="btn btn-sm btn-outline-info">+ Vendor</a>
             <a href="{{ route('admin.purchase-orders.create') }}" class="btn btn-sm btn-primary">+ Purchase Order</a>
         </div>
@@ -49,6 +50,25 @@
             <div class="text-xs uppercase opacity-80">Cancelled POs</div>
             <div class="text-3xl font-extrabold mt-1"><span data-count="{{ $kpi['po_cancelled'] }}">0</span></div>
             <div class="text-xs opacity-80 mt-1">Lost orders</div>
+        </div>
+    </div>
+
+    {{-- In-period KPIs (honour the date-range picker) --}}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 dash-animate">
+        <div class="panel">
+            <div class="text-xs uppercase text-gray-500 dark:text-gray-400">POs Raised (Period)</div>
+            <div class="text-2xl font-extrabold mt-1"><span data-count="{{ $kpi['po_raised'] }}">0</span></div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $rangeFrom->format('d M') }} – {{ $rangeTo->format('d M Y') }}</div>
+        </div>
+        <div class="panel">
+            <div class="text-xs uppercase text-gray-500 dark:text-gray-400">PO Spend (Period)</div>
+            <div class="text-2xl font-extrabold mt-1">&#8377;<span data-count="{{ (int) $kpi['po_spend'] }}">0</span></div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Excludes cancelled</div>
+        </div>
+        <div class="panel">
+            <div class="text-xs uppercase text-gray-500 dark:text-gray-400">Goods Received (Period)</div>
+            <div class="text-2xl font-extrabold mt-1"><span data-count="{{ $kpi['goods_received'] }}">0</span></div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">GRNs posted</div>
         </div>
     </div>
 

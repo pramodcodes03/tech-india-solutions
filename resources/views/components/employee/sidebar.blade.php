@@ -3,6 +3,18 @@
     $pendingMyLeaves = $emp ? \App\Models\LeaveRequest::where('employee_id', $emp->id)->where('status','pending')->count() : 0;
     $activeWarnings = $emp ? \App\Models\Warning::where('employee_id', $emp->id)->where('status','active')->count() : 0;
     $pendingPenalties = $emp ? \App\Models\Penalty::where('employee_id', $emp->id)->where('status','pending')->count() : 0;
+
+    // Reporting-manager detection — drives the "Team Leaves" approval menu.
+    // A manager is anyone who has at least one direct report.
+    $isDeptHead = $emp ? \App\Models\Employee::where('reporting_manager_id', $emp->id)->exists() : false;
+    $pendingTeamLeaves = $isDeptHead
+        ? \App\Models\LeaveRequest::whereHas('employee', fn ($q) => $q->where('reporting_manager_id', $emp->id))
+            ->where('status', 'pending')->count()
+        : 0;
+    $pendingTeamCompOff = $isDeptHead
+        ? \App\Models\CompOffRequest::whereHas('employee', fn ($q) => $q->where('reporting_manager_id', $emp->id))
+            ->where('status', 'pending')->count()
+        : 0;
 @endphp
 
 <div :class="{ 'dark text-white-dark': $store.app.semidark }">
@@ -64,6 +76,60 @@
                 </li>
 
                 <li class="menu nav-item">
+                    <a href="{{ route('employee.regularizations.index') }}" class="nav-link group {{ request()->routeIs('employee.regularizations.*') ? 'active' : '' }}">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/></svg>
+                            <span class="ltr:pl-3 text-black dark:text-[#506690]">Attendance Corrections</span>
+                        </div>
+                    </a>
+                </li>
+
+                <li class="menu nav-item">
+                    <a href="{{ route('employee.documents.index') }}" class="nav-link group {{ request()->routeIs('employee.documents.*') ? 'active' : '' }}">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5"/><path opacity="0.5" d="M14 3v5h5" stroke="currentColor" stroke-width="1.5"/></svg>
+                            <span class="ltr:pl-3 text-black dark:text-[#506690]">My Documents</span>
+                        </div>
+                    </a>
+                </li>
+
+                <li class="menu nav-item">
+                    <a href="{{ route('employee.reimbursements.index') }}" class="nav-link group {{ request()->routeIs('employee.reimbursements.*') ? 'active' : '' }}">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                            <span class="ltr:pl-3 text-black dark:text-[#506690]">Reimbursements</span>
+                        </div>
+                    </a>
+                </li>
+
+                <li class="menu nav-item">
+                    <a href="{{ route('employee.budget.index') }}" class="nav-link group {{ request()->routeIs('employee.budget.*') ? 'active' : '' }}">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 10h18M3 10l2-5h14l2 5M3 10v9a2 2 0 002 2h14a2 2 0 002-2v-9" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 14h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                            <span class="ltr:pl-3 text-black dark:text-[#506690]">My Budget</span>
+                        </div>
+                    </a>
+                </li>
+
+                <li class="menu nav-item">
+                    <a href="{{ route('employee.tickets.index') }}" class="nav-link group {{ request()->routeIs('employee.tickets.*') ? 'active' : '' }}">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.5"/></svg>
+                            <span class="ltr:pl-3 text-black dark:text-[#506690]">Helpdesk</span>
+                        </div>
+                    </a>
+                </li>
+
+                <li class="menu nav-item">
+                    <a href="{{ route('employee.referrals.index') }}" class="nav-link group {{ request()->routeIs('employee.referrals.*') ? 'active' : '' }}">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.5"/><path opacity="0.5" d="M3 19c0-2.8 2.7-5 6-5s6 2.2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16 8l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span class="ltr:pl-3 text-black dark:text-[#506690]">My Referrals</span>
+                        </div>
+                    </a>
+                </li>
+
+                <li class="menu nav-item">
                     <a href="{{ route('employee.leaves.index') }}" class="nav-link group {{ request()->routeIs('employee.leaves.*') ? 'active' : '' }}">
                         <div class="flex items-center">
                             <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><rect opacity="0.5" x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 2v4M16 2v4M3 10h18M12 14l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -74,6 +140,34 @@
                         </div>
                     </a>
                 </li>
+
+                {{-- Team Leaves — only for Department Heads (managers) --}}
+                @if($isDeptHead)
+                <li class="menu nav-item">
+                    <a href="{{ route('employee.team-leaves.index') }}" class="nav-link group {{ request()->routeIs('employee.team-leaves.*') ? 'active' : '' }}">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M17 20h5v-1a4 4 0 00-4-4h-1m-6 5H2v-1a4 4 0 014-4h4a4 4 0 014 4v1zm0 0h6m-9-9a3 3 0 100-6 3 3 0 000 6zm9 0a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span class="ltr:pl-3 text-black dark:text-[#506690]">Team Leaves</span>
+                            @if($pendingTeamLeaves > 0)
+                            <span class="ml-auto inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-danger text-white">{{ $pendingTeamLeaves }}</span>
+                            @endif
+                        </div>
+                    </a>
+                </li>
+
+                {{-- Team Comp-Off — reporting-manager approvals --}}
+                <li class="menu nav-item">
+                    <a href="{{ route('employee.team-comp-off.index') }}" class="nav-link group {{ request()->routeIs('employee.team-comp-off.*') ? 'active' : '' }}">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path opacity="0.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span class="ltr:pl-3 text-black dark:text-[#506690]">Team Comp-Off</span>
+                            @if($pendingTeamCompOff > 0)
+                            <span class="ml-auto inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-danger text-white">{{ $pendingTeamCompOff }}</span>
+                            @endif
+                        </div>
+                    </a>
+                </li>
+                @endif
 
                 <li class="menu nav-item">
                     <a href="{{ route('employee.comp-off.index') }}" class="nav-link group {{ request()->routeIs('employee.comp-off.*') ? 'active' : '' }}">

@@ -57,8 +57,13 @@ class RolePermissionSeeder extends Seeder
             'service_tickets' => ['view', 'create', 'edit', 'delete'],
             'reports' => ['view', 'export'],
             'settings' => ['view', 'edit'],
+            'locations' => ['view', 'create', 'edit', 'delete'],
             'expense_categories' => ['view', 'create', 'edit', 'delete'],
             'expenses' => ['view', 'create', 'edit', 'delete', 'mark_paid'],
+            'reimbursements' => ['view', 'review'],
+            'budgets' => ['view', 'manage'],
+            'requisitions' => ['view', 'create', 'approve', 'disburse'],
+            'requisition_categories' => ['view', 'create', 'edit', 'delete'],
 
             // ── HR Module ────────────────────────────────────────────────
             'employees' => ['view', 'create', 'edit', 'delete', 'export'],
@@ -69,16 +74,27 @@ class RolePermissionSeeder extends Seeder
             'attendance' => ['view', 'create', 'edit', 'import'],
             'leaves' => ['view', 'create', 'approve', 'reject'],
             'leave_types' => ['view', 'create', 'edit', 'delete'],
+            'leave_settings' => ['view', 'edit', 'manage'],
             'payroll' => ['view', 'generate', 'approve', 'edit'],
             'salary_structures' => ['view', 'create', 'edit'],
             'warnings' => ['view', 'create', 'edit', 'delete'],
             'penalties' => ['view', 'create', 'edit', 'delete', 'reduce'],
             'feedback' => ['view'],
             'appraisals' => ['view', 'create', 'edit', 'finalize', 'acknowledge'],
+            'recruitment' => ['view', 'create', 'edit', 'delete', 'manage_stages'],
+            'attendance_corrections' => ['view', 'manage'],
+            'employee_documents' => ['view', 'upload', 'verify', 'delete'],
+            'internal_tickets' => ['view', 'manage', 'configure'],
+            'bulk_imports' => ['run'],
+            'salary_templates' => ['view', 'manage'],
+            'payroll_adjustments' => ['view', 'manage'],
+            'statutory' => ['view', 'manage'],
             // Asset Management
             'asset_categories' => ['view', 'create', 'edit', 'delete'],
             'asset_locations' => ['view', 'create', 'edit', 'delete'],
             'asset_models' => ['view', 'create', 'edit', 'delete'],
+            'asset_statuses' => ['view', 'create', 'edit', 'delete'],
+            'asset_maintenance_types' => ['view', 'create', 'edit', 'delete'],
             'assets' => ['view', 'create', 'edit', 'delete', 'assign', 'depreciate', 'maintenance', 'dispose', 'audit'],
         ];
 
@@ -151,6 +167,9 @@ class RolePermissionSeeder extends Seeder
             $this->allActionsFor('payments', $modules),
             $this->allActionsFor('expenses', $modules),
             $this->allActionsFor('expense_categories', $modules),
+            $this->allActionsFor('reimbursements', $modules),
+            $this->allActionsFor('budgets', $modules),
+            $this->allActionsFor('requisitions', $modules),
             ['customers.view'],
             $this->allActionsFor('reports', $modules),
             ['settings.view']
@@ -180,14 +199,26 @@ class RolePermissionSeeder extends Seeder
             $this->allActionsFor('shifts', $modules),
             $this->allActionsFor('holidays', $modules),
             ['attendance.view', 'attendance.create', 'attendance.import'], // no attendance.edit
-            $this->allActionsFor('leaves', $modules),
+            // Leaves are approved by Department Heads in the employee portal.
+            // HR is view-only here (no approve/reject) — they keep full
+            // visibility for records/reporting across all departments.
+            ['leaves.view', 'leaves.create'],
             $this->allActionsFor('leave_types', $modules),
+            $this->allActionsFor('leave_settings', $modules),
             $this->allActionsFor('payroll', $modules),
             $this->allActionsFor('salary_structures', $modules),
             $this->allActionsFor('warnings', $modules),
             $this->allActionsFor('penalties', $modules),
             $this->allActionsFor('feedback', $modules),
             $this->allActionsFor('appraisals', $modules),
+            $this->allActionsFor('recruitment', $modules),
+            $this->allActionsFor('attendance_corrections', $modules),
+            $this->allActionsFor('employee_documents', $modules),
+            $this->allActionsFor('internal_tickets', $modules),
+            $this->allActionsFor('salary_templates', $modules),
+            $this->allActionsFor('payroll_adjustments', $modules),
+            $this->allActionsFor('statutory', $modules),
+            $this->allActionsFor('bulk_imports', $modules),
         );
         $hrRole->syncPermissions($hrPermissions);
 

@@ -54,6 +54,45 @@ class Lead extends Model
         'other'     => 'Other',
     ];
 
+    /**
+     * Lead pipeline statuses in workflow order (value => label). Single source
+     * of truth: the table filter, form selects, the Kanban board, and
+     * validation all derive from this map, so changing the workflow (adding,
+     * renaming or reordering a stage) means editing only this one place.
+     */
+    public const STATUSES = [
+        'new'        => 'New',
+        'attempted'  => 'Attempted',
+        'contacted'  => 'Contacted',
+        'qualified'  => 'Qualified',
+        'evaluation' => 'Evaluation',
+        'won'        => 'Won',
+        'lost'       => 'Lost',
+    ];
+
+    /** Tailwind theme colour for each status badge / Kanban column border. */
+    public const STATUS_COLORS = [
+        'new'        => 'info',
+        'attempted'  => 'dark',
+        'contacted'  => 'warning',
+        'qualified'  => 'primary',
+        'evaluation' => 'secondary',
+        'won'        => 'success',
+        'lost'       => 'danger',
+    ];
+
+    /** Open / active pipeline stages — everything except Won & Lost. */
+    public const OPEN_STATUSES = ['new', 'attempted', 'contacted', 'qualified', 'evaluation'];
+
+    public static function statusLabel(?string $value): string
+    {
+        if (! $value) {
+            return '—';
+        }
+
+        return self::STATUSES[$value] ?? ucwords(str_replace('_', ' ', $value));
+    }
+
     public static function sourceOptions(): array
     {
         return collect(self::SOURCES)
@@ -78,8 +117,15 @@ class Lead extends Model
         'company',
         'phone',
         'email',
+        'city',
+        'state',
+        'bid_number',
+        'ra_emd',
         'source',
+        'product_id',
+        'lead_date',
         'status',
+        'last_stage_changed_at',
         'assigned_to',
         'expected_value',
         'next_follow_up_at',
@@ -94,7 +140,35 @@ class Lead extends Model
         return [
             'expected_value' => 'decimal:2',
             'next_follow_up_at' => 'datetime',
+            'lead_date' => 'date',
+            'last_stage_changed_at' => 'datetime',
         ];
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function stageLogs(): HasMany
+    {
+        return $this->hasMany(LeadStageLog::class)->latest();
+    }
+
+    /** Total age of the lead in days since it was received/created. */
+    public function getAgeInDaysAttribute(): int
+    {
+        $start = $this->lead_date ?? $this->created_at;
+
+        return $start ? (int) $start->diffInDays(now()) : 0;
+    }
+
+    /** Time spent in the current stage, human-readable. */
+    public function getTimeInStageAttribute(): string
+    {
+        $since = $this->last_stage_changed_at ?? $this->created_at;
+
+        return $since ? $since->diffForHumans(null, true) : '—';
     }
 
     public function getActivitylogOptions(): LogOptions

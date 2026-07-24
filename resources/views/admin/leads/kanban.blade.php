@@ -23,17 +23,16 @@
         </div>
 
         @php
-            $statuses = [
-                'new'       => ['label' => 'New',       'color' => 'info',      'border' => 'border-info'],
-                'contacted' => ['label' => 'Contacted', 'color' => 'warning',   'border' => 'border-warning'],
-                'qualified' => ['label' => 'Qualified', 'color' => 'primary',   'border' => 'border-primary'],
-                'proposal'  => ['label' => 'Proposal',  'color' => 'secondary', 'border' => 'border-secondary'],
-                'won'       => ['label' => 'Won',        'color' => 'success',   'border' => 'border-success'],
-                'lost'      => ['label' => 'Lost',       'color' => 'danger',    'border' => 'border-danger'],
-            ];
+            // Built from the single source of truth on the Lead model so the
+            // board columns always match the workflow (order, labels, colours).
+            $statuses = [];
+            foreach (\App\Models\Lead::STATUSES as $key => $label) {
+                $color = \App\Models\Lead::STATUS_COLORS[$key] ?? 'primary';
+                $statuses[$key] = ['label' => $label, 'color' => $color, 'border' => 'border-'.$color];
+            }
         @endphp
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
             @foreach($statuses as $statusKey => $statusConfig)
                 <div class="min-h-[200px]">
                     <div class="flex items-center justify-between mb-3">

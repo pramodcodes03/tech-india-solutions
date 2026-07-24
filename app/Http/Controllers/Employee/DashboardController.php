@@ -67,7 +67,6 @@ class DashboardController extends Controller
             $attendanceTrend[] = [
                 'label'    => $m->format('M Y'),
                 'present'  => (int) ($rows['present'] ?? 0),
-                'late'     => (int) ($rows['late'] ?? 0),
                 'half_day' => (int) ($rows['half_day'] ?? 0),
                 'absent'   => (int) ($rows['absent'] ?? 0),
                 'on_leave' => (int) ($rows['on_leave'] ?? 0),
@@ -77,7 +76,6 @@ class DashboardController extends Controller
         // ── Chart 2: Current month donut ───────────────────────────────
         $currentMonthDonut = [
             'present'  => (int) ($summary['present'] ?? 0),
-            'late'     => (int) ($summary['late'] ?? 0),
             'half_day' => (int) ($summary['half_day'] ?? 0),
             'on_leave' => (int) ($summary['on_leave'] ?? 0),
             'absent'   => (int) ($summary['absent'] ?? 0),

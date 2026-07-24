@@ -53,13 +53,21 @@ class PaymentService
     public function delete(Payment $payment): void
     {
         DB::transaction(function () use ($payment) {
-            $invoice = $payment->invoice;
+            // A payment may have no (or a soft-deleted) invoice — load it without
+            // global scopes so we can still recalc, and guard the null case so
+            // deletion never 500s on an orphaned payment.
+            $invoice = $payment->invoice
+                ?? ($payment->invoice_id
+                    ? \App\Models\Invoice::withoutGlobalScopes()->find($payment->invoice_id)
+                    : null);
 
             $payment->update(['deleted_by' => Auth::guard('admin')->id()]);
             $payment->delete();
 
-            // Recalculate the invoice payment totals after deletion
-            $this->invoiceService->recalculatePayments($invoice);
+            // Recalculate the invoice payment totals after deletion, if linked.
+            if ($invoice) {
+                $this->invoiceService->recalculatePayments($invoice);
+            }
         });
     }
 }

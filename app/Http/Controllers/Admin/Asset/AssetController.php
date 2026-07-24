@@ -24,6 +24,19 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class AssetController extends Controller
 {
+    /** Allowed page sizes for the asset register. */
+    private const PAGE_SIZES = [20, 50, 100, 200];
+
+    /**
+     * Resolve a safe per-page size from the request (defaults to 20).
+     */
+    private function perPage(Request $request): int
+    {
+        $pp = (int) $request->input('per_page', 20);
+
+        return in_array($pp, self::PAGE_SIZES, true) ? $pp : 20;
+    }
+
     public function index(Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('assets.view'), 403);
@@ -40,7 +53,7 @@ class AssetController extends Controller
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->custodian_id, fn ($q, $id) => $q->where('current_custodian_id', $id))
             ->latest()
-            ->paginate(20)
+            ->paginate($this->perPage($request))
             ->withQueryString();
 
         $kpi = [
@@ -61,8 +74,21 @@ class AssetController extends Controller
         $models = AssetModel::orderBy('name')->get();
         $locations = AssetLocation::orderBy('name')->get();
         $employees = Employee::whereIn('status', ['active', 'probation'])->orderBy('first_name')->get();
+        // Filter dropdown surfaces every configured status — including
+        // disabled ones — so admins can still find legacy assets tagged
+        // with a status they've since retired.
+        $assetStatuses = \App\Models\AssetStatus::orderBy('sort_order')->orderBy('label')->get();
 
-        return view('admin.assets.assets.index', compact('assets', 'kpi', 'categories', 'models', 'locations', 'employees'));
+        // Live count for EVERY status so admins can see all assets accounted for
+        // at a glance (not just the headline Assigned / Maintenance / Lost cards).
+        $statusCounts = Asset::selectRaw('status, count(*) as c')
+            ->groupBy('status')
+            ->pluck('c', 'status');
+
+        $pageSizes = self::PAGE_SIZES;
+        $perPage = $this->perPage($request);
+
+        return view('admin.assets.assets.index', compact('assets', 'kpi', 'categories', 'models', 'locations', 'employees', 'assetStatuses', 'statusCounts', 'pageSizes', 'perPage'));
     }
 
     public function export(Request $request)
@@ -125,7 +151,8 @@ class AssetController extends Controller
 
         $result = $service->import($request->file('file'), $business->id);
 
-        $msg = "Imported {$result['imported']} assets";
+        $updated = $result['updated'] ?? 0;
+        $msg = "Imported {$result['imported']} new asset(s), updated {$updated} existing";
         if ($result['failed'] > 0) {
             $msg .= ", skipped {$result['failed']} row(s) — see details below.";
         } else {
@@ -385,6 +412,11 @@ class AssetController extends Controller
             'vendors'    => Vendor::where('status', 'active')->orderBy('name')->get(),
             'purchaseOrders' => PurchaseOrder::with('vendor')->latest('po_date')->limit(200)->get(),
             'autofill'   => $autofill,
+            // Status dropdown is admin-configurable — see asset_statuses
+            // table. Only active rows are surfaced so disabling a status
+            // hides it from create/edit without losing historical assets
+            // that still reference its slug.
+            'assetStatuses' => \App\Models\AssetStatus::where('is_active', true)->orderBy('sort_order')->orderBy('label')->get(),
         ];
     }
 
@@ -420,7 +452,11 @@ class AssetController extends Controller
             'depreciation_method' => ['required', 'in:straight_line,declining_balance,sum_of_years_digits,units_of_production,none'],
             'useful_life_years' => ['required', 'integer', 'min:0', 'max:60'],
             'depreciation_start_date' => ['nullable', 'date'],
-            'status' => ['required', 'in:draft,in_storage,assigned,in_maintenance,retired,disposed'],
+            // Validate against the active configured statuses for this
+            // business. Inactive / soft-deleted statuses are rejected so
+            // disabling an option in the admin panel actually blocks new
+            // assets from being saved with it.
+            'status' => ['required', 'string', 'exists:asset_statuses,key'],
             'condition_rating' => ['required', 'in:excellent,good,fair,poor,damaged'],
             'notes' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'max:4096'],

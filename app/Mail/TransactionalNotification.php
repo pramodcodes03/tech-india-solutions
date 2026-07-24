@@ -66,10 +66,31 @@ class TransactionalNotification extends BaseBusinessMailable implements ShouldQu
 
     public function content(): Content
     {
+        // The queue worker has no CurrentBusiness context, so every tenant-
+        // scoped relation a template reads (employee, leave type, customer…)
+        // fail-closes to null. Hydrate it from the mail's own business so the
+        // relations resolve normally during render.
+        if ($this->business) {
+            app(\App\Support\Tenancy\CurrentBusiness::class)->setWithoutSession($this->business);
+        }
+
+        // Reload the entity WITH its relations into the public $entity property.
+        // Critical: Laravel's buildViewData() lets a mailable's public
+        // properties OVERRIDE the Content `with` data — so passing the reloaded
+        // entity only via `with` is ignored, and the template receives the raw
+        // (relation-less, post-serialization) $this->entity instead. Mutating
+        // the public property here is what actually reaches the template.
+        $this->entity = $this->reloadEntityForBody($this->entity);
+
         // Convert event key to view name: invoice.created → emails.events.invoice_created
         // Fall back to the shared _generic template if the specific one isn't authored yet.
         $specific = 'emails.events.'.str_replace('.', '_', $this->eventKey);
         $viewName = view()->exists($specific) ? $specific : 'emails.events._generic';
+
+        // Net amount (after discount + tax) for document emails — computed the
+        // same way as the PDF so the email body never shows the raw subtotal.
+        $totals = $this->computePdfTotals($this->entity);
+        $documentTotal = $totals['pdfGrandTotal'] ?? ($this->entity->grand_total ?? null);
 
         return new Content(
             view: $viewName,
@@ -80,8 +101,56 @@ class TransactionalNotification extends BaseBusinessMailable implements ShouldQu
                 'recipientName' => $this->recipientName,
                 'eventKey' => $this->eventKey,
                 'subject' => $this->subjectLine,
+                'documentTotal' => $documentTotal,
             ],
         );
+    }
+
+    /**
+     * Reload an entity (bypassing tenant global scopes) with the relations its
+     * email BODY references. The queue worker has no CurrentBusiness context,
+     * so the BelongsToBusiness scope fail-closes and blanks any related model
+     * (employee, leave type, etc.). Classes not listed are returned untouched
+     * so existing relation-free templates keep working.
+     */
+    protected function reloadEntityForBody(?Model $entity): ?Model
+    {
+        if (! $entity || ! method_exists($entity, 'getKey')) {
+            return $entity;
+        }
+
+        $relationsByClass = [
+            \App\Models\LeaveRequest::class       => ['employee', 'leaveType', 'business'],
+            \App\Models\CompOffRequest::class     => ['employee', 'business'],
+            \App\Models\ExpenseBudget::class      => ['employee', 'category', 'business'],
+            \App\Models\DepartmentFeedback::class => ['department', 'employee', 'business'],
+            // Sales / purchase documents — the email body shows the
+            // vendor/customer name, which the tenant scope blanks in the queue.
+            \App\Models\PurchaseOrder::class      => ['vendor', 'items', 'business'],
+            \App\Models\Quotation::class          => ['customer', 'items', 'business'],
+            \App\Models\ProformaInvoice::class    => ['customer', 'items', 'business'],
+            \App\Models\Invoice::class            => ['customer', 'items', 'business'],
+        ];
+
+        $class = get_class($entity);
+        if (! array_key_exists($class, $relationsByClass)) {
+            return $entity;
+        }
+
+        // Strip global (tenant) scopes from each eager-loaded relation too —
+        // withoutGlobalScopes() on the parent doesn't propagate to relations.
+        $with = [];
+        foreach ($relationsByClass[$class] as $relation) {
+            $with[$relation] = fn ($q) => $q->withoutGlobalScopes();
+        }
+
+        try {
+            return $class::withoutGlobalScopes()
+                ->with($with)
+                ->find($entity->getKey()) ?: $entity;
+        } catch (Throwable) {
+            return $entity;
+        }
     }
 
     public function attachments(): array
@@ -93,6 +162,14 @@ class TransactionalNotification extends BaseBusinessMailable implements ShouldQu
 
         $viewName = $event['pdf']['view'];
         $fileNameTemplate = $event['pdf']['name'];
+
+        // The queue worker has no CurrentBusiness, so the tenant scope blanks
+        // every eager-loaded relation (customer, line items, payments) and the
+        // PDF renders empty. Hydrate the business context from the mail's own
+        // business BEFORE reloading so the relations resolve.
+        if ($this->business) {
+            app(\App\Support\Tenancy\CurrentBusiness::class)->setWithoutSession($this->business);
+        }
 
         try {
             // 1. Reload the entity with ALL relations the PDF template uses.

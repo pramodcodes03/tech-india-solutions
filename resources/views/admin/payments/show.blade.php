@@ -38,8 +38,8 @@
                     <span class="badge bg-primary">{{ ucfirst(str_replace('_', ' ', $payment->mode)) }}</span>
                 </div>
                 <div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Reference Number</p>
-                    <p class="font-semibold">{{ $payment->reference_number ?? '-' }}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Reference / UTR No</p>
+                    <p class="font-semibold">{{ $payment->reference_no ?? '-' }}</p>
                 </div>
                 @if($payment->notes)
                     <div>

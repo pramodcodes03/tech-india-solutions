@@ -56,16 +56,9 @@
                     <label class="text-sm font-semibold text-gray-500 dark:text-gray-400">Status</label>
                     <p>
                         @php
-                            $statusColors = [
-                                'new' => 'bg-info',
-                                'contacted' => 'bg-warning',
-                                'qualified' => 'bg-primary',
-                                'proposal' => 'bg-secondary',
-                                'won' => 'bg-success',
-                                'lost' => 'bg-danger',
-                            ];
+                            $statusColor = 'bg-'.(\App\Models\Lead::STATUS_COLORS[$lead->status] ?? 'primary');
                         @endphp
-                        <span class="badge {{ $statusColors[$lead->status] ?? 'bg-primary' }}">{{ ucfirst($lead->status) }}</span>
+                        <span class="badge {{ $statusColor }}">{{ \App\Models\Lead::statusLabel($lead->status) }}</span>
                     </p>
                 </div>
                 <div>
@@ -79,6 +72,22 @@
                 <div>
                     <label class="text-sm font-semibold text-gray-500 dark:text-gray-400">Next Follow-up</label>
                     <p class="text-base dark:text-white-light">{{ $lead->next_follow_up_at ? \Carbon\Carbon::parse($lead->next_follow_up_at)->format('d M Y') : '-' }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400">Product</label>
+                    <p class="text-base dark:text-white-light">{{ $lead->product?->name ?? '-' }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400">Lead Date</label>
+                    <p class="text-base dark:text-white-light">{{ $lead->lead_date ? $lead->lead_date->format('d M Y') : '-' }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400">Lead Age</label>
+                    <p class="text-base dark:text-white-light">{{ $lead->age_in_days }} days</p>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400">Time in Current Stage</label>
+                    <p class="text-base dark:text-white-light">{{ $lead->time_in_stage }}</p>
                 </div>
                 <div>
                     <label class="text-sm font-semibold text-gray-500 dark:text-gray-400">Created At</label>
@@ -96,6 +105,51 @@
                 </div>
             @endif
         </div>
+
+        {{-- Stage update + history --}}
+        @can('leads.edit')
+        <div class="panel mb-5">
+            <h6 class="text-base font-semibold mb-4 dark:text-white-light">Update Stage</h6>
+            <form method="POST" action="{{ route('admin.leads.update-status', $lead->id) }}" class="flex flex-wrap gap-3 items-end">
+                @csrf @method('PATCH')
+                <div>
+                    <label class="text-xs text-gray-500">Move to</label>
+                    <select name="status" class="form-select">
+                        @foreach(\App\Models\Lead::STATUSES as $v=>$l)
+                            <option value="{{ $v }}" {{ $lead->status===$v ? 'selected' : '' }}>{{ $l }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <label class="text-xs text-gray-500">Remark (assigned employee)</label>
+                    <input type="text" name="remarks" class="form-input" placeholder="Stage remark / update…">
+                </div>
+                <button class="btn btn-primary">Update</button>
+            </form>
+        </div>
+        @endcan
+
+        @if($lead->stageLogs && $lead->stageLogs->count())
+        <div class="panel mb-5">
+            <h6 class="text-base font-semibold mb-4 dark:text-white-light">Stage History &amp; Time Tracking</h6>
+            <div class="overflow-x-auto">
+                <table class="table table-striped w-full">
+                    <thead><tr><th>When</th><th>Transition</th><th>Time in prev. stage</th><th>Remark</th><th>By</th></tr></thead>
+                    <tbody>
+                        @foreach($lead->stageLogs as $log)
+                            <tr>
+                                <td class="text-sm">{{ $log->created_at->format('d M Y H:i') }}</td>
+                                <td class="text-sm">{{ $log->from_status ? ucfirst($log->from_status).' → ' : '' }}<span class="font-semibold">{{ ucfirst($log->to_status) }}</span></td>
+                                <td class="text-sm">{{ $log->duration_human }}</td>
+                                <td class="text-sm">{{ $log->remarks ?? '—' }}</td>
+                                <td class="text-sm">{{ $log->changedBy?->name ?? 'System' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
 
         {{-- Activity Timeline --}}
         <div class="panel">

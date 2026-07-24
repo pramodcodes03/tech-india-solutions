@@ -17,6 +17,15 @@ class StoreEmployeeRequest extends FormRequest
         if ($this->boolean('whatsapp_same_as_mobile')) {
             $this->merge(['whatsapp_number' => $this->input('phone')]);
         }
+
+        // Blank = inherit (null), not "0 days required". Guard against the integer
+        // cast turning an empty string into 0.
+        if ($this->input('el_working_days_required') === '') {
+            $this->merge(['el_working_days_required' => null]);
+        }
+        if ($this->input('cl_sl_working_days') === '') {
+            $this->merge(['cl_sl_working_days' => null]);
+        }
     }
 
     public function rules(): array
@@ -24,13 +33,18 @@ class StoreEmployeeRequest extends FormRequest
         return [
             // Optional on create. If left blank, EmployeeService auto-generates.
             // If provided, must be globally unique across all businesses.
+            // Uniqueness ignores soft-deleted rows: a code/email/id freed up by a
+            // deleted employee can be reused — EmployeeService purges the trashed
+            // row before inserting so the DB-level unique key never collides.
             'employee_code' => [
                 'nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9\-_]+$/',
-                Rule::unique('employees', 'employee_code'),
+                Rule::unique('employees', 'employee_code')->whereNull('deleted_at'),
             ],
+            // Optional legacy/old employee ID — unique when provided.
+            'legacy_employee_id' => ['nullable', 'string', 'max:50', Rule::unique('employees', 'legacy_employee_id')->whereNull('deleted_at')],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
-            'email' => ['required', 'email', Rule::unique('employees', 'email')],
+            'email' => ['required', 'email', Rule::unique('employees', 'email')->whereNull('deleted_at')],
             'personal_email' => ['nullable', 'email', 'max:191'],
             'password' => ['nullable', 'string', 'min:6'],
             'phone' => ['nullable', 'string', 'max:20'],
@@ -54,6 +68,8 @@ class StoreEmployeeRequest extends FormRequest
             'reporting_manager_id' => ['nullable', 'exists:employees,id'],
             'joining_date' => ['required', 'date'],
             'probation_end_date' => ['nullable', 'date', 'after_or_equal:joining_date'],
+            'el_working_days_required' => ['nullable', 'integer', 'min:0', 'max:1000'],
+            'cl_sl_working_days' => ['nullable', 'integer', 'min:0', 'max:1000'],
             'confirmation_date' => ['nullable', 'date', 'after_or_equal:joining_date'],
             'employment_type' => ['required', Rule::in(['full_time', 'part_time', 'contract', 'intern'])],
             'work_mode' => ['required', Rule::in(['on_site', 'remote', 'hybrid'])],

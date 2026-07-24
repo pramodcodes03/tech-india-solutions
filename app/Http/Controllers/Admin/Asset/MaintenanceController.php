@@ -28,7 +28,12 @@ class MaintenanceController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('admin.assets.maintenance.index', compact('logs'));
+        // Filter dropdown — admin-configurable lookup. Include disabled
+        // rows so historical logs filed under a since-deactivated type
+        // can still be filtered for.
+        $maintenanceTypes = \App\Models\AssetMaintenanceType::orderBy('sort_order')->orderBy('label')->get();
+
+        return view('admin.assets.maintenance.index', compact('logs', 'maintenanceTypes'));
     }
 
     public function export(Request $request)
@@ -64,6 +69,7 @@ class MaintenanceController extends Controller
             'asset'      => $assetId ? Asset::find($assetId) : null,
             'assets'     => Asset::whereNotIn('status', ['disposed'])->orderBy('asset_code')->get(),
             'employees'  => Employee::whereIn('status', ['active', 'probation'])->orderBy('first_name')->get(),
+            'maintenanceTypes' => \App\Models\AssetMaintenanceType::where('is_active', true)->orderBy('sort_order')->orderBy('label')->get(),
         ]);
     }
 
@@ -117,6 +123,7 @@ class MaintenanceController extends Controller
             'log' => $maintenance,
             'assets' => Asset::orderBy('asset_code')->get(),
             'employees' => Employee::whereIn('status', ['active', 'probation'])->orderBy('first_name')->get(),
+            'maintenanceTypes' => \App\Models\AssetMaintenanceType::where('is_active', true)->orderBy('sort_order')->orderBy('label')->get(),
         ]);
     }
 
@@ -154,7 +161,17 @@ class MaintenanceController extends Controller
 
     protected function generateCode(string $type): string
     {
-        $prefix = $type === 'preventive' ? 'PM' : ($type === 'audit' ? 'AU' : 'CM');
+        // Preserve the original prefix mapping for the seeded defaults so
+        // existing log_code series don't gap; everything else falls back
+        // to a generic "ML" prefix. Custom types added by clients use ML
+        // (Maintenance Log).
+        $prefix = match ($type) {
+            'preventive'           => 'PM',
+            'audit'                => 'AU',
+            'corrective', 'repair' => 'CM',
+            'inspection'           => 'IN',
+            default                => 'ML',
+        };
 
         return $prefix.'-'.now()->format('y').'-'.str_pad((string) (AssetMaintenanceLog::count() + 1), 5, '0', STR_PAD_LEFT);
     }
@@ -163,7 +180,10 @@ class MaintenanceController extends Controller
     {
         return $request->validate([
             'asset_id' => ['required', 'exists:assets,id'],
-            'type' => ['required', 'in:corrective,preventive,inspection,audit'],
+            // Validate against the active configured maintenance types
+            // for this business. See asset_maintenance_types — the admin
+            // panel lets clients add their own types and disable defaults.
+            'type' => ['required', 'string', 'exists:asset_maintenance_types,key'],
             'scheduled_date' => ['nullable', 'date'],
             'performed_date' => ['nullable', 'date'],
             'performed_by' => ['nullable', 'string', 'max:120'],

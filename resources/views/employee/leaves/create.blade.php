@@ -18,10 +18,23 @@
                 'color' => $t->color,
             ];
         }
+        // Working-days eligibility map for JS: whether each type is unlocked and,
+        // if not, why + when it unlocks.
+        $eligMap = [];
+        foreach ($types as $t) {
+            $e = $leaveEligibility[$t->id] ?? null;
+            $eligMap[$t->id] = [
+                'eligible' => $e['eligible'] ?? true,
+                'required' => $e['required'] ?? 0,
+                'completed' => $e['completed'] ?? 0,
+                'remaining' => $e['remaining'] ?? 0,
+                'reason' => $e['reason'] ?? null,
+            ];
+        }
     @endphp
 
     <form method="POST" action="{{ route('employee.leaves.store') }}"
-          x-data="leaveForm({{ \Illuminate\Support\Js::from($balanceMap) }})"
+          x-data="leaveForm({{ \Illuminate\Support\Js::from($balanceMap) }}, {{ \Illuminate\Support\Js::from($weekOffDays) }}, {{ \Illuminate\Support\Js::from($holidayDates) }}, {{ \Illuminate\Support\Js::from($eligMap) }})"
           class="grid grid-cols-12 gap-4">
         @csrf
 
@@ -31,14 +44,32 @@
                 <select name="leave_type_id" x-model.number="type" required class="form-select mt-1">
                     <option value="">-- Select --</option>
                     @foreach($types as $t)
-                        @php $bal = $balances->get($t->id); $avail = $bal ? $bal->allocated + $bal->carried_forward - $bal->used - $bal->pending : 0; @endphp
-                        @if($t->is_paid)
-                            <option value="{{ $t->id }}">{{ $t->name }} ({{ $t->code }}) — {{ number_format($avail, 1) }} days available</option>
-                        @else
-                            <option value="{{ $t->id }}">{{ $t->name }} ({{ $t->code }}) — Unpaid / no balance required</option>
-                        @endif
+                        @php
+                            $bal = $balances->get($t->id);
+                            $avail = $bal ? $bal->allocated + $bal->carried_forward - $bal->used - $bal->pending : 0;
+                            $elig = $leaveEligibility[$t->id] ?? ['eligible' => true, 'remaining' => 0];
+                            $lock = ($t->is_paid && ! ($elig['eligible'] ?? true)) ? '🔒 ' : '';
+                            $suffix = ($t->is_paid && ! ($elig['eligible'] ?? true))
+                                ? ' — locked ('.$elig['remaining'].' more working days)'
+                                : ($t->is_paid ? ' — '.number_format($avail, 1).' days available' : ' — Unpaid / no balance required');
+                        @endphp
+                        <option value="{{ $t->id }}">{{ $lock }}{{ $t->name }} ({{ $t->code }}){{ $suffix }}</option>
                     @endforeach
                 </select>
+
+                {{-- Live eligibility notice for the chosen leave type --}}
+                <template x-if="type && elig[type] && !elig[type].eligible">
+                    <div class="mt-2 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+                        <span class="font-semibold">🔒 Not yet available:</span>
+                        <span x-text="elig[type].reason"></span>
+                    </div>
+                </template>
+                <template x-if="type && elig[type] && elig[type].eligible && elig[type].required > 0">
+                    <div class="mt-2 rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-700 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
+                        <span class="font-semibold">✓ Available.</span>
+                        <span x-text="'You have completed ' + elig[type].completed + ' working days (' + elig[type].required + ' required).'"></span>
+                    </div>
+                </template>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -52,16 +83,18 @@
                 </div>
             </div>
 
-            <div>
+            <div x-effect="if (!isSingleDay && portion !== 'full') portion = 'full'">
                 <label class="text-xs font-semibold text-gray-500 uppercase">Day Portion *</label>
                 <div class="flex gap-2 mt-1">
                     @foreach(['full' => 'Full Day', 'first_half' => 'First Half', 'second_half' => 'Second Half'] as $k => $v)
-                        <label class="flex-1 cursor-pointer">
+                        {{-- Half-day options only make sense for a single date. --}}
+                        <label class="flex-1 cursor-pointer" @if($k !== 'full') x-show="isSingleDay" x-cloak @endif>
                             <input type="radio" name="day_portion" value="{{ $k }}" x-model="portion" class="sr-only" />
                             <div class="py-2 px-3 border rounded-lg text-center text-sm" :class="portion === '{{ $k }}' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-gray-300 dark:border-gray-600'">{{ $v }}</div>
                         </label>
                     @endforeach
                 </div>
+                <p class="text-[11px] text-gray-400 mt-1" x-show="!isSingleDay" x-cloak>Half-day applies to single-day leave only.</p>
             </div>
 
             {{-- ─── Live preview box ───────────────────────────────── --}}
@@ -134,7 +167,11 @@
             </div>
 
             <div class="flex gap-3 pt-2">
-                <button type="submit" class="btn btn-primary">Submit Request</button>
+                <button type="submit" class="btn btn-primary"
+                        :disabled="type && elig[type] && !elig[type].eligible"
+                        :class="(type && elig[type] && !elig[type].eligible) ? 'opacity-50 cursor-not-allowed' : ''">
+                    Submit Request
+                </button>
                 <a href="{{ route('employee.leaves.index') }}" class="btn btn-outline-secondary">Cancel</a>
             </div>
         </div>
@@ -160,8 +197,11 @@
     @push('scripts')
     <script>
         document.addEventListener('alpine:init', () => {
-            Alpine.data('leaveForm', (balanceMap) => ({
+            Alpine.data('leaveForm', (balanceMap, weekOffDays = [], holidayDates = [], elig = {}) => ({
                 balanceMap,
+                elig,                              // leave_type_id → eligibility {eligible, required, completed, remaining, reason}
+                weekOffDays,                       // [0..6] week-off weekdays
+                holidayDates: new Set(holidayDates), // 'YYYY-MM-DD' public holidays
                 type: {{ old('leave_type_id') ? (int) old('leave_type_id') : 'null' }},
                 from: '{{ old('from_date') }}',
                 to: '{{ old('to_date') }}',
@@ -170,13 +210,32 @@
                 get selected() {
                     return this.type ? this.balanceMap[this.type] : null;
                 },
+                // Half-day portions are only offered when both dates are the same day.
+                get isSingleDay() {
+                    return !!this.from && !!this.to && this.from === this.to;
+                },
+                // True when a date is a week-off or public holiday → not a leave day.
+                isNonWorking(d) {
+                    const iso = d.toISOString().slice(0, 10);
+                    return this.weekOffDays.includes(d.getDay()) || this.holidayDates.has(iso);
+                },
                 get days() {
                     if (!this.from || !this.to) return 0;
                     const f = new Date(this.from), t = new Date(this.to);
                     if (isNaN(f) || isNaN(t) || t < f) return 0;
-                    const diffDays = Math.round((t - f) / 86400000) + 1;
-                    if (diffDays === 1 && this.portion !== 'full') return 0.5;
-                    return diffDays;
+
+                    // Single date: 0 if it's a week-off/holiday, else half or full.
+                    if (f.getTime() === t.getTime()) {
+                        if (this.isNonWorking(f)) return 0;
+                        return this.portion !== 'full' ? 0.5 : 1;
+                    }
+
+                    // Multi-day: count working days only (skip week-offs/holidays).
+                    let count = 0;
+                    for (let d = new Date(f); d <= t; d.setDate(d.getDate() + 1)) {
+                        if (!this.isNonWorking(d)) count++;
+                    }
+                    return count;
                 },
                 get overBy() {
                     if (!this.selected || !this.selected.is_paid) return 0;

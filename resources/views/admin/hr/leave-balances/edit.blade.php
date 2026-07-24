@@ -30,7 +30,7 @@
 
         <div class="overflow-x-auto">
             <table class="table-striped w-full">
-                <thead><tr><th>Leave Type</th><th>Allocated</th><th>Carried Fwd</th><th>Used</th><th>Pending</th><th>Available</th></tr></thead>
+                <thead><tr><th>Leave Type</th><th>Allocated</th><th>Carried Fwd</th><th>Monthly Accrual</th><th>Used</th><th>Pending</th><th>Available</th></tr></thead>
                 <tbody>
                 @foreach($types as $t)
                     @php
@@ -48,6 +48,10 @@
                         </td>
                         <td style="min-width: 110px">
                             <input type="number" step="0.5" min="0" name="balances[{{ $t->id }}][carried_forward]" value="{{ old('balances.'.$t->id.'.carried_forward', $b?->carried_forward ?? 0) }}" class="form-input" />
+                        </td>
+                        <td style="min-width: 120px">
+                            <input type="number" step="0.5" min="0" max="31" name="balances[{{ $t->id }}][accrual_rate]" value="{{ old('balances.'.$t->id.'.accrual_rate', $b?->accrual_rate) }}" class="form-input" placeholder="{{ number_format($t->accrual_rate ?? 0, 1) }} (default)" />
+                            <div class="text-[10px] text-gray-400">Blank = default {{ number_format($t->accrual_rate ?? 0, 1) }}/mo</div>
                         </td>
                         <td>{{ number_format($b?->used ?? 0, 1) }}</td>
                         <td>{{ number_format($b?->pending ?? 0, 1) }}</td>

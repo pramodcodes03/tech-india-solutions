@@ -17,7 +17,7 @@ class LeaveController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('leaves.view'), 403);
 
-        $requests = LeaveRequest::with(['employee.department', 'leaveType', 'approver'])
+        $requests = LeaveRequest::with(['employee.department', 'leaveType', 'approver', 'approverEmployee'])
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->leave_type_id, fn ($q, $id) => $q->where('leave_type_id', $id))
             ->when($request->search, fn ($q, $s) => $q->whereHas('employee', fn ($e) => $e->where(function ($q) use ($s) {
@@ -43,7 +43,7 @@ class LeaveController extends Controller
     public function show(LeaveRequest $leaveRequest)
     {
         abort_unless(Auth::guard('admin')->user()->can('leaves.view'), 403);
-        $leaveRequest->load(['employee.department', 'employee.designation', 'leaveType', 'approver']);
+        $leaveRequest->load(['employee.department', 'employee.designation', 'leaveType', 'approver', 'approverEmployee']);
 
         return view('admin.hr.leaves.show', ['request' => $leaveRequest]);
     }

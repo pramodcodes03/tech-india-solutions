@@ -49,7 +49,7 @@
                 <div>
                     <div class="text-xs text-gray-500">Approver Remarks</div>
                     <div class="p-3 rounded bg-primary/5 border border-primary/20 mt-1 whitespace-pre-wrap">{{ $request->approver_remarks }}</div>
-                    <div class="text-[11px] text-gray-400 mt-1">By {{ $request->approver?->name }} · {{ $request->actioned_at?->format('d M Y, g:i A') }}</div>
+                    <div class="text-[11px] text-gray-400 mt-1">By {{ $request->approver_name ?? '—' }} · {{ $request->actioned_at?->format('d M Y, g:i A') }}</div>
                 </div>
             @endif
         </div>

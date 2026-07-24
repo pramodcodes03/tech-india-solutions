@@ -98,6 +98,16 @@ class AttendanceService
             }
         }
 
+        // Configurable break policy: a worked day whose break exceeds the
+        // threshold becomes a half-day, which flows into payroll as 0.5-day
+        // loss of pay through the existing paid-days proration.
+        if ($data['status'] === 'present' && ! empty($data['break_minutes'])) {
+            $threshold = \App\Support\HrSettings::int('break_half_day_minutes', 60);
+            if ($threshold > 0 && (int) $data['break_minutes'] > $threshold) {
+                $data['status'] = 'half_day';
+            }
+        }
+
         return Attendance::withoutGlobalScopes()->updateOrCreate(
             ['employee_id' => $data['employee_id'], 'date' => $data['date']],
             $data
@@ -587,7 +597,8 @@ class AttendanceService
             if ($rec) {
                 $resolved = match ($rec->status) {
                     'weekend' => 'week_off',
-                    'present', 'late', 'half_day', 'on_leave',
+                    'late' => 'present', // 'Late' removed — treat as a full present day
+                    'present', 'half_day', 'on_leave',
                     'absent', 'holiday', 'week_off' => $rec->status,
                     // Any other recorded status (e.g. imported variant) means
                     // the employee did interact with attendance — treat as present.
@@ -659,7 +670,7 @@ class AttendanceService
         $statuses = $this->monthlyDayStatuses($employeeId, $month, $year);
 
         $tally = [
-            'present' => 0, 'late' => 0, 'half_day' => 0, 'on_leave' => 0,
+            'present' => 0, 'half_day' => 0, 'on_leave' => 0,
             'absent' => 0, 'holiday' => 0, 'week_off' => 0, 'comp_off' => 0,
             'future' => 0,
         ];
@@ -677,13 +688,13 @@ class AttendanceService
             }
         }
 
-        // A 'late' day is still a paid attended day — surface it as both a
-        // distinct count (so the "Late" widget shows it) and as part of present.
-        $presentTotal = $tally['present'] + $tally['late'];
+        // 'Late' has been removed — a day is either a full present day or a
+        // half-day. (Any legacy late record is mapped to present upstream.)
+        $presentTotal = $tally['present'];
 
         // Working days = days the employee was expected at work (past, non-holiday,
         // non-week-off, non-comp-off). Future days are excluded by construction.
-        $workingDays = $tally['present'] + $tally['late'] + $tally['half_day']
+        $workingDays = $tally['present'] + $tally['half_day']
                      + $tally['on_leave'] + $tally['absent'];
 
         [$paidLeave, $unpaidLeave] = $this->splitLeaveDaysInMonth($employeeId, $start, $end);
@@ -698,7 +709,7 @@ class AttendanceService
         return [
             'present'           => $presentTotal,
             'absent'            => $tally['absent'],
-            'late'              => $tally['late'],
+            'late'              => 0, // 'Late' status removed; kept as 0 for backward-compat
             'half_day'          => $tally['half_day'],
             'on_leave'          => $tally['on_leave'],
             'holidays'          => $tally['holiday'],
@@ -772,19 +783,28 @@ class AttendanceService
         }
     }
 
+    /** Fallback worked hours for a full Present day when nothing is configured. */
+    private const FULL_DAY_HOURS = 9.0;
+
+    /** Fallback worked hours for a Half day (4 hrs 30 min). */
+    private const HALF_DAY_HOURS = 4.5;
+
     /**
      * Derive an attendance status from punch times.
      *
      * Rules:
-     *   - no check-in              → absent
-     *   - check-in, no check-out   → present (mid-day; biometric will recompute on punch-out)
-     *   - completed day, ≥ 8 hrs   → present
-     *   - completed day, < 8 hrs   → half_day  (anything short of a full day)
+     *   - no check-in                          → absent
+     *   - check-in, no check-out               → absent (employee files a correction)
+     *   - completed day, ≥ full-day hours      → present
+     *   - completed day, ≥ half-day & < full   → half_day
+     *   - completed day, < half-day hours      → absent
      *
-     * The previous "≥ 4 hrs → half_day, else → present" was wrong on two
-     * fronts: a 3-hour day silently became "present" (the < 4 hrs fallback),
-     * and a 7h 59m day was demoted to half_day. The new rule treats any
-     * completed under-8-hour day as half_day uniformly.
+     * Both thresholds come from HR Settings and are per-business (defaults 9h
+     * and 4h30m), so a 9-hour and an 8-hour shift can coexist across businesses.
+     *
+     * The boundaries are strict: with a 9h full day, an 8h59m day is a Half day
+     * and exactly 9h is Present. This stops a few minutes of logged time from
+     * being credited as a full day.
      */
     private function deriveStatus(array $data): string
     {
@@ -792,15 +812,28 @@ class AttendanceService
             return 'absent';
         }
 
-        // Mid-day: punched in but not out yet. The biometric sync (or a later
-        // manual edit) will recompute this once a check-out arrives.
+        // Missed punch-out: a check-in with no check-out can't be credited as a
+        // worked day, so it's marked Absent — the employee then files an
+        // attendance correction to fix it. (If a check-out arrives later, the
+        // biometric sync / a manual edit recomputes this from the real hours.)
         if (empty($data['check_out'])) {
-            return 'present';
+            return 'absent';
         }
 
         $hours = $this->calcHours($data['check_in'], $data['check_out']);
 
-        return $hours >= 8 ? 'present' : 'half_day';
+        $businessId = (int) ($data['business_id'] ?? 0) ?: null;
+        $fullDay = \App\Support\HrSettings::floatForBusiness('full_day_hours', $businessId, self::FULL_DAY_HOURS);
+        $halfDay = \App\Support\HrSettings::floatForBusiness('half_day_hours', $businessId, self::HALF_DAY_HOURS);
+
+        if ($hours >= $fullDay) {
+            return 'present';
+        }
+        if ($hours >= $halfDay) {
+            return 'half_day';
+        }
+
+        return 'absent';
     }
 
     private function normalizeHeader(string $h): string

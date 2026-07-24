@@ -3,6 +3,14 @@
     $sidebarOpenTickets = \App\Models\ServiceTicket::whereNotIn('status', ['closed', 'resolved'])->count();
 @endphp
 
+<style>
+    /* Highlight the link(s) matched by the sidebar search box. */
+    .sidebar a.search-match {
+        background-color: rgba(67, 97, 238, 0.12);
+        color: #4361ee !important;
+        border-radius: 6px;
+    }
+</style>
 <div :class="{ 'dark text-white-dark': $store.app.semidark }">
     <nav x-data="sidebar"
         class="sidebar fixed min-h-screen h-full top-0 bottom-0 shadow-[5px_0_25px_0_rgba(94,92,154,0.1)] z-50 transition-all duration-300"
@@ -186,9 +194,9 @@
                 </li>
                 @endcan
 
-                {{-- Locations (States & Cities) — gated on settings.view since
-                     they're configuration data referenced by user / customer forms. --}}
-                @can('settings.view')
+                {{-- Locations (States & Cities) — gated on the dedicated
+                     locations.view permission so it can be granted per-role. --}}
+                @can('locations.view')
                 <li class="menu nav-item">
                     <button type="button" class="nav-link group w-full"
                         :class="{ 'active': activeDropdown === 'locations' }"
@@ -207,8 +215,8 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'locations'" class="sub-menu text-gray-500">
-                        @can('settings.view')<li><a href="{{ route('admin.states.index') }}">States</a></li>@endcan
-                        @can('settings.view')<li><a href="{{ route('admin.cities.index') }}">Cities</a></li>@endcan
+                        @can('locations.view')<li><a href="{{ route('admin.states.index') }}">States</a></li>@endcan
+                        @can('locations.view')<li><a href="{{ route('admin.cities.index') }}">Cities</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -270,6 +278,7 @@
                     <ul x-collapse x-show="activeDropdown === 'leads'" class="sub-menu text-gray-500">
                         @can('leads.view')<li><a href="{{ route('admin.leads.index') }}">All Leads</a></li>@endcan
                         @can('leads.view')<li><a href="{{ route('admin.leads.kanban') }}">Leads Board</a></li>@endcan
+                        @can('leads.view')<li><a href="{{ route('admin.leads.report') }}">Product Report</a></li>@endcan
                         @can('leads.create')<li><a href="{{ route('admin.leads.create') }}">Add Lead</a></li>@endcan
                     </ul>
                 </li>
@@ -437,6 +446,10 @@
                         @can('expenses.view')<li><a href="{{ route('admin.expenses.index') }}">All Payments</a></li>@endcan
                         @can('expenses.create')<li><a href="{{ route('admin.expenses.create') }}">Add Payment</a></li>@endcan
                         @can('expense_categories.view')<li><a href="{{ route('admin.expense-categories.index') }}">Categories</a></li>@endcan
+                        @can('reimbursements.view')<li><a href="{{ route('admin.reimbursements.index') }}">Reimbursements</a></li>@endcan
+                        @can('budgets.view')<li><a href="{{ route('admin.budgets.index') }}">Budgets</a></li>@endcan
+                        @can('requisitions.view')<li><a href="{{ route('admin.requisitions.index') }}">Requisitions</a></li>@endcan
+                        @can('requisition_categories.view')<li><a href="{{ route('admin.requisition-categories.index') }}">Requisition Categories</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -587,7 +600,7 @@
                 @endcan
 
                 {{-- ========== HR ========== --}}
-                @canany(['employees.view','departments.view','designations.view','attendance.view','leaves.view','payroll.view','warnings.view','penalties.view','feedback.view','appraisals.view','holidays.view','leave_types.view','shifts.view'])
+                @canany(['employees.view','departments.view','designations.view','attendance.view','leaves.view','payroll.view','warnings.view','penalties.view','feedback.view','appraisals.view','holidays.view','leave_types.view','leave_settings.view','shifts.view','recruitment.view','recruitment.create','recruitment.edit','recruitment.delete','recruitment.manage_stages','helpdesk.view','helpdesk.manage','helpdesk.configure'])
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Human Resources</span>
                 </h2>
@@ -677,6 +690,49 @@
                     </li>
                 @endif
 
+                {{-- Recruitment --}}
+                @canany(['recruitment.view','recruitment.create','recruitment.edit','recruitment.delete','recruitment.manage_stages'])
+                <li class="menu nav-item">
+                    <button type="button" class="nav-link group w-full"
+                        :class="{ 'active': activeDropdown === 'hr-recruitment' }"
+                        @click="activeDropdown = activeDropdown === 'hr-recruitment' ? null : 'hr-recruitment'">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="10" cy="8" r="3.25" stroke="currentColor" stroke-width="1.5"/>
+                                <path opacity="0.5" d="M4 19c0-2.761 2.686-5 6-5 1.5 0 2.873.46 3.92 1.22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                <path d="M16 14l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Recruitment</span>
+                        </div>
+                        <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'hr-recruitment' }">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                    </button>
+                    <ul x-collapse x-show="activeDropdown === 'hr-recruitment'" class="sub-menu text-gray-500">
+                        <li><a href="{{ route('admin.hr.recruitment.index') }}">All Candidates</a></li>
+                        <li><a href="{{ route('admin.hr.recruitment.pipeline') }}">Pipeline Board</a></li>
+                        @can('recruitment.create')<li><a href="{{ route('admin.hr.recruitment.create') }}">Add Candidate</a></li>@endcan
+                        <li><a href="{{ route('admin.hr.recruitment.batches.index') }}">Campus Batches</a></li>
+                        @can('recruitment.manage_stages')<li><a href="{{ route('admin.hr.recruitment.stages.index') }}">Hiring Stages</a></li>@endcan
+                        <li><a href="{{ route('admin.hr.recruitment.reports') }}">Reports</a></li>
+                    </ul>
+                </li>
+                @endcanany
+
+                {{-- Internal Helpdesk --}}
+                @canany(['helpdesk.view','helpdesk.manage','helpdesk.configure'])
+                @php $openTickets = \App\Models\InternalTicket::whereNotIn('status', ['resolved','closed'])->count(); @endphp
+                <li class="menu nav-item">
+                    <a href="{{ route('admin.hr.internal-tickets.index') }}" class="nav-link group w-full">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.5"/></svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Helpdesk</span>
+                            @if($openTickets > 0)<span class="ml-auto mr-1 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-warning text-white">{{ $openTickets > 99 ? '99+' : $openTickets }}</span>@endif
+                        </div>
+                    </a>
+                </li>
+                @endcanany
+
                 {{-- Employees --}}
                 @can('employees.view')
                 <li class="menu nav-item">
@@ -697,6 +753,7 @@
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'hr-employees'" class="sub-menu text-gray-500">
                         @can('employees.view')<li><a href="{{ route('admin.hr.employees.index') }}">All Employees</a></li>@endcan
+                        @can('employees.view')<li><a href="{{ route('admin.hr.reporting-managers.index') }}">Report Managers</a></li>@endcan
                         @can('employees.create')<li><a href="{{ route('admin.hr.employees.create') }}">Add Employee</a></li>@endcan
                         @can('departments.view')<li><a href="{{ route('admin.hr.departments.index') }}">Departments</a></li>@endcan
                         @can('designations.view')<li><a href="{{ route('admin.hr.designations.index') }}">Designations</a></li>@endcan
@@ -727,6 +784,10 @@
                         @can('attendance.view')<li><a href="{{ route('admin.hr.attendance.monthly') }}">Monthly Summary</a></li>@endcan
                         @can('attendance.create')<li><a href="{{ route('admin.hr.attendance.create') }}">Mark Attendance</a></li>@endcan
                         @can('attendance.import')<li><a href="{{ route('admin.hr.attendance.import-form') }}">Import Biometric CSV</a></li>@endcan
+                        @can('attendance_corrections.view')
+                            @php $pendingReg = \App\Models\AttendanceRegularization::where('status','pending')->count(); @endphp
+                            <li><a href="{{ route('admin.hr.regularizations.index') }}" class="flex items-center justify-between">Corrections @if($pendingReg>0)<span class="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-warning text-white">{{ $pendingReg }}</span>@endif</a></li>
+                        @endcan
                         @can('holidays.view')
                             <li><a href="{{ route('admin.hr.holidays.index') }}">Holiday Calendar</a></li>
                             <li><a href="{{ route('admin.hr.week-off.index') }}">Week-Off Setup</a></li>
@@ -763,6 +824,7 @@
                         <li><a href="{{ route('admin.hr.leaves.index', ['status' => 'pending']) }}">Pending @if($pendingLeaves > 0)({{ $pendingLeaves }})@endif</a></li>
                         <li><a href="{{ route('admin.hr.leave-balances.index') }}">Leave Balances</a></li>
                         @can('leave_types.view')<li><a href="{{ route('admin.hr.leave-types.index') }}">Leave Types</a></li>@endcan
+                        @can('leave_settings.view')<li><a href="{{ route('admin.hr.leave-settings.index') }}">Leave Settings</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -788,9 +850,10 @@
                     <ul x-collapse x-show="activeDropdown === 'hr-payroll'" class="sub-menu text-gray-500">
                         <li><a href="{{ route('admin.hr.payroll.index') }}">Payslips</a></li>
                         @can('payroll.generate')<li><a href="{{ route('admin.hr.payroll.generate-form') }}">Generate Payroll</a></li>@endcan
-                        {{-- Salary Approvals + Bank Change Requests promoted to the
-                             top-level "Approvals" menu (above), so removed from here
-                             to avoid duplicate sidebar entries. --}}
+                        @can('salary_templates.view')<li><a href="{{ route('admin.hr.salary-templates.index') }}">Salary Templates</a></li>@endcan
+                        @can('payroll_adjustments.view')<li><a href="{{ route('admin.hr.payroll-adjustments.index') }}">Adjustments</a></li>@endcan
+                        @can('statutory.view')<li><a href="{{ route('admin.hr.statutory.register') }}">Statutory Register</a></li>@endcan
+                        @can('statutory.view')<li><a href="{{ route('admin.hr.statutory.form16') }}">Form 16</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -824,7 +887,7 @@
                 @endcanany
 
                 {{-- ========== ASSETS ========== --}}
-                @canany(['assets.view','asset_categories.view','asset_models.view','asset_locations.view','assets.assign','assets.maintenance','assets.depreciate','analytics_asset.view'])
+                @canany(['assets.view','asset_categories.view','asset_models.view','asset_locations.view','asset_statuses.view','asset_maintenance_types.view','assets.assign','assets.maintenance','assets.depreciate','analytics_asset.view'])
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Asset Management</span>
                 </h2>
@@ -864,9 +927,14 @@
                     <ul x-collapse x-show="activeDropdown === 'asset-register'" class="sub-menu text-gray-500">
                         <li><a href="{{ route('admin.assets.assets.index') }}">All Assets</a></li>
                         @can('assets.create')<li><a href="{{ route('admin.assets.assets.create') }}">Add Asset</a></li>@endcan
+                        @can('assets.edit')<li><a href="{{ route('admin.assets.bulk.index') }}">Bulk Operations</a></li>@endcan
+                        @can('assets.view')<li><a href="{{ route('admin.assets.reports.dimension') }}">Reports</a></li>@endcan
+                        @can('assets.view')<li><a href="{{ route('admin.assets.reports.employee-assets') }}">Employee Assets</a></li>@endcan
                         @can('asset_categories.view')<li><a href="{{ route('admin.assets.categories.index') }}">Categories</a></li>@endcan
                         @can('asset_models.view')<li><a href="{{ route('admin.assets.models.index') }}">Models</a></li>@endcan
                         @can('asset_locations.view')<li><a href="{{ route('admin.assets.locations.index') }}">Locations</a></li>@endcan
+                        @can('asset_statuses.view')<li><a href="{{ route('admin.assets.statuses.index') }}">Statuses</a></li>@endcan
+                        @can('asset_maintenance_types.view')<li><a href="{{ route('admin.assets.maintenance-types.index') }}">Maintenance Types</a></li>@endcan
                     </ul>
                 </li>
                 @endcan
@@ -951,14 +1019,15 @@
                 @endcan
 
                 {{-- ========== REPORTS ========== --}}
-                @can('reports.view')
+                @php $reportPerms = ['reports.view','report_sales.view','report_inventory.view','report_customers.view','report_purchases.view','report_payments.view','report_hr.view','report_builder.view']; @endphp
+                @canany($reportPerms)
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Reports</span>
                 </h2>
-                @endcan
+                @endcanany
 
                 {{-- Reports --}}
-                @can('reports.view')
+                @canany($reportPerms)
                 <li class="menu nav-item">
                     <button type="button" class="nav-link group w-full"
                         :class="{ 'active': activeDropdown === 'reports' }"
@@ -977,20 +1046,34 @@
                         </div>
                     </button>
                     <ul x-collapse x-show="activeDropdown === 'reports'" class="sub-menu text-gray-500">
-                        <li><a href="{{ route('admin.reports.sales') }}">Sales Report</a></li>
-                        <li><a href="{{ route('admin.reports.inventory') }}">Inventory Report</a></li>
-                        <li><a href="{{ route('admin.reports.customers') }}">Customer Report</a></li>
-                        <li><a href="{{ route('admin.reports.purchases') }}">Purchase Report</a></li>
-                        <li><a href="{{ route('admin.reports.payments') }}">Payment Report</a></li>
+                        @can('report_sales.view')<li><a href="{{ route('admin.reports.sales') }}">Sales Report</a></li>@endcan
+                        @can('report_inventory.view')<li><a href="{{ route('admin.reports.inventory') }}">Inventory Report</a></li>@endcan
+                        @can('report_customers.view')<li><a href="{{ route('admin.reports.customers') }}">Customer Report</a></li>@endcan
+                        @can('report_purchases.view')<li><a href="{{ route('admin.reports.purchases') }}">Purchase Report</a></li>@endcan
+                        @can('report_payments.view')<li><a href="{{ route('admin.reports.payments') }}">Payment Report</a></li>@endcan
+                        @can('report_hr.view')<li><a href="{{ route('admin.hr.reports.index') }}">HR &amp; Payroll Reports</a></li>@endcan
+                        @can('report_builder.view')<li><a href="{{ route('admin.report-builder.index') }}">Custom Report Builder</a></li>@endcan
                     </ul>
                 </li>
-                @endcan
+                @endcanany
 
                 {{-- ========== SYSTEM ========== --}}
                 @can('settings.view')
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>System</span>
                 </h2>
+                @endcan
+
+                {{-- Bulk Imports --}}
+                @can('bulk_imports.run')
+                <li class="menu nav-item">
+                    <a href="{{ route('admin.imports.index') }}" class="nav-link group">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 12l-4-4m4 4l4-4M4 18v1a2 2 0 002 2h12a2 2 0 002-2v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Bulk Imports</span>
+                        </div>
+                    </a>
+                </li>
                 @endcan
 
                 {{-- Settings --}}
@@ -1069,24 +1152,45 @@
                 const currentPath = window.location.pathname.replace(/\/$/, '');
                 const scrollEl    = this.$el.querySelector('.perfect-scrollbar');
 
-                // Mark active links
+                // Mark active links — exact match first, then best prefix match
+                // so a deep page (e.g. /admin/leads/5/edit) still lights up its
+                // menu link (/admin/leads).
+                let activeLink = null;
+                let bestLen = -1;
                 this.$el.querySelectorAll('a[href]').forEach(link => {
                     let lp = link.getAttribute('href').replace(/\/$/, '');
                     if (lp.startsWith('http')) {
                         try { lp = new URL(lp).pathname.replace(/\/$/, ''); } catch(e) {}
                     }
-                    if (lp === currentPath) link.classList.add('active');
+                    if (!lp || lp === '/admin') return;
+                    const isExact  = lp === currentPath;
+                    const isPrefix = currentPath === lp || currentPath.startsWith(lp + '/');
+                    if (isExact || isPrefix) {
+                        if (isExact) link.classList.add('active');
+                        if (lp.length > bestLen) { bestLen = lp.length; activeLink = link; }
+                    }
                 });
 
-                // Scroll after x-collapse finishes expanding (its default duration is ~300ms)
-                if (scrollEl) {
-                    setTimeout(() => {
-                        const activeLink = scrollEl.querySelector('ul.sub-menu a.active')
-                                       || scrollEl.querySelector('a.active');
-                        if (!activeLink) return;
+                if (activeLink && !activeLink.classList.contains('active')) {
+                    activeLink.classList.add('active');
+                }
 
-                        // Walk up to the parent <li class="menu nav-item"> so we scroll to
-                        // the dropdown button, not just the sub-link buried inside
+                // Open the dropdown that contains the active link — derive the
+                // key straight from the parent menu button's @click expression so
+                // this works for EVERY menu without a hand-maintained map.
+                if (activeLink) {
+                    const parentItem = activeLink.closest('li.menu.nav-item');
+                    const btn = parentItem?.querySelector(':scope > button');
+                    const expr = (btn?.getAttribute('@click') || btn?.getAttribute('x-on:click') || '');
+                    const m = expr.match(/===\s*'([^']+)'/);
+                    if (m && m[1]) {
+                        this.activeDropdown = m[1];
+                    }
+                }
+
+                // Scroll after x-collapse finishes expanding (its default duration is ~300ms)
+                if (scrollEl && activeLink) {
+                    setTimeout(() => {
                         const parentItem = activeLink.closest('li.menu.nav-item') || activeLink;
 
                         const containerRect = scrollEl.getBoundingClientRect();
@@ -1125,12 +1229,53 @@
         const ul = document.querySelector('.sidebar .perfect-scrollbar');
         if (!ul) return;
 
-        // Show/hide each menu item
         ul.querySelectorAll('li.menu.nav-item').forEach(li => {
-            li.style.display = (!q || li.textContent.toLowerCase().includes(q)) ? '' : 'none';
+            const subMenu = li.querySelector('ul.sub-menu');
+
+            // ── No query: restore everything to its normal (Alpine-driven) state.
+            if (!q) {
+                li.style.display = '';
+                if (subMenu) {
+                    subMenu.style.removeProperty('display');
+                    subMenu.style.removeProperty('height');
+                    subMenu.querySelectorAll(':scope > li').forEach(child => {
+                        child.style.display = '';
+                    });
+                }
+                li.querySelectorAll('a').forEach(a => a.classList.remove('search-match'));
+                return;
+            }
+
+            // ── Query present.
+            // The label is the FIRST link/button text inside this nav item.
+            const headEl    = li.querySelector(':scope > a, :scope > button');
+            const headText  = (headEl ? headEl.textContent : '').toLowerCase();
+            const parentHit = headText.includes(q);
+
+            let childHit = false;
+            if (subMenu) {
+                subMenu.querySelectorAll(':scope > li').forEach(child => {
+                    const hit = child.textContent.toLowerCase().includes(q);
+                    // Show the whole submenu when the parent label matches,
+                    // otherwise show only matching child links.
+                    child.style.display = (parentHit || hit) ? '' : 'none';
+                    child.querySelectorAll('a').forEach(a => a.classList.toggle('search-match', hit));
+                    if (hit) childHit = true;
+                });
+            }
+
+            const visible = parentHit || childHit;
+            li.style.display = visible ? '' : 'none';
+
+            // Force-expand the dropdown so matches inside a collapsed submenu
+            // are actually visible (overrides Alpine's x-show=false inline style).
+            if (visible && subMenu) {
+                subMenu.style.setProperty('display', 'block', 'important');
+                subMenu.style.removeProperty('height');
+            }
         });
 
-        // Show/hide section headers: hide if no visible li follows before the next h2
+        // Section headers: hide if no visible nav item follows before the next h2.
         ul.querySelectorAll('h2').forEach(h2 => {
             if (!q) { h2.style.display = ''; return; }
             let sibling = h2.nextElementSibling;

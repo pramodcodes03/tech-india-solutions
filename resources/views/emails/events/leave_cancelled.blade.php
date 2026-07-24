@@ -12,8 +12,8 @@
     <p>The following leave request has been cancelled. Please update planning and roster information accordingly.</p>
 
     <table class="meta-table">
-        <tr><td class="label">Employee</td><td class="val">{{ $entity?->employee->first_name ?? '—' }} {{ $entity?->employee->last_name ?? '' }}</td></tr>
-        <tr><td class="label">Leave Type</td><td class="val">{{ $entity?->leave_type ?? '—' }}</td></tr>
+        <tr><td class="label">Employee</td><td class="val">{{ trim(($entity?->employee?->first_name ?? '').' '.($entity?->employee?->last_name ?? '')) ?: '—' }}</td></tr>
+        <tr><td class="label">Leave Type</td><td class="val">{{ $entity?->leaveType?->name ?? '—' }}</td></tr>
         <tr><td class="label">From</td><td class="val">{{ \Carbon\Carbon::parse($entity?->from_date)->format('d M Y') }}</td></tr>
         <tr><td class="label">To</td><td class="val">{{ \Carbon\Carbon::parse($entity?->to_date)->format('d M Y') }}</td></tr>
     </table>

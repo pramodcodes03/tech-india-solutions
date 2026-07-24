@@ -20,10 +20,44 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardsController extends Controller
 {
+    /**
+     * Resolve the dashboard date window from the request, defaulting to the
+     * current month. Returns [Carbon $from (start of day), Carbon $to (end of
+     * day)]. Used by the period-based metrics on every analytics dashboard;
+     * point-in-time metrics (stock, receivables, totals) ignore it.
+     */
+    private function dateRange(\Illuminate\Http\Request $request): array
+    {
+        $today = Carbon::today();
+
+        try {
+            $from = $request->filled('from')
+                ? Carbon::parse($request->input('from'))->startOfDay()
+                : $today->copy()->startOfMonth();
+        } catch (\Throwable) {
+            $from = $today->copy()->startOfMonth();
+        }
+
+        try {
+            $to = $request->filled('to')
+                ? Carbon::parse($request->input('to'))->endOfDay()
+                : $today->copy()->endOfMonth();
+        } catch (\Throwable) {
+            $to = $today->copy()->endOfMonth();
+        }
+
+        // Guard against an inverted range (user picked to < from).
+        if ($to->lt($from)) {
+            [$from, $to] = [$to->copy()->startOfDay(), $from->copy()->endOfDay()];
+        }
+
+        return [$from, $to];
+    }
+
     // ════════════════════════════════════════════════════════════════════
     // 1. SALES DASHBOARD
     // ════════════════════════════════════════════════════════════════════
-    public function sales()
+    public function sales(\Illuminate\Http\Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('analytics_sales.view'), 403);
 
@@ -31,18 +65,19 @@ class DashboardsController extends Controller
         $bizId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
 
         $today = Carbon::today();
-        $monthStart = $today->copy()->startOfMonth();
+        [$rangeFrom, $rangeTo] = $this->dateRange($request);
 
-        // KPI cards
+        // KPI cards. Period-based figures honour the picked range; counts that
+        // represent the live pipeline / receivables stay point-in-time.
         $kpi = [
-            'leads_total'       => Lead::count(),
-            'leads_open'        => Lead::whereIn('status', ['new', 'contacted', 'qualified', 'proposal'])->count(),
-            'leads_won'         => Lead::where('status', 'won')->count(),
-            'pipeline_value'    => (float) Lead::whereIn('status', ['new', 'contacted', 'qualified', 'proposal'])->sum('expected_value'),
-            'quotes_total'      => Quotation::count(),
-            'quotes_accepted'   => Quotation::where('status', 'accepted')->count(),
-            'revenue_mtd'       => (float) Invoice::where('invoice_date', '>=', $monthStart)->sum('grand_total'),
-            'paid_mtd'          => (float) Payment::where('payment_date', '>=', $monthStart)->sum('amount'),
+            'leads_total'       => Lead::whereBetween('lead_date', [$rangeFrom, $rangeTo])->count(),
+            'leads_open'        => Lead::whereIn('status', Lead::OPEN_STATUSES)->count(),
+            'leads_won'         => Lead::where('status', 'won')->whereBetween('lead_date', [$rangeFrom, $rangeTo])->count(),
+            'pipeline_value'    => (float) Lead::whereIn('status', Lead::OPEN_STATUSES)->sum('expected_value'),
+            'quotes_total'      => Quotation::whereBetween('quotation_date', [$rangeFrom, $rangeTo])->count(),
+            'quotes_accepted'   => Quotation::where('status', 'accepted')->whereBetween('quotation_date', [$rangeFrom, $rangeTo])->count(),
+            'revenue_mtd'       => (float) Invoice::whereBetween('invoice_date', [$rangeFrom, $rangeTo])->sum('grand_total'),
+            'paid_mtd'          => (float) Payment::whereBetween('payment_date', [$rangeFrom, $rangeTo])->sum('amount'),
             'receivables'       => (float) Invoice::whereIn('status', ['unpaid', 'partial', 'overdue'])->sum('balance_due'),
             'customers_total'   => Customer::where('status', 'active')->count(),
         ];
@@ -53,18 +88,19 @@ class DashboardsController extends Controller
             ? round(($kpi['leads_won'] / $kpi['leads_total']) * 100, 1)
             : 0;
 
-        // Lead funnel (Lead → Quote → SalesOrder → Invoice → Paid)
+        // Lead funnel (Lead → Quote → SalesOrder → Invoice → Paid) within range.
         $funnel = [
-            ['stage' => 'Leads',       'value' => Lead::count()],
-            ['stage' => 'Qualified',   'value' => Lead::whereIn('status', ['qualified', 'proposal', 'won'])->count()],
-            ['stage' => 'Quoted',      'value' => Quotation::count()],
-            ['stage' => 'Orders',      'value' => SalesOrder::whereNotIn('status', ['cancelled'])->count()],
-            ['stage' => 'Invoiced',    'value' => Invoice::count()],
-            ['stage' => 'Paid',        'value' => Invoice::where('status', 'paid')->count()],
+            ['stage' => 'Leads',       'value' => Lead::whereBetween('lead_date', [$rangeFrom, $rangeTo])->count()],
+            ['stage' => 'Qualified',   'value' => Lead::whereIn('status', ['qualified', 'evaluation', 'won'])->whereBetween('lead_date', [$rangeFrom, $rangeTo])->count()],
+            ['stage' => 'Quoted',      'value' => Quotation::whereBetween('quotation_date', [$rangeFrom, $rangeTo])->count()],
+            ['stage' => 'Orders',      'value' => SalesOrder::whereNotIn('status', ['cancelled'])->whereBetween('order_date', [$rangeFrom, $rangeTo])->count()],
+            ['stage' => 'Invoiced',    'value' => Invoice::whereBetween('invoice_date', [$rangeFrom, $rangeTo])->count()],
+            ['stage' => 'Paid',        'value' => Invoice::where('status', 'paid')->whereBetween('invoice_date', [$rangeFrom, $rangeTo])->count()],
         ];
 
-        // Lead source donut
+        // Lead source donut (within range)
         $leadBySource = Lead::select('source', DB::raw('COUNT(*) as total'))
+            ->whereBetween('lead_date', [$rangeFrom, $rangeTo])
             ->groupBy('source')->pluck('total', 'source')->toArray();
 
         // Lead source × value (bubble: x=count, y=avg value, z=total value)
@@ -77,7 +113,7 @@ class DashboardsController extends Controller
         // Revenue trend last 12 months (invoiced vs paid)
         $revenueTrend = [];
         for ($i = 11; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i);
+            $m = Carbon::today()->startOfMonth()->subMonths($i);
             $revenueTrend[] = [
                 'label'    => $m->format('M Y'),
                 'invoiced' => (float) Invoice::whereYear('invoice_date', $m->year)->whereMonth('invoice_date', $m->month)->sum('grand_total'),
@@ -92,7 +128,7 @@ class DashboardsController extends Controller
         // Quotation status over months (stacked column)
         $quoteStatusMonthly = [];
         for ($i = 5; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i);
+            $m = Carbon::today()->startOfMonth()->subMonths($i);
             $row = ['label' => $m->format('M Y')];
             foreach (['draft', 'sent', 'accepted', 'rejected', 'expired'] as $s) {
                 $row[$s] = Quotation::where('status', $s)
@@ -115,7 +151,10 @@ class DashboardsController extends Controller
             ->where('payments.payment_date', '>=', $today->copy()->subDays(90))
             ->selectRaw('AVG(DATEDIFF(payments.payment_date, invoices.invoice_date)) as dso')
             ->first();
-        $dso = (int) round($dsoRow->dso ?? 0);
+        // Average collection days over the last 90 days. Clamp at 0 — a negative
+        // value only arises from advance payments dated before their invoice and
+        // is meaningless as "days outstanding".
+        $dso = max(0, (int) round($dsoRow->dso ?? 0));
 
         // Invoice aging buckets (unpaid invoices)
         $aging = ['0-30' => 0, '31-60' => 0, '61-90' => 0, '90+' => 0];
@@ -140,14 +179,14 @@ class DashboardsController extends Controller
         return view('admin.dashboards.sales', compact(
             'kpi', 'funnel', 'leadBySource', 'leadSourceBubble', 'revenueTrend',
             'invoiceStatus', 'quoteStatusMonthly', 'topCustomers', 'dso', 'aging',
-            'recentLeads', 'overdueInvoices'
+            'recentLeads', 'overdueInvoices', 'rangeFrom', 'rangeTo'
         ));
     }
 
     // ════════════════════════════════════════════════════════════════════
     // 2. SERVICE / SUPPORT DASHBOARD
     // ════════════════════════════════════════════════════════════════════
-    public function service()
+    public function service(\Illuminate\Http\Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('analytics_service.view'), 403);
 
@@ -155,7 +194,7 @@ class DashboardsController extends Controller
         $bizId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
 
         $today = Carbon::today();
-        $monthStart = $today->copy()->startOfMonth();
+        [$rangeFrom, $rangeTo] = $this->dateRange($request);
 
         $kpi = [
             'total'       => ServiceTicket::count(),
@@ -164,8 +203,8 @@ class DashboardsController extends Controller
             'resolved'    => ServiceTicket::where('status', 'resolved')->count(),
             'closed'      => ServiceTicket::where('status', 'closed')->count(),
             'critical'    => ServiceTicket::where('priority', 'critical')->whereIn('status', ['open', 'in_progress'])->count(),
-            'mtd_opened'  => ServiceTicket::where('opened_at', '>=', $monthStart)->count(),
-            'mtd_closed'  => ServiceTicket::where('closed_at', '>=', $monthStart)->count(),
+            'mtd_opened'  => ServiceTicket::whereBetween('opened_at', [$rangeFrom, $rangeTo])->count(),
+            'mtd_closed'  => ServiceTicket::whereBetween('closed_at', [$rangeFrom, $rangeTo])->count(),
         ];
 
         // Avg resolution time (hours) by priority
@@ -191,7 +230,7 @@ class DashboardsController extends Controller
         // Volume trend last 12 months (opened vs closed)
         $volumeTrend = [];
         for ($i = 11; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i);
+            $m = Carbon::today()->startOfMonth()->subMonths($i);
             $volumeTrend[] = [
                 'label'  => $m->format('M Y'),
                 'opened' => ServiceTicket::whereYear('opened_at', $m->year)->whereMonth('opened_at', $m->month)->count(),
@@ -245,19 +284,21 @@ class DashboardsController extends Controller
         return view('admin.dashboards.service', compact(
             'kpi', 'resByPriority', 'slaRate', 'slaCompliant', 'slaTotal',
             'volumeTrend', 'byPriority', 'byCategory', 'heatmap', 'days',
-            'flow', 'criticalTickets'
+            'flow', 'criticalTickets', 'rangeFrom', 'rangeTo'
         ));
     }
 
     // ════════════════════════════════════════════════════════════════════
     // 3. INVENTORY DASHBOARD
     // ════════════════════════════════════════════════════════════════════
-    public function inventory()
+    public function inventory(\Illuminate\Http\Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('analytics_inventory.view'), 403);
 
         // Tenant guard for raw queries (Eloquent calls use BelongsToBusiness).
         $bizId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
+
+        [$rangeFrom, $rangeTo] = $this->dateRange($request);
 
         $stockSum = "COALESCE(SUM(CASE WHEN sm.type IN ('in','adjustment') THEN sm.quantity ELSE -sm.quantity END), 0)";
 
@@ -320,7 +361,7 @@ class DashboardsController extends Controller
                 if (! $p) continue;
                 $data = [];
                 for ($i = 5; $i >= 0; $i--) {
-                    $m = Carbon::today()->subMonths($i);
+                    $m = Carbon::today()->startOfMonth()->subMonths($i);
                     $key = $m->format('Y-m');
                     $hit = ($byProd[$pid] ?? collect())->firstWhere('ym', $key);
                     $data[] = ['x' => $m->format('M'), 'y' => (int) ($hit->qty ?? 0)];
@@ -348,11 +389,11 @@ class DashboardsController extends Controller
                 DB::raw("SUM(CASE WHEN sm.type IN ('in','adjustment') THEN sm.quantity ELSE -sm.quantity END) as qty"))
             ->groupBy('w.id', 'w.name')->orderByDesc('qty')->get();
 
-        // Top moving products (last 30 days)
+        // Top moving products (within selected range)
         $topMoving = DB::table('stock_movements as sm')
             ->join('products as p', 'p.id', '=', 'sm.product_id')
             ->where('sm.business_id', $bizId)
-            ->where('sm.created_at', '>=', Carbon::today()->subDays(30))
+            ->whereBetween('sm.created_at', [$rangeFrom, $rangeTo])
             ->select('p.name', DB::raw('SUM(ABS(sm.quantity)) as qty'))
             ->groupBy('p.id', 'p.name')->orderByDesc('qty')->limit(8)->get();
 
@@ -373,14 +414,15 @@ class DashboardsController extends Controller
 
         return view('admin.dashboards.inventory', compact(
             'kpi', 'byCategory', 'movementMatrix', 'reorderCompare',
-            'byWarehouse', 'topMoving', 'movementTrend', 'lowStockList'
+            'byWarehouse', 'topMoving', 'movementTrend', 'lowStockList',
+            'rangeFrom', 'rangeTo'
         ));
     }
 
     // ════════════════════════════════════════════════════════════════════
     // 4. PURCHASE / VENDOR DASHBOARD
     // ════════════════════════════════════════════════════════════════════
-    public function purchase()
+    public function purchase(\Illuminate\Http\Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('analytics_purchase.view'), 403);
 
@@ -389,6 +431,7 @@ class DashboardsController extends Controller
 
         $today = Carbon::today();
         $yearStart = $today->copy()->startOfYear();
+        [$rangeFrom, $rangeTo] = $this->dateRange($request);
 
         $kpi = [
             'po_total'       => PurchaseOrder::count(),
@@ -398,6 +441,13 @@ class DashboardsController extends Controller
             'po_value_ytd'   => (float) PurchaseOrder::whereNotIn('status', ['cancelled'])
                                     ->where('po_date', '>=', $yearStart)->sum('grand_total'),
             'vendors_active' => Vendor::where('status', 'active')->count(),
+            // Period figures honour the picked range (point-in-time / YTD KPIs
+            // above stay as-is). po_raised: POs raised in range; po_spend: their
+            // value; goods received: GRNs posted in range.
+            'po_raised'      => PurchaseOrder::whereBetween('po_date', [$rangeFrom, $rangeTo])->count(),
+            'po_spend'       => (float) PurchaseOrder::whereNotIn('status', ['cancelled'])
+                                    ->whereBetween('po_date', [$rangeFrom, $rangeTo])->sum('grand_total'),
+            'goods_received' => \App\Models\GoodsReceipt::whereBetween('received_date', [$rangeFrom, $rangeTo])->count(),
         ];
 
         // Status flow (for sankey-style stacked bar)
@@ -424,7 +474,7 @@ class DashboardsController extends Controller
         // Monthly PO spend (last 12 months)
         $spendTrend = [];
         for ($i = 11; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i);
+            $m = Carbon::today()->startOfMonth()->subMonths($i);
             $spendTrend[] = [
                 'label' => $m->format('M Y'),
                 'value' => (float) PurchaseOrder::whereNotIn('status', ['cancelled'])
@@ -461,14 +511,15 @@ class DashboardsController extends Controller
 
         return view('admin.dashboards.purchase', compact(
             'kpi', 'flow', 'topVendors', 'concentration', 'totalSpend',
-            'spendTrend', 'poAging', 'vendorPerf', 'recentPos'
+            'spendTrend', 'poAging', 'vendorPerf', 'recentPos',
+            'rangeFrom', 'rangeTo'
         ));
     }
 
     // ════════════════════════════════════════════════════════════════════
     // 5. CUSTOMER ANALYTICS DASHBOARD
     // ════════════════════════════════════════════════════════════════════
-    public function customers()
+    public function customers(\Illuminate\Http\Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('analytics_customer.view'), 403);
 
@@ -482,13 +533,14 @@ class DashboardsController extends Controller
 
         $today = Carbon::today();
         $sixMonthsAgo = $today->copy()->subMonths(6);
+        [$rangeFrom, $rangeTo] = $this->dateRange($request);
 
         // KPI
         $kpi = [
             'total'        => Customer::count(),
             'active'       => Customer::where('status', 'active')->count(),
             'inactive'     => Customer::where('status', 'inactive')->count(),
-            'new_mtd'      => Customer::where('created_at', '>=', $today->copy()->startOfMonth())->count(),
+            'new_mtd'      => Customer::whereBetween('created_at', [$rangeFrom, $rangeTo])->count(),
             'with_orders'  => Customer::has('invoices')->count(),
             'churn_risk'   => Customer::whereDoesntHave('invoices', fn ($q) => $q->where('invoice_date', '>=', $sixMonthsAgo))->count(),
         ];
@@ -516,7 +568,7 @@ class DashboardsController extends Controller
         // Acquisition trend (last 12 months)
         $acquisition = [];
         for ($i = 11; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i);
+            $m = Carbon::today()->startOfMonth()->subMonths($i);
             $acquisition[] = [
                 'label' => $m->format('M Y'),
                 'value' => Customer::whereYear('created_at', $m->year)->whereMonth('created_at', $m->month)->count(),
@@ -626,14 +678,15 @@ class DashboardsController extends Controller
 
         return view('admin.dashboards.customers', compact(
             'kpi', 'topByRevenue', 'concentration', 'totalRevenue',
-            'byState', 'acquisition', 'segBubble', 'custAging', 'loyaltyTiers', 'recent'
+            'byState', 'acquisition', 'segBubble', 'custAging', 'loyaltyTiers', 'recent',
+            'rangeFrom', 'rangeTo'
         ));
     }
 
     // ════════════════════════════════════════════════════════════════════
     // 6. EXECUTIVE / FINANCE DASHBOARD
     // ════════════════════════════════════════════════════════════════════
-    public function executive()
+    public function executive(\Illuminate\Http\Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('analytics_executive.view'), 403);
 
@@ -641,15 +694,16 @@ class DashboardsController extends Controller
         $bizId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
 
         $today = Carbon::today();
-        $monthStart = $today->copy()->startOfMonth();
         $yearStart = $today->copy()->startOfYear();
+        [$rangeFrom, $rangeTo] = $this->dateRange($request);
 
-        // KPI
-        $revMtd = (float) Invoice::where('invoice_date', '>=', $monthStart)->sum('grand_total');
+        // KPI — period figures honour the picked range; YTD / receivables /
+        // overdue stay point-in-time.
+        $revMtd = (float) Invoice::whereBetween('invoice_date', [$rangeFrom, $rangeTo])->sum('grand_total');
         $revYtd = (float) Invoice::where('invoice_date', '>=', $yearStart)->sum('grand_total');
         $poMtd  = (float) PurchaseOrder::whereNotIn('status', ['cancelled'])
-                    ->where('po_date', '>=', $monthStart)->sum('grand_total');
-        $payMtd = (float) Payment::where('payment_date', '>=', $monthStart)->sum('amount');
+                    ->whereBetween('po_date', [$rangeFrom, $rangeTo])->sum('grand_total');
+        $payMtd = (float) Payment::whereBetween('payment_date', [$rangeFrom, $rangeTo])->sum('amount');
         $receivables = (float) Invoice::whereIn('status', ['unpaid', 'partial', 'overdue'])->sum('balance_due');
         $overdueAmount = (float) Invoice::where(function ($q) {
                 $q->where('status', 'overdue')
@@ -677,7 +731,7 @@ class DashboardsController extends Controller
         // Cash flow dual-line (last 12 months: invoiced vs paid vs po)
         $cashFlow = [];
         for ($i = 11; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i);
+            $m = Carbon::today()->startOfMonth()->subMonths($i);
             $cashFlow[] = [
                 'label'    => $m->format('M Y'),
                 'invoiced' => (float) Invoice::whereYear('invoice_date', $m->year)->whereMonth('invoice_date', $m->month)->sum('grand_total'),
@@ -690,7 +744,7 @@ class DashboardsController extends Controller
         // Working capital: receivables - payables over time
         $workingCap = [];
         for ($i = 5; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i)->endOfMonth();
+            $m = Carbon::today()->startOfMonth()->subMonths($i)->endOfMonth();
             $recv = (float) Invoice::where('invoice_date', '<=', $m)
                 ->whereIn('status', ['unpaid', 'partial', 'overdue'])->sum('balance_due');
             // Payables approximation: PO value not received yet as of month end
@@ -725,7 +779,7 @@ class DashboardsController extends Controller
         // Margin trend (revenue - po cost, last 6 months)
         $marginTrend = [];
         for ($i = 5; $i >= 0; $i--) {
-            $m = Carbon::today()->subMonths($i);
+            $m = Carbon::today()->startOfMonth()->subMonths($i);
             $rev = (float) Invoice::whereYear('invoice_date', $m->year)->whereMonth('invoice_date', $m->month)->sum('grand_total');
             $cost = (float) PurchaseOrder::whereNotIn('status', ['cancelled'])
                 ->whereYear('po_date', $m->year)->whereMonth('po_date', $m->month)->sum('grand_total');
@@ -750,7 +804,8 @@ class DashboardsController extends Controller
 
         return view('admin.dashboards.executive', compact(
             'kpi', 'target', 'targetPct', 'cashFlow', 'workingCap',
-            'aging', 'paymentModes', 'marginTrend', 'topMargin'
+            'aging', 'paymentModes', 'marginTrend', 'topMargin',
+            'rangeFrom', 'rangeTo'
         ));
     }
 }

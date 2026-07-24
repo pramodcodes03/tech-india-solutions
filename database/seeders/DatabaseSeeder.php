@@ -16,6 +16,10 @@ class DatabaseSeeder extends Seeder
             SettingsSeeder::class,
             BusinessSeeder::class,
             AdminSeeder::class,
+            // Seeds the default Asset Status + Maintenance Type dropdown
+            // options into every existing business. Idempotent — safe to
+            // re-run after adding new defaults to the seeder.
+            AssetLookupSeeder::class,
         ]);
 
         // Phase 2 — per-business data, seeded into every business so each one

@@ -6,7 +6,8 @@
             <h1 class="text-2xl font-extrabold">Inventory Dashboard</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400">Stock health, movements, valuation & reorder alerts.</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+            @include('admin.dashboards._daterange')
             <a href="{{ route('admin.inventory.index') }}" class="btn btn-sm btn-outline-primary">Inventory</a>
             <a href="{{ route('admin.products.create') }}" class="btn btn-sm btn-primary">+ Product</a>
         </div>

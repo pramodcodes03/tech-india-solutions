@@ -65,7 +65,14 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // All businesses on this install operate in India. Running the app in IST
+    // keeps "today", date-boundary logic (leave accrual day, overdue checks,
+    // working-days since joining) and displayed timestamps aligned with what
+    // users actually see — under UTC the system stayed on the previous date
+    // until 05:30 IST each morning. Existing UTC timestamps were shifted +5:30
+    // once when this was switched; DATE and TIME columns (attendance punches,
+    // which the biometric device already reports in local time) were left as-is.
+    'timezone' => env('APP_TIMEZONE', 'Asia/Kolkata'),
 
     /*
     |--------------------------------------------------------------------------

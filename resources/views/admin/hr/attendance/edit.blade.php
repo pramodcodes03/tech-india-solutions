@@ -23,7 +23,7 @@
                 <span @class([
                     'px-2 py-0.5 rounded text-xs font-semibold',
                     'bg-success/10 text-success' => $attendance->status === 'present',
-                    'bg-warning/10 text-warning' => in_array($attendance->status, ['late', 'half_day']),
+                    'bg-warning/10 text-warning' => $attendance->status === 'half_day',
                     'bg-danger/10 text-danger'   => $attendance->status === 'absent',
                     'bg-info/10 text-info'       => $attendance->status === 'on_leave',
                     'bg-gray-200 text-gray-600'  => in_array($attendance->status, ['holiday', 'weekend']),

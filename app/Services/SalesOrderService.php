@@ -43,6 +43,7 @@ class SalesOrderService
             $data['order_number'] = $this->generateNumber();
             $data['created_by'] = Auth::guard('admin')->id();
 
+            $items = $this->normalizeItems($items);
             $totals = $this->calculateTotals(
                 $items,
                 $data['discount_type'] ?? 'fixed',
@@ -76,6 +77,7 @@ class SalesOrderService
         return DB::transaction(function () use ($order, $data, $items) {
             $data['updated_by'] = Auth::guard('admin')->id();
 
+            $items = $this->normalizeItems($items);
             $totals = $this->calculateTotals(
                 $items,
                 $data['discount_type'] ?? $order->discount_type ?? 'fixed',
@@ -197,6 +199,26 @@ class SalesOrderService
 
             return $this->invoiceService->create($invoiceData, $invoiceItems);
         });
+    }
+
+    /**
+     * Compute each line's amount and write it back onto the item, matching the
+     * form's live preview: line_total = (qty × rate − line discount%) + line tax%.
+     * Without this the per-item line_total saved as 0.
+     */
+    private function normalizeItems(array $items): array
+    {
+        foreach ($items as $i => $item) {
+            $qty = (float) ($item['quantity'] ?? 0);
+            $rate = (float) ($item['rate'] ?? 0);
+            $discPct = (float) ($item['discount_percent'] ?? 0);
+            $taxPct = (float) ($item['tax_percent'] ?? 0);
+
+            $afterDisc = ($qty * $rate) * (1 - $discPct / 100);
+            $items[$i]['line_total'] = round($afterDisc * (1 + $taxPct / 100), 2);
+        }
+
+        return $items;
     }
 
     /**
