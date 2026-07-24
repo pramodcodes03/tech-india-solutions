@@ -307,7 +307,7 @@ class LeadController extends Controller
         $request->validate([
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer'],
-            'status' => ['nullable', 'in:new,contacted,qualified,proposal,won,lost'],
+            'status' => ['nullable', 'in:'.implode(',', array_keys(Lead::STATUSES))],
             'source' => ['nullable', 'in:'.implode(',', array_keys(Lead::SOURCES))],
             'assigned_to' => ['nullable', 'exists:admins,id'],
             'product_id' => ['nullable', 'exists:products,id'],
@@ -427,7 +427,7 @@ class LeadController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('leads.edit'), 403);
 
         $request->validate([
-            'status' => 'required|in:new,contacted,qualified,proposal,won,lost',
+            'status' => ['required', 'in:'.implode(',', array_keys(Lead::STATUSES))],
             'remarks' => 'nullable|string|max:1000',
         ]);
 

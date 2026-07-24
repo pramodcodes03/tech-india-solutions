@@ -66,12 +66,9 @@
                     <div>
                         <label for="status">Status</label>
                         <select id="status" name="status" class="form-select">
-                            <option value="new" {{ old('status', $lead->status) === 'new' ? 'selected' : '' }}>New</option>
-                            <option value="contacted" {{ old('status', $lead->status) === 'contacted' ? 'selected' : '' }}>Contacted</option>
-                            <option value="qualified" {{ old('status', $lead->status) === 'qualified' ? 'selected' : '' }}>Qualified</option>
-                            <option value="proposal" {{ old('status', $lead->status) === 'proposal' ? 'selected' : '' }}>Proposal</option>
-                            <option value="won" {{ old('status', $lead->status) === 'won' ? 'selected' : '' }}>Won</option>
-                            <option value="lost" {{ old('status', $lead->status) === 'lost' ? 'selected' : '' }}>Lost</option>
+                            @foreach(\App\Models\Lead::STATUSES as $v => $l)
+                                <option value="{{ $v }}" {{ old('status', $lead->status) === $v ? 'selected' : '' }}>{{ $l }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div>

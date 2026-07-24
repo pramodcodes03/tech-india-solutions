@@ -71,9 +71,9 @@ class DashboardsController extends Controller
         // represent the live pipeline / receivables stay point-in-time.
         $kpi = [
             'leads_total'       => Lead::whereBetween('lead_date', [$rangeFrom, $rangeTo])->count(),
-            'leads_open'        => Lead::whereIn('status', ['new', 'contacted', 'qualified', 'proposal'])->count(),
+            'leads_open'        => Lead::whereIn('status', Lead::OPEN_STATUSES)->count(),
             'leads_won'         => Lead::where('status', 'won')->whereBetween('lead_date', [$rangeFrom, $rangeTo])->count(),
-            'pipeline_value'    => (float) Lead::whereIn('status', ['new', 'contacted', 'qualified', 'proposal'])->sum('expected_value'),
+            'pipeline_value'    => (float) Lead::whereIn('status', Lead::OPEN_STATUSES)->sum('expected_value'),
             'quotes_total'      => Quotation::whereBetween('quotation_date', [$rangeFrom, $rangeTo])->count(),
             'quotes_accepted'   => Quotation::where('status', 'accepted')->whereBetween('quotation_date', [$rangeFrom, $rangeTo])->count(),
             'revenue_mtd'       => (float) Invoice::whereBetween('invoice_date', [$rangeFrom, $rangeTo])->sum('grand_total'),
@@ -91,7 +91,7 @@ class DashboardsController extends Controller
         // Lead funnel (Lead → Quote → SalesOrder → Invoice → Paid) within range.
         $funnel = [
             ['stage' => 'Leads',       'value' => Lead::whereBetween('lead_date', [$rangeFrom, $rangeTo])->count()],
-            ['stage' => 'Qualified',   'value' => Lead::whereIn('status', ['qualified', 'proposal', 'won'])->whereBetween('lead_date', [$rangeFrom, $rangeTo])->count()],
+            ['stage' => 'Qualified',   'value' => Lead::whereIn('status', ['qualified', 'evaluation', 'won'])->whereBetween('lead_date', [$rangeFrom, $rangeTo])->count()],
             ['stage' => 'Quoted',      'value' => Quotation::whereBetween('quotation_date', [$rangeFrom, $rangeTo])->count()],
             ['stage' => 'Orders',      'value' => SalesOrder::whereNotIn('status', ['cancelled'])->whereBetween('order_date', [$rangeFrom, $rangeTo])->count()],
             ['stage' => 'Invoiced',    'value' => Invoice::whereBetween('invoice_date', [$rangeFrom, $rangeTo])->count()],

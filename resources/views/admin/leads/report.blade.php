@@ -17,7 +17,7 @@
         </select>
         <select name="status" class="form-select">
             <option value="">All Status</option>
-            @foreach(['new','contacted','qualified','proposal','won','lost'] as $s)<option value="{{ $s }}" @selected(($filters['status']??'')===$s)>{{ ucfirst($s) }}</option>@endforeach
+            @foreach(\App\Models\Lead::STATUSES as $s=>$l)<option value="{{ $s }}" @selected(($filters['status']??'')===$s)>{{ $l }}</option>@endforeach
         </select>
         <input type="date" name="from_date" value="{{ $filters['from_date']??'' }}" class="form-input">
         <input type="date" name="to_date" value="{{ $filters['to_date']??'' }}" class="form-input">

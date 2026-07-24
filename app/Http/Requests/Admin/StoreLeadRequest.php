@@ -27,10 +27,10 @@ class StoreLeadRequest extends FormRequest
             'source' => ['required', Rule::in(array_keys(Lead::SOURCES))],
             'product_id' => ['nullable', 'exists:products,id'],
             'lead_date' => ['nullable', 'date'],
-            'status' => ['required', 'in:new,contacted,qualified,proposal,won,lost'],
+            'status' => ['required', Rule::in(array_keys(Lead::STATUSES))],
             'assigned_to' => ['nullable', 'exists:admins,id'],
             'expected_value' => ['nullable', 'numeric', 'min:0'],
-            'next_follow_up_at' => ['nullable', 'date', 'after_or_equal:today'],
+            'next_follow_up_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }
@@ -45,7 +45,6 @@ class StoreLeadRequest extends FormRequest
             'status.in' => 'Invalid lead status selected.',
             'assigned_to.exists' => 'The selected assignee does not exist.',
             'expected_value.min' => 'Expected value cannot be negative.',
-            'next_follow_up_at.after_or_equal' => 'Next follow-up date must be today or a future date.',
         ];
     }
 }

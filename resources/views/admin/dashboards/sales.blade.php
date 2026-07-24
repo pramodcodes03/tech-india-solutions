@@ -130,7 +130,7 @@
                             @switch($l->status)
                                 @case('won') bg-success/10 text-success @break
                                 @case('lost') bg-danger/10 text-danger @break
-                                @case('proposal') bg-info/10 text-info @break
+                                @case('evaluation') bg-info/10 text-info @break
                                 @default bg-warning/10 text-warning
                             @endswitch
                         ">{{ ucfirst($l->status) }}</span>

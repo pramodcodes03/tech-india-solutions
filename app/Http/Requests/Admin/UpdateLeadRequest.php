@@ -27,7 +27,7 @@ class UpdateLeadRequest extends FormRequest
             'source' => ['required', Rule::in(array_keys(Lead::SOURCES))],
             'product_id' => ['nullable', 'exists:products,id'],
             'lead_date' => ['nullable', 'date'],
-            'status' => ['required', 'in:new,contacted,qualified,proposal,won,lost'],
+            'status' => ['required', Rule::in(array_keys(Lead::STATUSES))],
             'assigned_to' => ['nullable', 'exists:admins,id'],
             'expected_value' => ['nullable', 'numeric', 'min:0'],
             'next_follow_up_at' => ['nullable', 'date'],

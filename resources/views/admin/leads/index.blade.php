@@ -52,12 +52,7 @@
                 </div>
                 <select class="form-select py-2 w-full" x-model="filterStatus" @change="fetchData(1)">
                     <option value="">-- All Status --</option>
-                    <option value="new">New</option>
-                    <option value="contacted">Contacted</option>
-                    <option value="qualified">Qualified</option>
-                    <option value="proposal">Proposal</option>
-                    <option value="won">Won</option>
-                    <option value="lost">Lost</option>
+                    @foreach(\App\Models\Lead::STATUSES as $v => $l)<option value="{{ $v }}">{{ $l }}</option>@endforeach
                 </select>
                 <select class="form-select py-2 w-full" x-model="filterSource" @change="fetchData(1)">
                     <option value="">-- All Sources --</option>
@@ -163,7 +158,7 @@
                                         <span class="badge cursor-pointer select-none" :class="getStatusClass(item.status)" x-text="item.status" @click="open = !open"></span>
                                         <div x-show="open" @click.outside="open = false" x-cloak
                                             class="absolute z-50 mt-1 bg-white dark:bg-[#1b2e4b] border border-gray-200 dark:border-gray-700 rounded shadow-lg min-w-[120px]">
-                                            <template x-for="s in ['new','contacted','qualified','proposal','won','lost']" :key="s">
+                                            <template x-for="s in {{ \Illuminate\Support\Js::from(array_keys(\App\Models\Lead::STATUSES)) }}" :key="s">
                                                 <button type="button"
                                                     class="block w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
                                                     :class="s === item.status ? 'font-bold' : ''"
@@ -261,7 +256,7 @@
                         <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Status</label>
                         <select class="form-select mt-1" x-model="bulkEdit.status">
                             <option value="">— No change —</option>
-                            @foreach(['new'=>'New','contacted'=>'Contacted','qualified'=>'Qualified','proposal'=>'Proposal','won'=>'Won','lost'=>'Lost'] as $v=>$l)<option value="{{ $v }}">{{ $l }}</option>@endforeach
+                            @foreach(\App\Models\Lead::STATUSES as $v=>$l)<option value="{{ $v }}">{{ $l }}</option>@endforeach
                         </select>
                     </div>
                     <div>
@@ -438,14 +433,7 @@
                 },
 
                 getStatusClass(status) {
-                    const classes = {
-                        'new': 'bg-info',
-                        'contacted': 'bg-warning',
-                        'qualified': 'bg-primary',
-                        'proposal': 'bg-secondary',
-                        'won': 'bg-success',
-                        'lost': 'bg-danger'
-                    };
+                    const classes = {{ \Illuminate\Support\Js::from(collect(\App\Models\Lead::STATUS_COLORS)->map(fn ($c) => 'bg-'.$c)) }};
                     return classes[status] || 'bg-primary';
                 },
 

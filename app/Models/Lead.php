@@ -54,6 +54,45 @@ class Lead extends Model
         'other'     => 'Other',
     ];
 
+    /**
+     * Lead pipeline statuses in workflow order (value => label). Single source
+     * of truth: the table filter, form selects, the Kanban board, and
+     * validation all derive from this map, so changing the workflow (adding,
+     * renaming or reordering a stage) means editing only this one place.
+     */
+    public const STATUSES = [
+        'new'        => 'New',
+        'attempted'  => 'Attempted',
+        'contacted'  => 'Contacted',
+        'qualified'  => 'Qualified',
+        'evaluation' => 'Evaluation',
+        'won'        => 'Won',
+        'lost'       => 'Lost',
+    ];
+
+    /** Tailwind theme colour for each status badge / Kanban column border. */
+    public const STATUS_COLORS = [
+        'new'        => 'info',
+        'attempted'  => 'dark',
+        'contacted'  => 'warning',
+        'qualified'  => 'primary',
+        'evaluation' => 'secondary',
+        'won'        => 'success',
+        'lost'       => 'danger',
+    ];
+
+    /** Open / active pipeline stages — everything except Won & Lost. */
+    public const OPEN_STATUSES = ['new', 'attempted', 'contacted', 'qualified', 'evaluation'];
+
+    public static function statusLabel(?string $value): string
+    {
+        if (! $value) {
+            return '—';
+        }
+
+        return self::STATUSES[$value] ?? ucwords(str_replace('_', ' ', $value));
+    }
+
     public static function sourceOptions(): array
     {
         return collect(self::SOURCES)

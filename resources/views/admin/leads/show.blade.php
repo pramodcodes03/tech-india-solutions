@@ -56,16 +56,9 @@
                     <label class="text-sm font-semibold text-gray-500 dark:text-gray-400">Status</label>
                     <p>
                         @php
-                            $statusColors = [
-                                'new' => 'bg-info',
-                                'contacted' => 'bg-warning',
-                                'qualified' => 'bg-primary',
-                                'proposal' => 'bg-secondary',
-                                'won' => 'bg-success',
-                                'lost' => 'bg-danger',
-                            ];
+                            $statusColor = 'bg-'.(\App\Models\Lead::STATUS_COLORS[$lead->status] ?? 'primary');
                         @endphp
-                        <span class="badge {{ $statusColors[$lead->status] ?? 'bg-primary' }}">{{ ucfirst($lead->status) }}</span>
+                        <span class="badge {{ $statusColor }}">{{ \App\Models\Lead::statusLabel($lead->status) }}</span>
                     </p>
                 </div>
                 <div>
@@ -122,7 +115,7 @@
                 <div>
                     <label class="text-xs text-gray-500">Move to</label>
                     <select name="status" class="form-select">
-                        @foreach(['new'=>'New','contacted'=>'Contacted','qualified'=>'Qualified','proposal'=>'Proposal','won'=>'Won','lost'=>'Lost'] as $v=>$l)
+                        @foreach(\App\Models\Lead::STATUSES as $v=>$l)
                             <option value="{{ $v }}" {{ $lead->status===$v ? 'selected' : '' }}>{{ $l }}</option>
                         @endforeach
                     </select>
