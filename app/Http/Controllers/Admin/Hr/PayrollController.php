@@ -3,17 +3,23 @@
 namespace App\Http\Controllers\Admin\Hr;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminNotification;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Payslip;
 use App\Models\SalaryStructure;
+use App\Notifications\NotificationDispatcher;
 use App\Services\PayrollService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class PayrollController extends Controller
 {
+    /** Page sizes offered on the payslip list. */
+    public const PER_PAGE_OPTIONS = [25, 50, 100, 200];
+
     public function __construct(protected PayrollService $service) {}
 
     public function index(Request $request)
@@ -23,17 +29,18 @@ class PayrollController extends Controller
         $month = (int) $request->input('month', now()->month);
         $year = (int) $request->input('year', now()->year);
 
-        $payslips = Payslip::with('employee.department')
-            ->where('month', $month)
-            ->where('year', $year)
-            ->when($request->department_id, fn ($q, $id) => $q->whereHas('employee', fn ($e) => $e->where('department_id', $id)))
-            ->when($request->search, fn ($q, $s) => $q->whereHas('employee', fn ($e) => $e->where(function ($q) use ($s) {
-                $q->where('first_name', 'like', "%{$s}%")
-                    ->orWhere('last_name', 'like', "%{$s}%")
-                    ->orWhere('employee_code', 'like', "%{$s}%");
-            })))
+        // 25 a page meant 17+ pages for a normal month, which makes selecting
+        // and deleting in bulk a chore. Default to 100 and let the user pick,
+        // from a whitelist so a hand-edited URL cannot ask for the lot.
+        $perPage = (int) $request->input('per_page', 100);
+        if (! in_array($perPage, self::PER_PAGE_OPTIONS, true)) {
+            $perPage = 100;
+        }
+
+        $payslips = $this->filtered($request, $month, $year)
+            ->with('employee.department')
             ->latest()
-            ->paginate(25)
+            ->paginate($perPage)
             ->withQueryString();
 
         $totals = Payslip::where('month', $month)->where('year', $year)
@@ -42,7 +49,7 @@ class PayrollController extends Controller
 
         $departments = Department::where('status', 'active')->orderBy('name')->get();
 
-        return view('admin.hr.payroll.index', compact('payslips', 'month', 'year', 'totals', 'departments'));
+        return view('admin.hr.payroll.index', compact('perPage', 'payslips', 'month', 'year', 'totals', 'departments'));
     }
 
     public function generateForm()
@@ -63,7 +70,7 @@ class PayrollController extends Controller
 
         $month = (int) $data['month'];
         $year = (int) $data['year'];
-        $period = sprintf('%s %d', \Carbon\Carbon::create()->month($month)->format('M'), $year);
+        $period = sprintf('%s %d', Carbon::create()->month($month)->format('M'), $year);
 
         // ─── Single employee ───────────────────────────────────────────────
         if (! empty($data['employee_id'])) {
@@ -80,13 +87,14 @@ class PayrollController extends Controller
                 return back()->withInput()->with('error', $e->getMessage());
             } catch (\Throwable $e) {
                 report($e);
+
                 return back()->withInput()->with(
                     'error',
                     "Could not generate payslip for {$employee->employee_code}: {$e->getMessage()}",
                 );
             }
 
-            \App\Notifications\NotificationDispatcher::fire(
+            NotificationDispatcher::fire(
                 'payslip.generated',
                 $payslip->loadMissing('employee'),
                 ['period' => $period],
@@ -102,6 +110,7 @@ class PayrollController extends Controller
             $result = $this->service->generateBulk($month, $year);
         } catch (\Throwable $e) {
             report($e);
+
             return back()->withInput()->with('error', "Bulk generation failed: {$e->getMessage()}");
         }
 
@@ -114,14 +123,14 @@ class PayrollController extends Controller
         }
 
         // Send each generated payslip to its employee.
-        $newPayslips = \App\Models\Payslip::with('employee')
+        $newPayslips = Payslip::with('employee')
             ->where('month', $month)
             ->where('year', $year)
             ->latest()
             ->take($result['success'])
             ->get();
         foreach ($newPayslips as $payslip) {
-            \App\Notifications\NotificationDispatcher::fire(
+            NotificationDispatcher::fire(
                 'payslip.generated',
                 $payslip,
                 ['period' => $period],
@@ -129,7 +138,7 @@ class PayrollController extends Controller
         }
 
         // Summary email to HR admin.
-        \App\Notifications\NotificationDispatcher::fire('payroll.completed', null, [
+        NotificationDispatcher::fire('payroll.completed', null, [
             'period' => $period,
             'employees_count' => $result['success'],
             'errors_count' => count($result['errors']),
@@ -185,11 +194,11 @@ class PayrollController extends Controller
         ]);
         $payslip->update(array_merge($data, ['status' => 'paid']));
 
-        \App\Notifications\NotificationDispatcher::fire(
+        NotificationDispatcher::fire(
             'payslip.paid',
             $payslip->loadMissing('employee'),
             [
-                'period' => sprintf('%s %d', \Carbon\Carbon::create()->month($payslip->month)->format('M'), $payslip->year),
+                'period' => sprintf('%s %d', Carbon::create()->month($payslip->month)->format('M'), $payslip->year),
             ],
         );
 
@@ -232,7 +241,7 @@ class PayrollController extends Controller
         // We no longer fire 'salary_structure.changed' here — that event
         // notifies the employee, and the employee shouldn't see CTC changes
         // until approval lands.
-        \App\Notifications\NotificationDispatcher::fire('salary_structure.submitted', $structure);
+        NotificationDispatcher::fire('salary_structure.submitted', $structure);
 
         return redirect()->route('admin.hr.employees.show', $employee)
             ->with('success', 'Salary structure submitted for approval. The previous structure remains in effect until Admin approves.');
@@ -241,6 +250,7 @@ class PayrollController extends Controller
     public function previewStructure(Request $request)
     {
         $ctc = (float) $request->input('ctc_annual', 0);
+
         return response()->json($this->service->buildStructureFromCtc($ctc));
     }
 
@@ -302,8 +312,8 @@ class PayrollController extends Controller
         $approved->loadMissing('employee', 'submitter');
         // Clear the original "Pending approval" bell rows so the badge count
         // doesn't keep pointing at this now-actioned record.
-        \App\Models\AdminNotification::markRelatedAsRead($approved, ['salary_structure.submitted']);
-        \App\Notifications\NotificationDispatcher::fire('salary_structure.approved', $approved);
+        AdminNotification::markRelatedAsRead($approved, ['salary_structure.submitted']);
+        NotificationDispatcher::fire('salary_structure.approved', $approved);
 
         return back()->with('success', "Approved. Structure for {$approved->employee->first_name} is now active.");
     }
@@ -325,9 +335,144 @@ class PayrollController extends Controller
         }
 
         $rejected->loadMissing('employee', 'submitter');
-        \App\Models\AdminNotification::markRelatedAsRead($rejected, ['salary_structure.submitted']);
-        \App\Notifications\NotificationDispatcher::fire('salary_structure.rejected', $rejected);
+        AdminNotification::markRelatedAsRead($rejected, ['salary_structure.submitted']);
+        NotificationDispatcher::fire('salary_structure.rejected', $rejected);
 
         return back()->with('success', 'Salary structure rejected. HR has been notified.');
+    }
+
+    /**
+     * The payslip query behind the list — shared with bulk delete so "delete
+     * everything matching this filter" can never select a different set from
+     * the one the user is looking at.
+     */
+    private function filtered(Request $request, int $month, int $year)
+    {
+        return Payslip::query()
+            ->where('month', $month)
+            ->where('year', $year)
+            ->when($request->department_id, fn ($q, $id) => $q->whereHas('employee', fn ($e) => $e->where('department_id', $id)))
+            ->when($request->search, fn ($q, $s) => $q->whereHas('employee', fn ($e) => $e->where(function ($q) use ($s) {
+                $q->where('first_name', 'like', "%{$s}%")
+                    ->orWhere('last_name', 'like', "%{$s}%")
+                    ->orWhere('employee_code', 'like', "%{$s}%");
+            })));
+    }
+
+    /**
+     * Employee-wise delete: remove one employee's payslip for the month without
+     * disturbing the rest of the run.
+     */
+    public function destroy(Request $request, Payslip $payslip)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('payroll.delete'), 403);
+
+        $override = $request->boolean('override_paid')
+            && Auth::guard('admin')->user()->can('payroll.delete_paid');
+
+        if ($payslip->status === 'paid' && ! $override) {
+            return back()->with('error',
+                "{$payslip->payslip_code} is already marked Paid. Removing it needs an admin override.");
+        }
+
+        $period = $payslip->period_label;
+        $result = $this->service->deletePayslips([$payslip], $override);
+        $this->logDeletion($result, $period);
+
+        return redirect()
+            ->route('admin.hr.payroll.index', ['month' => $payslip->month, 'year' => $payslip->year])
+            ->with('success', $this->deletionMessage($result));
+    }
+
+    /**
+     * Bulk delete: either the ticked rows, or everything matching the current
+     * month / department / search filter.
+     */
+    public function bulkDestroy(Request $request)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('payroll.delete'), 403);
+
+        $data = $request->validate([
+            'month' => ['required', 'integer', 'between:1,12'],
+            'year' => ['required', 'integer', 'between:2020,2100'],
+            'select_all' => ['nullable', 'boolean'],
+            'ids' => ['nullable', 'array'],
+            'ids.*' => ['integer'],
+            'override_paid' => ['nullable', 'boolean'],
+        ]);
+
+        $override = $request->boolean('override_paid')
+            && Auth::guard('admin')->user()->can('payroll.delete_paid');
+
+        $query = $this->filtered($request, (int) $data['month'], (int) $data['year']);
+
+        if (! $request->boolean('select_all')) {
+            $ids = $data['ids'] ?? [];
+            if (empty($ids)) {
+                return back()->with('warning', 'No payslips were selected.');
+            }
+            $query->whereIn('id', $ids);
+        }
+
+        $payslips = $query->get();
+
+        if ($payslips->isEmpty()) {
+            return back()->with('warning', 'No payslips matched — nothing was deleted.');
+        }
+
+        $period = Carbon::createFromDate((int) $data['year'], (int) $data['month'], 1)->format('F Y');
+        $result = $this->service->deletePayslips($payslips, $override);
+        $this->logDeletion($result, $period);
+
+        $level = $result['deleted'] === 0 ? 'warning' : ($result['skipped_paid'] > 0 ? 'warning' : 'success');
+
+        return back()->with($level, $this->deletionMessage($result));
+    }
+
+    /**
+     * One audit entry per action carrying the user, the count and the payslip
+     * codes — enough to reconstruct what was removed without a row per slip.
+     */
+    private function logDeletion(array $result, string $period): void
+    {
+        if ($result['deleted'] === 0) {
+            return;
+        }
+
+        activity('payroll')
+            ->causedBy(Auth::guard('admin')->user())
+            ->withProperties([
+                'period' => $period,
+                'deleted' => $result['deleted'],
+                'skipped_paid' => $result['skipped_paid'],
+                'released_penalties' => $result['released_penalties'],
+                'released_adjustments' => $result['released_adjustments'],
+                'payslip_codes' => $result['codes'],
+            ])
+            ->log("Deleted {$result['deleted']} payslip(s) for {$period}");
+    }
+
+    /** Plain-English outcome, including what was put back into circulation. */
+    private function deletionMessage(array $result): string
+    {
+        if ($result['deleted'] === 0) {
+            return $result['skipped_paid'] > 0
+                ? "Nothing deleted — {$result['skipped_paid']} payslip(s) are marked Paid and need an admin override."
+                : 'Nothing was deleted.';
+        }
+
+        $parts = ["Deleted {$result['deleted']} payslip(s)."];
+
+        if ($result['skipped_paid'] > 0) {
+            $parts[] = "{$result['skipped_paid']} already marked Paid were kept — they need an admin override.";
+        }
+        if ($result['released_penalties'] > 0) {
+            $parts[] = "{$result['released_penalties']} penalty deduction(s) returned to pending.";
+        }
+        if ($result['released_adjustments'] > 0) {
+            $parts[] = "{$result['released_adjustments']} payroll adjustment(s) released for the next run.";
+        }
+
+        return implode(' ', $parts);
     }
 }

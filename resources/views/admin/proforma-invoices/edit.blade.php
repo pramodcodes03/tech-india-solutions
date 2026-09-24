@@ -77,8 +77,8 @@
                                         <input type="text" class="form-input" :name="`items[${index}][description]`" x-model="item.description" />
                                     </div>
                                     <div>
-                                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">HSN Code</label>
-                                        <input type="text" class="form-input" :name="`items[${index}][hsn_code]`" x-model="item.hsn_code" />
+                                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">HSN / SAC Code</label>
+                                        <input type="text" class="form-input" :name="`items[${index}][hsn_code]`" x-model="item.hsn_code" placeholder="e.g. 998313 (SAC) or 6403 (HSN)" />
                                     </div>
                                 </div>
                                 <button type="button"

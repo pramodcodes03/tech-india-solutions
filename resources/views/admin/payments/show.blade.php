@@ -5,6 +5,12 @@
         <div class="flex items-center justify-between mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Payment Details</h5>
             <div class="flex items-center gap-2">
+                @if($payment->attachment)
+                    <a href="{{ asset('storage/'.$payment->attachment) }}" target="_blank" rel="noopener" class="btn btn-outline-success btn-sm">View Receipt</a>
+                @endif
+                @can('payments.edit')
+                    <a href="{{ route('admin.payments.edit', $payment->id) }}" class="btn btn-outline-warning btn-sm">Edit</a>
+                @endcan
                 <form action="{{ route('admin.payments.destroy', $payment->id) }}" method="POST" class="inline" x-data @submit.prevent="confirmDelete($el)">
                     @csrf
                     @method('DELETE')
@@ -35,7 +41,7 @@
                 </div>
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Payment Mode</p>
-                    <span class="badge bg-primary">{{ ucfirst(str_replace('_', ' ', $payment->mode)) }}</span>
+                    <x-payment-mode :mode="$payment->mode" />
                 </div>
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Reference / UTR No</p>

@@ -3,8 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Business;
+use App\Models\Employee;
 use App\Models\ExpenseBudget;
+use App\Models\ExpenseBudgetTopup;
 use App\Models\ExpenseCategory;
+use App\Notifications\NotificationDispatcher;
+use App\Support\Tenancy\CurrentBusiness;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -34,6 +39,7 @@ class BudgetController extends Controller
             'employee' => fn ($q) => $q->withoutGlobalScopes(),
             'business' => fn ($q) => $q->withoutGlobalScopes(),
             'expenses' => fn ($q) => $q->withoutGlobalScopes()->with(['submittedByEmployee' => fn ($e) => $e->withoutGlobalScopes()])->latest('expense_date'),
+            'topups' => fn ($q) => $q->withoutGlobalScopes()->with('addedBy')->latest('added_on'),
         ])
             ->when($request->filled('f_business'), fn ($q) => $q->where('business_id', $request->f_business))
             ->when($request->filled('f_category'), fn ($q) => $q->where('expense_category_id', $request->f_category))
@@ -48,15 +54,15 @@ class BudgetController extends Controller
         // (staff who work across companies get separate budgets per business).
         // Normal admins are scoped to their own business by the global scope.
         $employees = ($isSuperAdmin
-                ? \App\Models\Employee::withoutGlobalScopes()->with('business')
-                : \App\Models\Employee::query())
+                ? Employee::withoutGlobalScopes()->with('business')
+                : Employee::query())
             ->whereIn('status', ['active', 'probation'])
             ->orderBy('first_name')
             ->get(['id', 'first_name', 'last_name', 'employee_code', 'business_id']);
 
         // "Budget for Business" — only super admins choose; others use their own.
         $businesses = $isSuperAdmin
-            ? \App\Models\Business::orderBy('name')->get(['id', 'name'])
+            ? Business::orderBy('name')->get(['id', 'name'])
             : collect();
 
         return view('admin.budgets.index', compact('budgets', 'categories', 'employees', 'businesses', 'isSuperAdmin'));
@@ -71,7 +77,7 @@ class BudgetController extends Controller
 
         // Notify the employee when a budget is sanctioned to them.
         if ($budget->employee_id) {
-            \App\Notifications\NotificationDispatcher::fire(
+            NotificationDispatcher::fire(
                 'budget.assigned',
                 $budget->loadMissing('employee', 'category', 'business'),
             );
@@ -91,7 +97,7 @@ class BudgetController extends Controller
         // budget created without an employee and assigned later, or moved to a
         // different employee. Only fire when the assignee actually changed.
         if ($budget->employee_id && $budget->employee_id !== $previousEmployeeId) {
-            \App\Notifications\NotificationDispatcher::fire(
+            NotificationDispatcher::fire(
                 'budget.assigned',
                 $budget->loadMissing('employee', 'category', 'business'),
             );
@@ -106,6 +112,49 @@ class BudgetController extends Controller
         $budget->delete();
 
         return back()->with('success', 'Budget deleted.');
+    }
+
+    /**
+     * Add money to an existing budget mid-period. Recorded as its own row so
+     * the sanctioned base and each addition stay separately visible to both
+     * the admin and the employee — we never silently rewrite `amount`.
+     */
+    public function topup(Request $request, ExpenseBudget $budget)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('budgets.manage'), 403);
+
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'note' => ['nullable', 'string', 'max:255'],
+            'added_on' => ['nullable', 'date'],
+        ]);
+
+        $budget->topups()->create([
+            'business_id' => $budget->business_id,
+            'amount' => $data['amount'],
+            'note' => $data['note'] ?? null,
+            'added_on' => $data['added_on'] ?? now()->toDateString(),
+            'added_by' => Auth::guard('admin')->id(),
+        ]);
+
+        return back()->with('success', 'Top-up of '.number_format((float) $data['amount'], 2).' added to the budget.');
+    }
+
+    /**
+     * Remove a top-up. Resolved by id without the tenant scope and then
+     * verified against the parent budget, so a super admin acting on another
+     * company's budget doesn't 404 on the scoped binding.
+     */
+    public function destroyTopup(ExpenseBudget $budget, int $topup)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('budgets.manage'), 403);
+
+        $row = ExpenseBudgetTopup::withoutGlobalScopes()->findOrFail($topup);
+        abort_unless($row->expense_budget_id === $budget->id, 404);
+
+        $row->delete();
+
+        return back()->with('success', 'Top-up removed.');
     }
 
     private function validateBudget(Request $request): array
@@ -124,7 +173,7 @@ class BudgetController extends Controller
         // everyone else (and any missing value) defaults to the active business.
         $isSuperAdmin = (bool) Auth::guard('admin')->user()?->isSuperAdmin();
         if (! $isSuperAdmin || empty($data['business_id'])) {
-            $data['business_id'] = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
+            $data['business_id'] = app(CurrentBusiness::class)->id();
         }
 
         // Derive period_end from type if not given.

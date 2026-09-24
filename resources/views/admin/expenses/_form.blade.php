@@ -53,7 +53,7 @@
     {{-- Recurrence frequency — only shown when type=recurring --}}
     <div class="mb-4" x-show="type === 'recurring'" x-cloak>
         <label class="form-label">Recurrence Frequency <span class="text-danger">*</span></label>
-        <select name="recurrence_frequency" class="form-select" x-model="frequency">
+        <select name="recurrence_frequency" class="form-select" x-model="frequency" :disabled="type !== 'recurring'">
             @foreach(\App\Models\Expense::RECURRENCES as $key => $label)
                 <option value="{{ $key }}">{{ $label }}</option>
             @endforeach
@@ -113,17 +113,20 @@
             <input type="date" name="expense_date" class="form-input" value="{{ old('expense_date', $expense?->expense_date?->toDateString() ?? now()->toDateString()) }}" required>
         </div>
 
-        {{-- One-off due_date --}}
+        {{-- One-off due_date. :disabled when hidden so the input isn't submitted —
+             the form has a second due_date field for non-monthly recurring below,
+             and a hidden duplicate would win (last field wins) and silently
+             overwrite the date the user actually picked. --}}
         <div x-show="type === 'one_off'" x-cloak>
             <label class="form-label">Due Date</label>
-            <input type="date" name="due_date" class="form-input" value="{{ old('due_date', $expense?->due_date?->toDateString()) }}">
+            <input type="date" name="due_date" class="form-input" :disabled="type !== 'one_off'" value="{{ old('due_date', $expense?->due_date?->toDateString()) }}">
             <p class="text-xs text-gray-500 mt-1">Optional. If set, reminders fire 3 days before.</p>
         </div>
 
         {{-- Monthly recurring: day-of-month --}}
         <div x-show="type === 'recurring' && frequency === 'monthly'" x-cloak>
             <label class="form-label">Due Day of Month <span class="text-danger">*</span></label>
-            <input type="number" min="1" max="28" name="due_day_of_month" class="form-input" value="{{ old('due_day_of_month', $expense?->due_day_of_month ?? 1) }}">
+            <input type="number" min="1" max="28" name="due_day_of_month" class="form-input" :disabled="type !== 'recurring' || frequency !== 'monthly'" value="{{ old('due_day_of_month', $expense?->due_day_of_month ?? 1) }}">
             <p class="text-xs text-gray-500 mt-1">1–28. Reminders fire 3 days, 1 day, on the day, then daily until paid.</p>
         </div>
 
@@ -132,7 +135,7 @@
              cadence offset. Reuses the same `due_date` field. --}}
         <div x-show="type === 'recurring' && frequency !== 'monthly'" x-cloak>
             <label class="form-label">First Due Date <span class="text-danger">*</span></label>
-            <input type="date" name="due_date" class="form-input" value="{{ old('due_date', $expense?->due_date?->toDateString() ?? now()->toDateString()) }}">
+            <input type="date" name="due_date" class="form-input" :disabled="type !== 'recurring' || frequency === 'monthly'" value="{{ old('due_date', $expense?->due_date?->toDateString() ?? now()->toDateString()) }}">
             <p class="text-xs text-gray-500 mt-1">
                 The first occurrence. Subsequent instances are spawned automatically
                 one cycle (week / 3 months / 6 months / year) after the previous due date.

@@ -344,7 +344,7 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm text-gray-700 dark:text-gray-300">
-                            <span class="font-semibold">{{ $activity->causer->name ?? 'System' }}</span>
+                            <span class="font-semibold">{{ \App\Support\SuperAdminMask::label($activity->causer) }}</span>
                             {{ $activity->description }}
                             @if($activity->subject_type)
                                 <span class="text-gray-400 text-xs ml-1">({{ class_basename($activity->subject_type) }})</span>

@@ -2,14 +2,21 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\LeadProductReportExport;
+use App\Exports\LeadsExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreLeadRequest;
 use App\Http\Requests\Admin\UpdateLeadRequest;
 use App\Models\Admin;
 use App\Models\Lead;
+use App\Models\Product;
+use App\Notifications\NotificationDispatcher;
+use App\Services\LeadImportService;
 use App\Services\LeadService;
+use App\Support\Tenancy\CurrentBusiness;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Excel;
 
 class LeadController extends Controller
 {
@@ -53,7 +60,7 @@ class LeadController extends Controller
             // end is optional. Old leads without a lead_date fall back to
             // created_at via COALESCE so they are never dropped from results.
             ->when($request->from_date, fn ($q, $d) => $q->whereRaw('DATE(COALESCE(lead_date, created_at)) >= ?', [$d]))
-            ->when($request->to_date,   fn ($q, $d) => $q->whereRaw('DATE(COALESCE(lead_date, created_at)) <= ?', [$d]))
+            ->when($request->to_date, fn ($q, $d) => $q->whereRaw('DATE(COALESCE(lead_date, created_at)) <= ?', [$d]))
             ->latest()
             ->paginate($this->leadsPerPage($request));
 
@@ -65,10 +72,12 @@ class LeadController extends Controller
         $transform = function ($lead) {
             $arr = $lead->toArray();
             $arr['assigned_to_name'] = $lead->assignedTo?->name;
-            $arr['next_follow_up']   = $lead->next_follow_up_at?->toDateString();
-            $arr['created_date']     = $lead->created_at?->toDateString();
+            $arr['product_name'] = $lead->product?->name;
+            $arr['next_follow_up'] = $lead->next_follow_up_at?->toDateString();
+            $arr['created_date'] = $lead->created_at?->toDateString();
             // Lead Received Date — falls back to created date for old leads.
-            $arr['received_date']    = ($lead->lead_date ?? $lead->created_at)?->toDateString();
+            $arr['received_date'] = ($lead->lead_date ?? $lead->created_at)?->toDateString();
+
             return $arr;
         };
 
@@ -93,11 +102,11 @@ class LeadController extends Controller
         }
 
         $admins = Admin::where('status', 'active')
-            ->where('business_id', app(\App\Support\Tenancy\CurrentBusiness::class)->id())
+            ->where('business_id', app(CurrentBusiness::class)->id())
             ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'Super Admin'))
             ->orderBy('name')->get();
         $sources = Lead::SOURCES;
-        $products = \App\Models\Product::orderBy('name')->get(['id', 'name']);
+        $products = Product::orderBy('name')->get(['id', 'name']);
         // Cities that actually appear on leads — powers the City filter dropdown.
         $cities = Lead::whereNotNull('city')->where('city', '!=', '')
             ->distinct()->orderBy('city')->pluck('city');
@@ -115,17 +124,17 @@ class LeadController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('leads.view'), 403);
 
-        $filters = $request->only(['search', 'status', 'source', 'assigned_to', 'city', 'from_date', 'to_date']);
+        $filters = $request->only(['search', 'status', 'source', 'product_id', 'assigned_to', 'city', 'from_date', 'to_date']);
 
         $format = $request->get('format') === 'csv' ? 'csv' : 'xlsx';
         $filename = 'leads-'.date('Y-m-d').'.'.$format;
 
         $writerType = $format === 'csv'
-            ? \Maatwebsite\Excel\Excel::CSV
-            : \Maatwebsite\Excel\Excel::XLSX;
+            ? Excel::CSV
+            : Excel::XLSX;
 
         return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\LeadsExport($filters),
+            new LeadsExport($filters),
             $filename,
             $writerType
         );
@@ -150,7 +159,7 @@ class LeadController extends Controller
 
         if ($request->get('export') === 'excel') {
             return \Maatwebsite\Excel\Facades\Excel::download(
-                new \App\Exports\LeadProductReportExport($filters),
+                new LeadProductReportExport($filters),
                 'lead-product-report-'.date('Y-m-d').'.xlsx'
             );
         }
@@ -165,23 +174,28 @@ class LeadController extends Controller
             ->with('product')
             ->get();
 
-        $products = \App\Models\Product::orderBy('name')->get(['id', 'name']);
+        $products = Product::orderBy('name')->get(['id', 'name']);
         $admins = Admin::where('status', 'active')->orderBy('name')->get(['id', 'name']);
         $sources = Lead::SOURCES;
 
         return view('admin.leads.report', compact('byProduct', 'products', 'admins', 'sources', 'filters'));
     }
 
-    public function kanban()
+    public function kanban(Request $request)
     {
         abort_unless(Auth::guard('admin')->user()->can('leads.view'), 403);
 
-        $leadsByStatus = Lead::with(['assignedTo'])
+        $productId = $request->integer('product_id') ?: null;
+
+        $leadsByStatus = Lead::with(['assignedTo', 'product'])
+            ->when($productId, fn ($q, $p) => $q->where('product_id', $p))
             ->orderBy('updated_at', 'desc')
             ->get()
             ->groupBy('status');
 
-        return view('admin.leads.kanban', compact('leadsByStatus'));
+        $products = Product::where('status', 'active')->orderBy('name')->get();
+
+        return view('admin.leads.kanban', compact('leadsByStatus', 'products', 'productId'));
     }
 
     public function create()
@@ -189,11 +203,11 @@ class LeadController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('leads.create'), 403);
 
         $admins = Admin::where('status', 'active')
-            ->where('business_id', app(\App\Support\Tenancy\CurrentBusiness::class)->id())
+            ->where('business_id', app(CurrentBusiness::class)->id())
             ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'Super Admin'))
             ->orderBy('name')->get();
         $sources = Lead::sourceOptions();
-        $products = \App\Models\Product::orderBy('name')->get(['id', 'name']);
+        $products = Product::orderBy('name')->get(['id', 'name']);
 
         return view('admin.leads.create', compact('admins', 'sources', 'products'));
     }
@@ -205,7 +219,7 @@ class LeadController extends Controller
         $lead = $this->leadService->create($request->validated());
 
         if ($lead->assigned_to) {
-            \App\Notifications\NotificationDispatcher::fire(
+            NotificationDispatcher::fire(
                 'lead.assigned',
                 $lead->loadMissing('assignedTo'),
             );
@@ -229,11 +243,11 @@ class LeadController extends Controller
 
         $lead = Lead::findOrFail($id);
         $admins = Admin::where('status', 'active')
-            ->where('business_id', app(\App\Support\Tenancy\CurrentBusiness::class)->id())
+            ->where('business_id', app(CurrentBusiness::class)->id())
             ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'Super Admin'))
             ->orderBy('name')->get();
         $sources = Lead::sourceOptions();
-        $products = \App\Models\Product::orderBy('name')->get(['id', 'name']);
+        $products = Product::orderBy('name')->get(['id', 'name']);
 
         return view('admin.leads.edit', compact('lead', 'admins', 'sources', 'products'));
     }
@@ -248,7 +262,7 @@ class LeadController extends Controller
 
         // Fire reassignment when assignee changed.
         if ($lead->fresh()->assigned_to && $lead->fresh()->assigned_to !== $oldAssignee) {
-            \App\Notifications\NotificationDispatcher::fire(
+            NotificationDispatcher::fire(
                 'lead.assigned',
                 $lead->fresh()->loadMissing('assignedTo'),
             );
@@ -385,14 +399,14 @@ class LeadController extends Controller
     /**
      * Process the uploaded import file.
      */
-    public function import(Request $request, \App\Services\LeadImportService $importer)
+    public function import(Request $request, LeadImportService $importer)
     {
         abort_unless(Auth::guard('admin')->user()->can('leads.create'), 403);
         $request->validate([
             'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:5120'],
         ]);
 
-        $businessId = app(\App\Support\Tenancy\CurrentBusiness::class)->id();
+        $businessId = app(CurrentBusiness::class)->id();
         $result = $importer->import($request->file('file'), $businessId);
 
         return redirect()->route('admin.leads.index')
@@ -412,7 +426,7 @@ class LeadController extends Controller
 
         $customer = $this->leadService->convertToCustomer($lead);
 
-        \App\Notifications\NotificationDispatcher::fire(
+        NotificationDispatcher::fire(
             'lead.converted',
             $lead->fresh(),
             ['customer_code' => $customer->code, 'customer_name' => $customer->name],
@@ -436,7 +450,7 @@ class LeadController extends Controller
         $this->leadService->changeStatus($lead, $request->status, $request->remarks);
 
         if ($oldStatus !== $request->status) {
-            \App\Notifications\NotificationDispatcher::fire(
+            NotificationDispatcher::fire(
                 'lead.status_changed',
                 $lead->fresh()->loadMissing('assignedTo'),
                 ['old_status' => $oldStatus, 'new_status' => $request->status],

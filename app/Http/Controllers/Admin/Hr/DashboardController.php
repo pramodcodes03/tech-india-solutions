@@ -24,7 +24,7 @@ class DashboardController extends Controller
      * day)]. Used by the period-based metrics on every analytics dashboard;
      * point-in-time metrics (stock, receivables, totals) ignore it.
      */
-    private function dateRange(\Illuminate\Http\Request $request): array
+    private function dateRange(Request $request): array
     {
         $today = Carbon::today();
 
@@ -110,18 +110,75 @@ class DashboardController extends Controller
         $payslipsTotal = Payslip::where($payslipInRange)->count();
 
         // ── Chart 1: Headcount trend (last 12 months, line) ──────────────
+        //
+        // The `status` column is the authority for what someone IS; the date
+        // columns only refine WHEN it changed, and only where they exist.
+        // Deriving this from dates alone was wrong on live data: 150 employees
+        // marked Inactive carry no last_working_date at all, so they read as
+        // still on the roll, and 20 of the 25 on probation have a confirmation
+        // date already in the past, so they read as active. That is why the
+        // Inactive line sat at zero and probation showed 5 instead of 25.
+        //
+        //   total      everyone on the books that month
+        //   inactive   left by then, or marked as a leaver with no date recorded
+        //   probation  marked probation, or still inside a recorded probation
+        //   active     everyone else on the books
+        //
+        // total = active + inactive + probation.
+        $leaverStatuses = ['inactive', 'terminated', 'resigned', 'absconded'];
+
+        $people = Employee::query()
+            ->select('status', 'joining_date', 'last_working_date', 'confirmation_date', 'probation_end_date')
+            ->whereNotNull('joining_date')
+            ->get();
+
         $headcountTrend = [];
         for ($i = 11; $i >= 0; $i--) {
             $m = Carbon::today()->subMonths($i);
-            $count = Employee::where('joining_date', '<=', $m->copy()->endOfMonth())
-                ->where(function ($q) use ($m) {
-                    $q->whereNull('last_working_date')
-                        ->orWhere('last_working_date', '>', $m->copy()->endOfMonth());
-                })
-                ->count();
+            $monthEnd = $m->copy()->endOfMonth();
+
+            $total = 0;
+            $active = 0;
+            $probation = 0;
+            $inactive = 0;
+
+            foreach ($people as $p) {
+                if ($p->joining_date === null || $p->joining_date->gt($monthEnd)) {
+                    continue; // had not joined yet
+                }
+
+                $total++;
+
+                // A recorded last working day dates the departure exactly. With
+                // no date, the status is the only evidence there is, so it
+                // applies across the whole window rather than being ignored.
+                $hasLeft = $p->last_working_date !== null
+                    ? $p->last_working_date->lte($monthEnd)
+                    : in_array($p->status, $leaverStatuses, true);
+
+                if ($hasLeft) {
+                    $inactive++;
+
+                    continue;
+                }
+
+                // Marked probation wins outright — on this data the stored
+                // confirmation date frequently contradicts it. For everyone
+                // else the dates reconstruct the month they were confirmed in.
+                $onProbation = $p->status === 'probation'
+                    || ($p->confirmation_date !== null
+                        ? $p->confirmation_date->gt($monthEnd)
+                        : ($p->probation_end_date !== null && $p->probation_end_date->gt($monthEnd)));
+
+                $onProbation ? $probation++ : $active++;
+            }
+
             $headcountTrend[] = [
                 'label' => $m->format('M Y'),
-                'value' => $count,
+                'value' => $total,
+                'active' => $active,
+                'inactive' => $inactive,
+                'probation' => $probation,
             ];
         }
 
@@ -194,12 +251,19 @@ class DashboardController extends Controller
         Employee::whereNotNull('date_of_birth')->select('date_of_birth')->chunk(500, function ($chunk) use (&$ageBuckets) {
             foreach ($chunk as $e) {
                 $age = Carbon::parse($e->date_of_birth)->age;
-                if ($age < 25) $ageBuckets['<25']++;
-                elseif ($age <= 30) $ageBuckets['25-30']++;
-                elseif ($age <= 35) $ageBuckets['31-35']++;
-                elseif ($age <= 40) $ageBuckets['36-40']++;
-                elseif ($age <= 50) $ageBuckets['41-50']++;
-                else $ageBuckets['50+']++;
+                if ($age < 25) {
+                    $ageBuckets['<25']++;
+                } elseif ($age <= 30) {
+                    $ageBuckets['25-30']++;
+                } elseif ($age <= 35) {
+                    $ageBuckets['31-35']++;
+                } elseif ($age <= 40) {
+                    $ageBuckets['36-40']++;
+                } elseif ($age <= 50) {
+                    $ageBuckets['41-50']++;
+                } else {
+                    $ageBuckets['50+']++;
+                }
             }
         });
 
@@ -208,11 +272,17 @@ class DashboardController extends Controller
         Employee::whereNotNull('joining_date')->select('joining_date')->chunk(500, function ($chunk) use (&$tenureBuckets) {
             foreach ($chunk as $e) {
                 $years = Carbon::parse($e->joining_date)->diffInYears(now());
-                if ($years < 1) $tenureBuckets['< 1 yr']++;
-                elseif ($years < 2) $tenureBuckets['1-2 yr']++;
-                elseif ($years < 5) $tenureBuckets['2-5 yr']++;
-                elseif ($years < 10) $tenureBuckets['5-10 yr']++;
-                else $tenureBuckets['10+ yr']++;
+                if ($years < 1) {
+                    $tenureBuckets['< 1 yr']++;
+                } elseif ($years < 2) {
+                    $tenureBuckets['1-2 yr']++;
+                } elseif ($years < 5) {
+                    $tenureBuckets['2-5 yr']++;
+                } elseif ($years < 10) {
+                    $tenureBuckets['5-10 yr']++;
+                } else {
+                    $tenureBuckets['10+ yr']++;
+                }
             }
         });
 
@@ -247,9 +317,12 @@ class DashboardController extends Controller
             ->map(function ($e) {
                 $dob = Carbon::parse($e->date_of_birth);
                 $next = $dob->copy()->year(now()->year);
-                if ($next->lt(now()->startOfDay())) $next->addYear();
+                if ($next->lt(now()->startOfDay())) {
+                    $next->addYear();
+                }
                 $e->next_birthday = $next;
                 $e->days_until = now()->startOfDay()->diffInDays($next, false);
+
                 return $e;
             })
             ->filter(fn ($e) => $e->days_until >= 0 && $e->days_until <= 30)

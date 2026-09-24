@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin;
 use App\Models\Invoice;
+use App\Models\Quotation;
 use App\Services\DashboardService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
+use Spatie\Activitylog\Models\Activity;
 
 class AuthController extends Controller
 {
@@ -72,6 +76,7 @@ class AuthController extends Controller
             if ($fallback === route('admin.dashboard')) {
                 abort(403, 'You do not have access to the Analytics Dashboard.');
             }
+
             return redirect()->to($fallback);
         }
 
@@ -80,20 +85,25 @@ class AuthController extends Controller
         $salesTrend = $this->dashboardService->getSalesTrend();
         $topCustomers = $this->dashboardService->getTopCustomers();
         $topProducts = $this->dashboardService->getTopProducts();
-        $recentQuotations = \App\Models\Quotation::with('customer')->latest()->take(5)->get();
-        $recentInvoices = \App\Models\Invoice::with('customer')->latest()->take(5)->get();
+        $recentQuotations = Quotation::with('customer')->latest()->take(5)->get();
+        $recentInvoices = Invoice::with('customer')->latest()->take(5)->get();
         $overdueInvoices = Invoice::with('customer')
             ->where(function ($q) {
                 $q->where('status', 'overdue')
-                  ->orWhere(function ($q2) {
-                      $q2->whereIn('status', ['unpaid', 'partial'])
-                         ->where('due_date', '<', now()->toDateString());
-                  });
+                    ->orWhere(function ($q2) {
+                        $q2->whereIn('status', ['unpaid', 'partial'])
+                            ->where('due_date', '<', now()->toDateString());
+                    });
             })
             ->latest()
             ->take(5)
             ->get();
-        $recentActivity = \Spatie\Activitylog\Models\Activity::with('causer')
+        // morphWith so the Super Admin masking check on each causer does not
+        // fire a roles query per row; `causer` is polymorphic, so only the
+        // Admin branch gets its roles loaded.
+        $recentActivity = Activity::with([
+            'causer' => fn ($morph) => $morph->morphWith([Admin::class => ['roles']]),
+        ])
             ->latest()
             ->take(10)
             ->get();
@@ -143,22 +153,22 @@ class AuthController extends Controller
      *
      * Falls back to the common welcome page if no dashboard is available.
      */
-    protected function defaultLandingFor(\App\Models\Admin $admin): string
+    protected function defaultLandingFor(Admin $admin): string
     {
         $candidates = [
             'analytics_dashboard.view' => 'admin.dashboard',
-            'analytics_hr.view'        => 'admin.hr.dashboard',
-            'analytics_asset.view'     => 'admin.assets.dashboard',
-            'analytics_sales.view'     => 'admin.dashboards.sales',
-            'analytics_service.view'   => 'admin.dashboards.service',
+            'analytics_hr.view' => 'admin.hr.dashboard',
+            'analytics_asset.view' => 'admin.assets.dashboard',
+            'analytics_sales.view' => 'admin.dashboards.sales',
+            'analytics_service.view' => 'admin.dashboards.service',
             'analytics_inventory.view' => 'admin.dashboards.inventory',
-            'analytics_purchase.view'  => 'admin.dashboards.purchase',
-            'analytics_customer.view'  => 'admin.dashboards.customers',
+            'analytics_purchase.view' => 'admin.dashboards.purchase',
+            'analytics_customer.view' => 'admin.dashboards.customers',
             'analytics_executive.view' => 'admin.dashboards.executive',
         ];
 
         foreach ($candidates as $perm => $route) {
-            if ($admin->can($perm) && \Illuminate\Support\Facades\Route::has($route)) {
+            if ($admin->can($perm) && Route::has($route)) {
                 return route($route);
             }
         }
@@ -166,7 +176,7 @@ class AuthController extends Controller
         // No dashboard access at all → land on the common welcome page,
         // which is open to every logged-in admin and offers links to
         // whatever the user CAN access from the sidebar.
-        return \Illuminate\Support\Facades\Route::has('admin.welcome')
+        return Route::has('admin.welcome')
             ? route('admin.welcome')
             : route('admin.dashboard');
     }

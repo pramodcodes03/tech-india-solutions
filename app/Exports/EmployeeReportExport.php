@@ -12,9 +12,7 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
  */
 class EmployeeReportExport implements FromCollection, WithHeadings
 {
-    public function __construct(private array $filters = [])
-    {
-    }
+    public function __construct(private array $filters = []) {}
 
     public function collection()
     {
@@ -45,6 +43,8 @@ class EmployeeReportExport implements FromCollection, WithHeadings
                 optional($e->joining_date)->format('Y-m-d'),
                 optional($e->probation_end_date)->format('Y-m-d'),
                 optional($e->confirmation_date)->format('Y-m-d'),
+                // Same column the manual form and the bulk import write to.
+                optional($e->last_working_date)->format('Y-m-d'),
                 ucfirst(str_replace('_', ' ', (string) $e->employment_type)),
                 $e->gender,
             ]);
@@ -55,7 +55,7 @@ class EmployeeReportExport implements FromCollection, WithHeadings
         return [
             'Employee Code', 'Legacy Employee ID', 'Name', 'Email', 'Phone', 'Department', 'Designation',
             'Shift', 'Reporting Manager', 'Status', 'Joining Date', 'Probation End',
-            'Confirmation Date', 'Employment Type', 'Gender',
+            'Confirmation Date', 'Inactive Date', 'Employment Type', 'Gender',
         ];
     }
 }

@@ -8,10 +8,8 @@ use App\Http\Requests\Admin\UpdateBusinessRequest;
 use App\Models\Admin;
 use App\Models\Business;
 use App\Services\BusinessService;
-use App\Support\Tenancy\CurrentBusiness;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class BusinessController extends Controller
@@ -98,7 +96,16 @@ class BusinessController extends Controller
      */
     public function switch(Request $request, Business $business)
     {
-        $this->authorizeSuperAdmin();
+        // Not authorizeSuperAdmin(): an admin assigned to this business may
+        // switch into it too. Everyone else still gets a 403, so the list of
+        // businesses on screen is the list they can actually reach.
+        $admin = Auth::guard('admin')->user();
+
+        abort_unless(
+            $admin && ($admin->isSuperAdmin()
+                || ($admin->can('businesses.switch') && $admin->canAccessBusiness($business->id))),
+            403,
+        );
 
         abort_unless($business->is_active, 403, 'Business is inactive.');
 

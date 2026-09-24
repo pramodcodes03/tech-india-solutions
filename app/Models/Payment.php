@@ -23,6 +23,7 @@ class Payment extends Model
         'mode',
         'reference_no',
         'notes',
+        'attachment',
         'created_by',
         'updated_by',
         'deleted_by',

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\Penalty;
 use App\Models\PenaltyType;
+use App\Notifications\NotificationDispatcher;
 use App\Services\PenaltyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -59,7 +60,7 @@ class PenaltyController extends Controller
         ]);
         $penalty = $this->service->create($data);
 
-        \App\Notifications\NotificationDispatcher::fire(
+        NotificationDispatcher::fire(
             'penalty.issued',
             $penalty->loadMissing('employee', 'penaltyType'),
         );
@@ -80,7 +81,7 @@ class PenaltyController extends Controller
         try {
             $reduced = $this->service->reduce($penalty, (float) $data['new_amount'], $data['reason']);
 
-            \App\Notifications\NotificationDispatcher::fire(
+            NotificationDispatcher::fire(
                 'penalty.reduced',
                 $reduced->loadMissing('employee'),
                 ['original_amount' => $originalAmount, 'reason' => $data['reason']],
@@ -90,6 +91,22 @@ class PenaltyController extends Controller
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    public function destroy(Penalty $penalty)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('penalties.delete'), 403);
+
+        // A deducted penalty is already inside a generated payslip — removing
+        // it would silently orphan that deduction. Waive/reduce instead.
+        if ($penalty->status === 'deducted') {
+            return back()->with('error', 'This penalty is already deducted in a payslip and cannot be deleted.');
+        }
+
+        $penalty->delete();
+
+        return redirect()->route('admin.hr.penalties.index')
+            ->with('success', 'Penalty deleted.');
     }
 
     // ── Penalty Types admin ──────────────────────────────────────────────

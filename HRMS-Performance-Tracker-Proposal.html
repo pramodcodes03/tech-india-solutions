@@ -1,0 +1,1249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>HRMS Performance &amp; Tracker Modules — Proposal &amp; Quotation</title>
+<style>
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    box-sizing: border-box;
+  }
+  @page { size: A4; margin: 0; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #1f2937;
+    background: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+  }
+
+  /* ── Page wrapper ────────────────────────── */
+  .page {
+    padding: 0;
+    page-break-after: always;
+    position: relative;
+    background: #ffffff !important;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  @media screen {
+    body { background: #e5e7eb; padding: 20px 0; }
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto 20px;
+      padding: 14mm 14mm;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    .cover { padding: 28mm 18mm !important; }
+  }
+
+  /* ── Cover page ──────────────────────────── */
+  .cover {
+    background: linear-gradient(135deg, #0f2b5b 0%, #12356f 55%, #071b3d 100%) !important;
+    background-color: #0f2b5b !important;
+    color: #ffffff !important;
+    padding: 28mm 18mm;
+    position: relative;
+    overflow: hidden;
+    min-height: 297mm;
+  }
+  @media print {
+    .page {
+      width: 210mm;
+      height: 297mm;
+      padding: 14mm;
+      overflow: hidden;
+    }
+    .cover {
+      width: 210mm; height: 297mm; min-height: 297mm;
+      padding: 28mm 18mm !important;
+    }
+  }
+  .cover::before {
+    content: "";
+    position: absolute;
+    top: -120px; right: -120px;
+    width: 380px; height: 380px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.07) !important;
+  }
+  .cover::after {
+    content: "";
+    position: absolute;
+    bottom: -100px; left: -80px;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: rgba(20,184,166,0.22) !important;
+  }
+  .cover-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #2dd4bf !important;
+    padding: 7px 16px;
+    border: 1.5px solid rgba(45,212,191,0.55);
+    border-radius: 999px;
+    margin-bottom: 32px;
+    background: rgba(45,212,191,0.08) !important;
+  }
+  .cover h1 {
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -1.5px;
+    margin: 0 0 18px;
+    color: #ffffff !important;
+  }
+  .cover h1 .accent { color: #2dd4bf !important; }
+  .cover .subtitle {
+    font-size: 17px;
+    color: rgba(255,255,255,0.85) !important;
+    max-width: 520px;
+    line-height: 1.55;
+  }
+  .cover .subtitle strong { color: #fff !important; }
+  .cover-price {
+    margin-top: 26px;
+    display: inline-block;
+    padding: 16px 24px;
+    border-radius: 12px;
+    background: rgba(45,212,191,0.12) !important;
+    border: 1.5px solid rgba(45,212,191,0.4);
+    position: relative;
+  }
+  .cover-price .cp-label {
+    font-size: 10.5px; font-weight: 800; letter-spacing: 2.5px;
+    text-transform: uppercase; color: rgba(255,255,255,0.65) !important;
+  }
+  .cover-price .cp-value {
+    font-size: 34px; font-weight: 900; letter-spacing: -1px;
+    color: #2dd4bf !important; margin-top: 4px;
+  }
+  .cover-price .cp-note {
+    font-size: 11.5px; color: rgba(255,255,255,0.6) !important; margin-top: 3px;
+  }
+  .cover-meta {
+    margin-top: 24mm;
+    border-top: 1px solid rgba(255,255,255,0.22);
+    padding-top: 22px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px 30px;
+    position: relative;
+  }
+  .cover-meta .item .label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.62) !important;
+  }
+  .cover-meta .item .value {
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 5px;
+    color: #ffffff !important;
+  }
+  .cover-footer {
+    position: absolute;
+    left: 18mm; right: 18mm; bottom: 18mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11.5px;
+    color: rgba(255,255,255,0.6) !important;
+    border-top: 1px solid rgba(255,255,255,0.16);
+    padding-top: 14px;
+  }
+  .cover-footer .pill {
+    font-weight: 800;
+    letter-spacing: 2px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    color: rgba(255,255,255,0.78) !important;
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.18);
+  }
+
+  /* ── Content page furniture ──────────────── */
+  .content-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 9px;
+    margin-bottom: 16px;
+  }
+  .content-head .brand {
+    font-size: 12.5px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #0f2b5b !important;
+  }
+  .content-head .page-no {
+    font-size: 11px;
+    color: #9ca3af;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+  }
+  .section-label {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 999px;
+    color: #0f2b5b !important;
+    background: rgba(15,43,91,0.08) !important;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -0.6px;
+    margin: 0 0 8px;
+    color: #111827;
+    line-height: 1.15;
+  }
+  .section-rule {
+    width: 62px;
+    height: 4px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #0f2b5b, #2dd4bf) !important;
+    background-color: #0f2b5b !important;
+    margin-bottom: 15px;
+  }
+  .lead {
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: #4b5563;
+    margin: 0 0 14px;
+    max-width: 640px;
+  }
+
+  /* ── Cards & groups ──────────────────────── */
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .info-card, .chips, .close-strip, .group, .phase, .price-block { page-break-inside: avoid; break-inside: avoid; }
+  .info-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px 15px;
+    background: #fafafa !important;
+  }
+  .info-card .label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: #6b7280;
+  }
+  .info-card .value {
+    font-size: 17px;
+    font-weight: 800;
+    margin-top: 5px;
+    color: #111827;
+  }
+  .info-card .value.teal { color: #0d7a70 !important; }
+  .info-card.brand-card {
+    background: linear-gradient(135deg, rgba(15,43,91,0.08), rgba(45,212,191,0.10)) !important;
+    background-color: rgba(15,43,91,0.06) !important;
+    border-color: rgba(15,43,91,0.18);
+  }
+
+  .group { margin-bottom: 15px; }
+  .group h3 {
+    font-size: 15.5px;
+    font-weight: 800;
+    margin: 0 0 9px;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .group h3 .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px; height: 24px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 900;
+    background: #0f2b5b !important;
+    color: #ffffff !important;
+    flex-shrink: 0;
+  }
+  .group h3 .num.teal { background: #0d9488 !important; }
+  ul.bullets {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+  }
+  ul.bullets li {
+    font-size: 13.2px;
+    line-height: 1.6;
+    color: #374151;
+    padding-left: 17px;
+    margin-bottom: 4px;
+    position: relative;
+  }
+  ul.bullets li::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 8px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #2dd4bf !important;
+  }
+  .tag {
+    display: inline-block;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    margin-left: 5px;
+    vertical-align: middle;
+  }
+  .tag.adm  { background: rgba(15,43,91,0.12) !important;  color: #0f2b5b !important; }
+  .tag.emp  { background: rgba(13,148,136,0.14) !important; color: #0d7a70 !important; }
+  .tag.new  { background: rgba(217,119,6,0.14) !important;  color: #b45309 !important; }
+  .tag.done { background: rgba(5,150,105,0.14) !important;  color: #047857 !important; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .chips span {
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: rgba(15,43,91,0.08) !important;
+    color: #0f2b5b !important;
+    border: 1px solid rgba(15,43,91,0.14);
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* ── Pricing table ───────────────────────── */
+  .price-block { margin-bottom: 22px; }
+  .price-block .pb-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 2px solid #0f2b5b;
+    padding-bottom: 7px; margin-bottom: 0;
+  }
+  .price-block .pb-title {
+    font-size: 15px; font-weight: 900; color: #0f2b5b !important;
+    letter-spacing: 0.2px;
+  }
+  .price-block .pb-count { font-size: 11px; font-weight: 700; color: #6b7280; letter-spacing: 1px; }
+  table.price {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.price td {
+    padding: 9px 0;
+    border-bottom: 1px solid #eef1f4;
+    vertical-align: top;
+    color: #374151;
+  }
+  table.price td.item { font-weight: 700; color: #111827; width: 34%; }
+  table.price td.desc { color: #4b5563; font-size: 12.4px; line-height: 1.5; }
+  table.price td.amt {
+    text-align: right;
+    font-weight: 800;
+    color: #111827;
+    white-space: nowrap;
+    width: 17%;
+    font-variant-numeric: tabular-nums;
+  }
+  table.price tr.sub td {
+    border-bottom: none;
+    border-top: 2px solid #0f2b5b;
+    padding-top: 10px;
+    font-weight: 900;
+    color: #0f2b5b !important;
+    font-size: 13.5px;
+  }
+  table.price tr.free td.amt { color: #047857 !important; }
+
+  .grand {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 22px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #0f2b5b 0%, #12356f 100%) !important;
+    background-color: #0f2b5b !important;
+    color: #ffffff !important;
+    margin-top: 6px;
+  }
+  .grand .g-left .g-label {
+    font-size: 10.5px; font-weight: 800; letter-spacing: 2.5px;
+    text-transform: uppercase; color: rgba(255,255,255,0.62) !important;
+  }
+  .grand .g-left .g-sub { font-size: 12.5px; color: rgba(255,255,255,0.8) !important; margin-top: 4px; }
+  .grand .g-amt { font-size: 32px; font-weight: 900; letter-spacing: -1px; color: #2dd4bf !important; }
+
+  .note-strip {
+    border-left: 4px solid #0d9488;
+    background: #f0fdfa !important;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    font-size: 12.6px;
+    line-height: 1.6;
+    color: #115e59;
+    margin-bottom: 16px;
+  }
+  .note-strip b { color: #0f2b5b !important; }
+
+  .warn-strip {
+    border-left: 4px solid #d97706;
+    background: #fffbeb !important;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    font-size: 12.6px;
+    line-height: 1.6;
+    color: #92400e;
+    margin-bottom: 16px;
+  }
+  .warn-strip b { color: #0f2b5b !important; }
+
+  .done-strip {
+    border-left: 4px solid #059669;
+    background: #ecfdf5 !important;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    font-size: 12.6px;
+    line-height: 1.6;
+    color: #065f46;
+    margin-bottom: 16px;
+  }
+  .done-strip b { color: #0f2b5b !important; }
+
+  /* ── Phases ──────────────────────────────── */
+  .phase {
+    border: 1px solid #e5e7eb;
+    border-left: 4px solid #0f2b5b;
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    background: #fafafa !important;
+  }
+  .phase .p-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .phase .p-title { font-size: 14.5px; font-weight: 800; color: #111827; }
+  .phase .p-time { font-size: 11.5px; font-weight: 800; color: #0d7a70 !important; letter-spacing: 0.5px; white-space: nowrap; }
+  .phase .p-desc { font-size: 12.6px; color: #4b5563; margin-top: 5px; line-height: 1.55; }
+
+  .close-strip {
+    margin-top: 20px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    background: #0f2b5b !important;
+    color: rgba(255,255,255,0.9) !important;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+  .close-strip strong { color: #2dd4bf !important; }
+
+  /* ── Sign-off ────────────────────────────── */
+  .sign-off-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px;
+    background: #fafafa !important;
+  }
+  .sign-off-card .role {
+    font-size: 10px; font-weight: 800; letter-spacing: 2px;
+    text-transform: uppercase; color: #0d7a70 !important;
+  }
+  .sign-off-card .name { font-size: 18px; font-weight: 800; color: #111827; margin-top: 4px; }
+  .sign-off-card .org { font-size: 12.5px; color: #6b7280; margin-top: 2px; }
+  .sign-off-card .sign-line { border-bottom: 1.5px solid #9ca3af; margin: 34px 0 7px; }
+  .sign-off-card .sign-foot { font-size: 9.5px; font-weight: 700; letter-spacing: 1.4px; color: #9ca3af; }
+
+  .page.dense .group { margin-bottom: 11px; }
+  .page.dense .group h3 { font-size: 15px; margin-bottom: 7px; }
+  .page.dense ul.bullets li { font-size: 12.8px; margin-bottom: 3px; line-height: 1.55; }
+  .page.dense .chips span { font-size: 11px; padding: 4px 10px; }
+
+  h4.sub-head {
+    font-size: 12px; font-weight: 800; letter-spacing: 1.8px;
+    text-transform: uppercase; color: #0d7a70 !important;
+    margin: 0 0 8px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ───────── COVER ───────── -->
+<section class="page cover">
+  <span class="cover-badge">Proposal &amp; Quotation</span>
+  <h1>Performance<br/><span class="accent">&amp; Tracker Modules</span></h1>
+  <p class="subtitle">A complete KRA / KPI performance management system, three operational trackers, and targeted enhancements — built directly into your existing ERP &amp; HRMS. <strong>One login, one database, no separate tool.</strong></p>
+
+  <div class="cover-price">
+    <div class="cp-label">Total Project Cost</div>
+    <div class="cp-value">₹ 1,69,000 /-</div>
+    <div class="cp-note">All three modules · Taxes extra as applicable</div>
+  </div>
+
+  <div class="cover-meta">
+    <div class="item">
+      <div class="label">Prepared For</div>
+      <div class="value">techerpindia</div>
+    </div>
+    <div class="item">
+      <div class="label">Prepared By</div>
+      <div class="value">OmKar More</div>
+    </div>
+    <div class="item">
+      <div class="label">Scope</div>
+      <div class="value">3 Modules · 1 Optional Add-on</div>
+    </div>
+    <div class="item">
+      <div class="label">Delivery</div>
+      <div class="value">8 – 9 Weeks</div>
+    </div>
+    <div class="item">
+      <div class="label">Built Into</div>
+      <div class="value">Existing ERP &amp; HRMS</div>
+    </div>
+    <div class="item">
+      <div class="label">Document Version</div>
+      <div class="value">v1.0 — Scope &amp; Pricing</div>
+    </div>
+  </div>
+
+  <div class="cover-footer">
+    <span class="pill">CONFIDENTIAL</span>
+    <span>Prepared: August 2026 &nbsp;·&nbsp; Valid 30 days</span>
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 2 — OVERVIEW ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Performance &amp; Tracker Modules</div>
+    <div class="page-no">Page 02</div>
+  </div>
+
+  <span class="section-label">01 · Overview</span>
+  <h2 class="section-title">What This Proposal Covers</h2>
+  <div class="section-rule"></div>
+  <p class="lead">Three separate pieces of work, quoted separately so you can approve them together or one at a time. Everything is built inside the ERP you already run — same login, same roles, same database, same reports engine.</p>
+
+  <div class="info-grid">
+    <div class="info-card brand-card">
+      <div class="label">Module A</div>
+      <div class="value">Performance<br/>KRA / KPI</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Module B</div>
+      <div class="value">Operational<br/>Trackers</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Module C</div>
+      <div class="value">System<br/>Enhancements</div>
+    </div>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">A</span> Performance Management — KRA &amp; KPI</h3>
+    <ul class="bullets">
+      <li>A full performance management system replacing the current simple text-based appraisal inputs</li>
+      <li>KRA and KPI masters, goal assignment, performance cycles and an approval trail</li>
+      <li>Self assessment, manager assessment and HR moderation with evidence upload</li>
+      <li>Automatic scoring, performance bands, bell-curve distribution and reward recommendations</li>
+      <li>Two dedicated dashboards, thirteen report types and eight automated notifications</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">B</span> Operational Trackers</h3>
+    <ul class="bullets">
+      <li><b>Break Sheet Tracker</b> — employee break in/out with auto-calculated duration</li>
+      <li><b>Diesel Tracker</b> — fuel bills, quantity, amount and slip uploads against a monthly budget</li>
+      <li><b>Daily Visitor Tracker</b> — office visitors and interview candidates with source tracking</li>
+      <li>Each with its own analytics view, Excel import/export and monthly / date-wise / yearly filters</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">C</span> System Enhancements</h3>
+    <ul class="bullets">
+      <li>Super Admin identity masked as “System Admin” in the activity log</li>
+      <li>Combined leave — apply half Casual + half Sick as one full-day request</li>
+      <li>Leave application blocked when the employee has no paid balance left</li>
+    </ul>
+  </div>
+
+  <div class="done-strip">
+    <b>Already delivered at no additional cost.</b> Three items from your requirement list are already built and working in the current system — the mid-month <b>budget top-up trail with the exact sanction date</b>, <b>budget edit &amp; delete</b> for correcting clerical errors, and the <b>receipt / UTR screenshot upload</b> on the Record Payment screen. These have been removed from the quotation. You are not being charged for work that is done.
+  </div>
+
+  <div class="note-strip">
+    <b>Add-on available.</b> A separate optional annexure at the end of this document covers a <b>Document &amp; PDF Pack</b> — appointment letters, experience letters, salary certificates, Form 16, muster roll, delivery challans and more. Quoted separately so it can be taken later.
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 3 — MODULE A: DASHBOARDS, KRA, KPI ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Performance &amp; Tracker Modules</div>
+    <div class="page-no">Page 03</div>
+  </div>
+
+  <span class="section-label">Module A · Performance</span>
+  <h2 class="section-title">Dashboards, KRA &amp; KPI</h2>
+  <div class="section-rule"></div>
+  <p class="lead">The foundation of the module — what management sees at a glance, and the master data that everything else is scored against.</p>
+
+  <div class="group">
+    <h3><span class="num">1</span> Admin Dashboard <span class="tag adm">ADMIN · HR</span></h3>
+    <ul class="bullets">
+      <li>Total Employees, Active KRAs and Active KPIs at a glance</li>
+      <li>Pending Goal Approvals and Completed Reviews counters</li>
+      <li>Average Performance Score across the organisation</li>
+      <li>Department-wise performance comparison chart</li>
+      <li>Top Performers and Low Performers lists</li>
+      <li>Upcoming Review Dates calendar</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">2</span> Employee Dashboard <span class="tag emp">EMPLOYEE</span></h3>
+    <ul class="bullets">
+      <li>My KRAs and My KPIs with live progress percentage</li>
+      <li>Achievement Score against assigned targets</li>
+      <li>Pending Reviews and Manager Feedback inbox</li>
+      <li>Performance Trend graph across past cycles</li>
+      <li>Rewards &amp; Recognition earned</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">3</span> KRA Master — Key Result Areas <span class="tag adm">ADMIN · HR</span></h3>
+    <ul class="bullets">
+      <li>Fields: KRA Name, Department, Designation, Description, Weightage, Review Frequency, Manager, Status, Start Date, End Date</li>
+      <li>Review frequency options — Monthly, Quarterly, Half-Yearly, Yearly</li>
+      <li>Multiple KRAs per employee with a live weightage validator (must total 100%)</li>
+      <li>Example set-up: Sales Growth 40% · Customer Satisfaction 20% · Team Collaboration 15% · Learning &amp; Development 15% · Attendance 10%</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">4</span> KPI Master — Key Performance Indicators <span class="tag adm">ADMIN · HR</span></h3>
+    <ul class="bullets">
+      <li>Fields: KPI Name, Related KRA, Measurement Unit, Target Value, Achieved Value, Weightage, Score Formula, Status</li>
+      <li>Measurement units — Number, Percentage, Currency, Hours, Rating</li>
+      <li>Multiple KPIs under a single KRA (e.g. Sales Growth → Monthly Revenue, New Customers, Repeat Customers, Conversion Rate)</li>
+      <li>Automatic score calculation from target vs achieved, per the configured formula</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 4 — MODULE A: ASSIGNMENT & ASSESSMENTS ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Performance &amp; Tracker Modules</div>
+    <div class="page-no">Page 04</div>
+  </div>
+
+  <span class="section-label">Module A · Performance (cont.)</span>
+  <h2 class="section-title">Assignment, Cycles &amp; Assessments</h2>
+  <div class="section-rule"></div>
+
+  <div class="group">
+    <h3><span class="num">5</span> Goal Assignment <span class="tag adm">ADMIN · HR · MANAGER</span></h3>
+    <ul class="bullets">
+      <li>Cascade assignment — Admin → Department → Designation → Employee</li>
+      <li>Direct assignment to one or many specific employees</li>
+      <li>Bulk assign a KRA set to an entire department or designation in one action</li>
+      <li>Copy goals forward from the previous cycle</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">6</span> Performance Cycle <span class="tag adm">ADMIN · HR</span></h3>
+    <ul class="bullets">
+      <li>Configurable cycles — Monthly, Quarterly, Half-Yearly, Yearly</li>
+      <li>Cycle open / lock control so scores cannot be edited after finalisation</li>
+      <li>Automatic cycle roll-over with review due dates</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">7</span> Approval Workflow</h3>
+    <ul class="bullets">
+      <li>Escalation trail — Employee → Manager → HR → Admin</li>
+      <li>Each stage records who acted, when, and their remarks</li>
+      <li>Send-back-for-revision at any stage</li>
+      <li>Pending-at-my-desk queue for every role</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">8</span> Self Assessment <span class="tag emp">EMPLOYEE</span></h3>
+    <ul class="bullets">
+      <li>Employee enters Achievements, Challenges, Learnings, Future Goals and Comments</li>
+      <li>Evidence upload — PDF, PNG and JPG attachments against each KRA</li>
+      <li>Saved as draft until submitted; locked once it moves to the manager</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">9</span> Manager Assessment <span class="tag adm">MANAGER</span></h3>
+    <ul class="bullets">
+      <li>Rating on a 1–5 scale — 5 Outstanding, 4 Exceeds Expectations, 3 Meets Expectations, 2 Needs Improvement, 1 Poor</li>
+      <li>Feedback, suggestions and comments per KRA</li>
+      <li>Promotion recommendation and training recommendation flags</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">10</span> HR Review <span class="tag adm">HR</span></h3>
+    <ul class="bullets">
+      <li>Moderate manager ratings where they are out of line with the department</li>
+      <li>Verify performance against attendance, penalty and warning data already in the system</li>
+      <li>Finalise the score and generate the appraisal record</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 5 — MODULE A: SCORING, REPORTS, PERMISSIONS ───────── -->
+<section class="page dense">
+  <div class="content-head">
+    <div class="brand">Performance &amp; Tracker Modules</div>
+    <div class="page-no">Page 05</div>
+  </div>
+
+  <span class="section-label">Module A · Performance (cont.)</span>
+  <h2 class="section-title">Scoring, Rewards &amp; Reports</h2>
+  <div class="section-rule"></div>
+
+  <div class="group">
+    <h3><span class="num">11</span> Final Score Formula</h3>
+    <ul class="bullets">
+      <li>Weighted calculation across all KRAs — (Sales × 40%) + (Attendance × 20%) + (Behaviour × 20%) + (Learning × 20%) = Overall Performance %</li>
+      <li>KPI scores roll up into their parent KRA automatically</li>
+      <li>Formula and weightages configurable per department without code changes</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">12</span> Performance Bands &amp; Bell Curve</h3>
+    <ul class="bullets">
+      <li>Score-to-band mapping — 95–100 Outstanding · 85–94 Excellent · 75–84 Very Good · 60–74 Good · 40–59 Needs Improvement · Below 40 Unsatisfactory</li>
+      <li>Optional bell-curve distribution — Outstanding 10% · Excellent 20% · Good 50% · Average 15% · Poor 5%</li>
+      <li>Band thresholds editable by HR</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">13</span> Rewards — Auto Recommendation</h3>
+    <ul class="bullets">
+      <li>System suggests Salary Increment, Bonus, Promotion, Training or PIP based on the final band</li>
+      <li>Recommendations feed directly into your existing appraisal and increment records</li>
+      <li>HR can accept, override or reject each recommendation</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">14</span> Reports — with PDF &amp; Excel export</h3>
+    <div class="chips">
+      <span>Employee Performance</span><span>Department Report</span><span>Manager Report</span>
+      <span>KRA Completion</span><span>KPI Achievement</span><span>Monthly Performance</span>
+      <span>Quarterly Performance</span><span>Annual Performance</span><span>Top Performers</span>
+      <span>Bottom Performers</span><span>Appraisal Report</span><span>Increment Recommendation</span>
+      <span>Promotion Eligibility</span>
+    </div>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">15</span> Notifications</h3>
+    <ul class="bullets">
+      <li>Goal Assigned · Goal Updated · Goal Approved · Self-Assessment Due · Review Due</li>
+      <li>Review Completed · Manager Feedback Available · Appraisal Generated · Promotion Recommended</li>
+      <li>Delivered through your existing in-app and email notification system, permission-gated per role</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">16</span> Role-Wise Permissions</h3>
+    <ul class="bullets">
+      <li><b>Admin</b> — Create KRA/KPI, Assign Goals, Final Approval, Full Reports</li>
+      <li><b>HR</b> — Create KRA/KPI, Assign Goals, HR Review, Full Reports</li>
+      <li><b>Manager</b> — Assign Goals, Manager Review, Limited Reports (own team)</li>
+      <li><b>Employee</b> — Self Assessment, Own Reports only</li>
+      <li>Wired into the existing Roles &amp; Permissions matrix as a new module row</li>
+    </ul>
+  </div>
+
+  <div class="note-strip">
+    <b>Database.</b> Thirteen new tables — performance cycles, KRA master, KPI master, employee KRA, employee KPI, self review, manager review, HR review, performance score, feedback, documents, history and notifications — all multi-tenant and business-scoped like the rest of your ERP.
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 6 — MODULE B: TRACKERS ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Performance &amp; Tracker Modules</div>
+    <div class="page-no">Page 06</div>
+  </div>
+
+  <span class="section-label">Module B · Trackers</span>
+  <h2 class="section-title">Three Operational Trackers</h2>
+  <div class="section-rule"></div>
+  <p class="lead">Three record-keeping registers with role-based access. Every one of them ships with an analytics view, Excel import and export, and Monthly / Date-wise / Yearly filters.</p>
+
+  <div class="group">
+    <h3><span class="num">1</span> Break Sheet Tracker</h3>
+    <ul class="bullets">
+      <li>Employee Name — dropdown that auto-fetches the Employee ID</li>
+      <li>Out Time and In Time — calendar and time picker</li>
+      <li>Total Timing — calculated automatically from out and in time</li>
+      <li>Break Type and Remarks</li>
+      <li>Analytics — average break duration per employee, per department, longest breaks, daily totals</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">2</span> Diesel Tracker</h3>
+    <ul class="bullets">
+      <li>Serial Number / Code, Month, Date, Bill Number, Slip Number, Time</li>
+      <li>Quantity and Amount with running totals</li>
+      <li>Upload option for the receipt or slip — PDF or image — so every entry is backed by proof</li>
+      <li>Monthly budget tracking overview — allocated vs consumed vs remaining</li>
+      <li>Analytics — consumption trend, cost per litre movement, month-on-month comparison</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">3</span> Daily Visitor Tracker</h3>
+    <ul class="bullets">
+      <li>Date of Visit, Candidate / Visitor Name, Mobile Number</li>
+      <li>Source — dynamic dropdown, HR can add new sources at any time</li>
+      <li>Arrival Time and Purpose of Visit — dynamic dropdown</li>
+      <li>Called By, Interview By and Availability Status</li>
+      <li>Analytics — visitors by source, by purpose, by day, interview conversion view</li>
+    </ul>
+  </div>
+
+  <div class="note-strip">
+    <b>Included with every tracker.</b> Role-based access so only designated users see each register · Excel import for historical data · Excel and PDF export · Monthly, date-wise and yearly filters · search and sort on every column.
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 7 — MODULE C: ENHANCEMENTS ───────── -->
+<section class="page dense">
+  <div class="content-head">
+    <div class="brand">Performance &amp; Tracker Modules</div>
+    <div class="page-no">Page 07</div>
+  </div>
+
+  <span class="section-label">Module C · Enhancements</span>
+  <h2 class="section-title">System Modifications</h2>
+  <div class="section-rule"></div>
+  <p class="lead">Targeted changes to the running system. Three items are chargeable; three more from your list are already built and are shown here so the record is complete.</p>
+
+  <h4 class="sub-head">Chargeable</h4>
+
+  <div class="group">
+    <h3><span class="num">1</span> Recent Activity Log — Super Admin Masking <span class="tag new">NEW</span></h3>
+    <ul class="bullets">
+      <li>Actions performed by the Super Admin display as “System Admin” in the Recent Activities log</li>
+      <li>The existence of the Super Admin role is hidden from regular admins throughout the interface</li>
+      <li>The real identity stays intact in the underlying audit record for compliance</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">2</span> Combined Leave <span class="tag new">NEW</span></h3>
+    <ul class="bullets">
+      <li>Employees can combine fractional balances across leave types in a single request — for example 0.5 Casual + 0.5 Sick = one full day</li>
+      <li>One request, one approval, correctly deducted from both balances</li>
+      <li>Approver sees the split before approving; payroll picks it up correctly</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">3</span> Leave Balance Gate <span class="tag new">NEW</span></h3>
+    <ul class="bullets">
+      <li>An employee with no paid leave balance is blocked from submitting a leave request</li>
+      <li>Clear message on the form showing the available balance per leave type</li>
+      <li>Currently the system allows over-balance requests and lets HR decide the paid / unpaid split — this changes that behaviour</li>
+    </ul>
+  </div>
+
+  <div class="warn-strip">
+    <b>One decision needed from the client.</b> Blocking leave when the balance is zero also stops an employee from applying for genuine <b>Leave Without Pay</b> — for example a medical emergency after balances are exhausted. We will build this as an <b>on / off setting</b> so HR can allow an LWP request as an exception, at no extra cost. Please confirm whether the block should be absolute or allow an LWP exception.
+  </div>
+
+  <h4 class="sub-head">Already built — no charge</h4>
+
+  <div class="group">
+    <h3><span class="num teal">4</span> Budget Addition Trail <span class="tag done">DELIVERED</span></h3>
+    <ul class="bullets">
+      <li>Mid-month top-ups are recorded with the exact sanction date, amount, note and the admin who added them</li>
+      <li>The budget total increases from that date forward instead of appearing as if allocated on the 1st</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">5</span> Budget Edit &amp; Delete <span class="tag done">DELIVERED</span></h3>
+    <ul class="bullets">
+      <li>Authorised users can edit or delete a budget entry to correct a mistyped amount</li>
+      <li>Individual top-up entries can also be removed</li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">6</span> Record Payment — Receipt Upload <span class="tag done">DELIVERED</span></h3>
+    <ul class="bullets">
+      <li>Upload field beside Reference / UTR No. on the Record Payment screen</li>
+      <li>Accepts PDF, JPG and PNG up to 5 MB — bank slip, cheque scan or UPI screenshot</li>
+      <li>Receipt viewable from the payment list, detail and edit screens</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 8 — COMMERCIAL ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Performance &amp; Tracker Modules</div>
+    <div class="page-no">Page 08</div>
+  </div>
+
+  <span class="section-label">02 · Commercial</span>
+  <h2 class="section-title">Quotation</h2>
+  <div class="section-rule"></div>
+  <p class="lead">All figures in Indian Rupees. Taxes extra as applicable. Each module can be approved independently.</p>
+
+  <div class="price-block">
+    <div class="pb-head">
+      <span class="pb-title">Module A · Performance Management (KRA / KPI)</span>
+      <span class="pb-count">16 FEATURES</span>
+    </div>
+    <table class="price">
+      <tr>
+        <td class="item">Performance Cycles, KRA &amp; KPI Masters</td>
+        <td class="desc">Cycle configuration, KRA master with weightage validator, KPI master with five measurement units and multiple KPIs per KRA</td>
+        <td class="amt">₹ 22,000</td>
+      </tr>
+      <tr>
+        <td class="item">Goal Assignment &amp; Approval Workflow</td>
+        <td class="desc">Cascade and direct assignment, bulk assign, copy-forward, and the Employee → Manager → HR → Admin escalation trail</td>
+        <td class="amt">₹ 18,000</td>
+      </tr>
+      <tr>
+        <td class="item">Self, Manager &amp; HR Assessment</td>
+        <td class="desc">Self assessment with evidence upload, manager rating on the 1–5 scale with recommendations, HR moderation and finalisation</td>
+        <td class="amt">₹ 20,000</td>
+      </tr>
+      <tr>
+        <td class="item">Scoring Engine, Bands &amp; Rewards</td>
+        <td class="desc">Weighted final-score formula, six performance bands, optional bell curve and auto reward recommendations</td>
+        <td class="amt">₹ 18,000</td>
+      </tr>
+      <tr>
+        <td class="item">Admin &amp; Employee Dashboards</td>
+        <td class="desc">Nine admin metrics with department comparison and top / low performers; five employee metrics with the performance trend graph</td>
+        <td class="amt">₹ 16,000</td>
+      </tr>
+      <tr>
+        <td class="item">Reports with PDF &amp; Excel Export</td>
+        <td class="desc">Thirteen report types with filters, each exportable to PDF and Excel</td>
+        <td class="amt">₹ 14,000</td>
+      </tr>
+      <tr>
+        <td class="item">Notifications &amp; Role Permissions</td>
+        <td class="desc">Nine automated alerts through the existing notification system, plus the four-role permission matrix</td>
+        <td class="amt">₹ 7,000</td>
+      </tr>
+      <tr class="sub">
+        <td colspan="2">Module A Subtotal</td>
+        <td class="amt">₹ 1,15,000</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="note-strip" style="margin-top:18px;">
+    <b>Modules B and C are itemised on the next page</b>, followed by the total project cost.
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 9 — COMMERCIAL (CONT.) ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Performance &amp; Tracker Modules</div>
+    <div class="page-no">Page 09</div>
+  </div>
+
+  <span class="section-label">02 · Commercial (cont.)</span>
+  <h2 class="section-title">Trackers, Enhancements &amp; Total</h2>
+  <div class="section-rule"></div>
+
+  <div class="price-block">
+    <div class="pb-head">
+      <span class="pb-title">Module B · Operational Trackers</span>
+      <span class="pb-count">3 TRACKERS</span>
+    </div>
+    <table class="price">
+      <tr>
+        <td class="item">Break Sheet Tracker</td>
+        <td class="desc">Auto employee-ID fetch, time pickers, auto-calculated duration, break analytics, import / export and filters</td>
+        <td class="amt">₹ 12,000</td>
+      </tr>
+      <tr>
+        <td class="item">Diesel Tracker</td>
+        <td class="desc">Full bill and slip fields, receipt upload, monthly budget overview, consumption analytics, import / export and filters</td>
+        <td class="amt">₹ 14,000</td>
+      </tr>
+      <tr>
+        <td class="item">Daily Visitor Tracker</td>
+        <td class="desc">Visitor and candidate log with dynamic source and purpose dropdowns, visitor analytics, import / export and filters</td>
+        <td class="amt">₹ 12,000</td>
+      </tr>
+      <tr class="sub">
+        <td colspan="2">Module B Subtotal</td>
+        <td class="amt">₹ 38,000</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="price-block">
+    <div class="pb-head">
+      <span class="pb-title">Module C · System Enhancements</span>
+      <span class="pb-count">3 CHARGEABLE · 3 DELIVERED</span>
+    </div>
+    <table class="price">
+      <tr>
+        <td class="item">Super Admin Masking</td>
+        <td class="desc">Activity log and interface display Super Admin actions as System Admin, audit record preserved</td>
+        <td class="amt">₹ 4,000</td>
+      </tr>
+      <tr>
+        <td class="item">Combined Leave</td>
+        <td class="desc">Multiple leave types combined into a single full-day request with correct balance deduction and payroll handling</td>
+        <td class="amt">₹ 9,000</td>
+      </tr>
+      <tr>
+        <td class="item">Leave Balance Gate</td>
+        <td class="desc">Blocks leave application when no paid balance remains, with a configurable LWP exception</td>
+        <td class="amt">₹ 3,000</td>
+      </tr>
+      <tr class="free">
+        <td class="item">Budget Trail, Edit &amp; Delete</td>
+        <td class="desc">Already built and live — dated top-up trail, budget edit and delete</td>
+        <td class="amt">No charge</td>
+      </tr>
+      <tr class="free">
+        <td class="item">Record Payment Receipt Upload</td>
+        <td class="desc">Already built and live — PDF / JPG / PNG upload beside Reference / UTR No.</td>
+        <td class="amt">No charge</td>
+      </tr>
+      <tr class="sub">
+        <td colspan="2">Module C Subtotal</td>
+        <td class="amt">₹ 16,000</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="grand">
+    <div class="g-left">
+      <div class="g-label">Total Project Cost</div>
+      <div class="g-sub">Module A + Module B + Module C &nbsp;·&nbsp; Taxes extra as applicable</div>
+    </div>
+    <div class="g-amt">₹ 1,69,000 /-</div>
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 9 — OPTIONAL ANNEXURE ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Performance &amp; Tracker Modules</div>
+    <div class="page-no">Page 10</div>
+  </div>
+
+  <span class="section-label">Annexure · Optional</span>
+  <h2 class="section-title">Document &amp; PDF Pack</h2>
+  <div class="section-rule"></div>
+  <p class="lead">Not part of the ₹1,69,000 above. A separate, optional pack of 42 printable documents the ERP does not generate today. Every pack can be taken on its own — the foundation is required only if you take at least one pack.</p>
+
+  <div class="price-block">
+    <table class="price">
+      <tr>
+        <td class="item">Letterhead Foundation</td>
+        <td class="desc">One shared letterhead, footer and page-numbering layout, authorised-signature and company-seal upload, amount-in-words in Indian format, and DRAFT / PAID / CANCELLED watermarks. Required once if any pack below is taken.</td>
+        <td class="amt">₹ 12,000</td>
+      </tr>
+      <tr>
+        <td class="item">HR Letters Pack <span class="tag new">9 DOCS</span></td>
+        <td class="desc">Appointment Letter · Confirmation Letter · Experience Letter · Relieving Letter · Salary Certificate with CTC annexure · Warning Letter · Show-cause Notice · Employee ID Card · Full &amp; Final Settlement</td>
+        <td class="amt">₹ 32,000</td>
+      </tr>
+      <tr>
+        <td class="item">Payroll &amp; Statutory Pack <span class="tag new">5 DOCS</span></td>
+        <td class="desc">Form 16 annual tax statement · PF / ESI / PT statutory register · Bank transfer advice · Salary register · Bulk payslip download for the whole company</td>
+        <td class="amt">₹ 18,000</td>
+      </tr>
+      <tr>
+        <td class="item">Attendance &amp; Leave Pack <span class="tag new">6 DOCS</span></td>
+        <td class="desc">Monthly attendance register / muster roll · Daily attendance report · Leave card with balance statement · Leave sanction slip · Comp-off approval slip · Regularization approval slip</td>
+        <td class="amt">₹ 16,000</td>
+      </tr>
+      <tr>
+        <td class="item">Sales &amp; Finance Pack <span class="tag new">8 DOCS</span></td>
+        <td class="desc">Sales Order · Payment Receipt · Goods Receipt Note · Delivery Challan · Customer Statement of Account · Vendor Statement · Stock Ledger · Credit / Debit Note</td>
+        <td class="amt">₹ 28,000</td>
+      </tr>
+      <tr>
+        <td class="item">Reports &amp; Modules Pack <span class="tag new">14 DOCS</span></td>
+        <td class="desc">Five HR report PDFs · Reimbursement voucher · Requisition approval note · Budget vs actual statement · Service job card · Helpdesk report · CRM pipeline report · Asset gate pass · Asset depreciation schedule · Report Builder PDF export</td>
+        <td class="amt">₹ 30,000</td>
+      </tr>
+      <tr class="sub">
+        <td colspan="2">Full Document Pack — all 42 documents</td>
+        <td class="amt">₹ 1,36,000</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="note-strip">
+    <b>Bundle offer.</b> Taken together with Modules A, B and C in a single order, the complete package — <b>₹3,05,000</b> — is offered at <b>₹2,75,000</b>, a saving of ₹30,000. Valid for 30 days from the date of this document.
+  </div>
+
+  <div class="done-strip">
+    <b>Already working today.</b> The ERP already generates 16 PDFs at no additional cost — Quotation, Proforma Invoice, Tax Invoice, Expense Voucher, five business reports, Payslip, Appraisal / Increment Letter, Offer Letter, Recruitment Funnel Report, Asset Register, Asset Assignments and Asset Maintenance Log. Six of these attach themselves automatically to outgoing email.
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 10 — DELIVERY, TERMS, APPROVAL ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Performance &amp; Tracker Modules</div>
+    <div class="page-no">Page 11</div>
+  </div>
+
+  <span class="section-label">03 · Delivery Plan</span>
+  <h2 class="section-title">Phases &amp; Terms</h2>
+  <div class="section-rule"></div>
+
+  <div class="phase">
+    <div class="p-head"><span class="p-title">Phase 1 — Foundation &amp; Masters</span><span class="p-time">Week 1–2</span></div>
+    <div class="p-desc">Database structure, performance cycles, KRA master, KPI master, weightage validator and the role permission matrix.</div>
+  </div>
+  <div class="phase">
+    <div class="p-head"><span class="p-title">Phase 2 — Assignment &amp; Workflow</span><span class="p-time">Week 2–3</span></div>
+    <div class="p-desc">Goal assignment by department, designation and employee; the Employee → Manager → HR → Admin approval trail with send-back and pending queues.</div>
+  </div>
+  <div class="phase">
+    <div class="p-head"><span class="p-title">Phase 3 — Assessments &amp; Scoring</span><span class="p-time">Week 3–5</span></div>
+    <div class="p-desc">Self assessment with evidence upload, manager assessment, HR review and moderation, scoring engine, performance bands, bell curve and reward recommendations.</div>
+  </div>
+  <div class="phase">
+    <div class="p-head"><span class="p-title">Phase 4 — Dashboards, Reports &amp; Alerts</span><span class="p-time">Week 5–6</span></div>
+    <div class="p-desc">Admin and employee dashboards, thirteen reports with PDF and Excel export, and the nine automated notifications.</div>
+  </div>
+  <div class="phase">
+    <div class="p-head"><span class="p-title">Phase 5 — Trackers</span><span class="p-time">Week 6–8</span></div>
+    <div class="p-desc">Break Sheet, Diesel and Daily Visitor trackers with analytics views, receipt uploads, Excel import / export and all filters.</div>
+  </div>
+  <div class="phase">
+    <div class="p-head"><span class="p-title">Phase 6 — Enhancements, QA &amp; Handover</span><span class="p-time">Week 8–9</span></div>
+    <div class="p-desc">Super Admin masking, combined leave, leave balance gate, full testing across all roles, deployment and team training.</div>
+  </div>
+
+  <div class="close-strip">
+    <strong>Everything stays in one system.</strong> The performance module scores against the attendance, penalty, warning and appraisal data your ERP already holds — no double entry, no separate login, no data export between tools. The trackers use the same employee master, the same roles and the same export engine as the rest of the platform.
+  </div>
+</section>
+
+
+<!-- ───────── PAGE — TERMS & APPROVAL ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Performance &amp; Tracker Modules</div>
+    <div class="page-no">Page 12</div>
+  </div>
+
+  <span class="section-label">04 · Terms</span>
+  <h2 class="section-title">Payment Terms &amp; Approval</h2>
+  <div class="section-rule"></div>
+  <p class="lead">Payment is linked to delivery milestones, so you pay as working software is handed over.</p>
+
+  <h2 class="section-title" style="margin-top:22px; font-size:22px;">Payment Terms</h2>
+  <div class="section-rule" style="margin-bottom:14px;"></div>
+
+  <div class="info-grid">
+    <div class="info-card brand-card">
+      <div class="label">On Confirmation</div>
+      <div class="value teal">40%</div>
+    </div>
+    <div class="info-card">
+      <div class="label">On Module A Delivery</div>
+      <div class="value">35%</div>
+    </div>
+    <div class="info-card">
+      <div class="label">On Final Handover</div>
+      <div class="value">25%</div>
+    </div>
+  </div>
+
+  <ul class="bullets" style="margin-bottom:16px;">
+    <li>Taxes extra as applicable. All figures in Indian Rupees.</li>
+    <li>Includes 30 days of free bug-fix support after handover.</li>
+    <li>Includes one round of UI feedback per module during development.</li>
+    <li>Report formats, letter wording and dropdown values to be confirmed by the client before the relevant phase begins.</li>
+    <li>Anything outside this document is treated as a change request and quoted separately.</li>
+    <li>This quotation is valid for 30 days from the date shown.</li>
+  </ul>
+
+
+  <div style="page-break-inside: avoid; break-inside: avoid;">
+  <h2 class="section-title" style="margin-top:28px; font-size:22px;">Approval</h2>
+  <div class="section-rule" style="margin-bottom:14px;"></div>
+
+  <div class="two-col">
+    <div class="sign-off-card">
+      <div class="role">Client</div>
+      <div class="name">techerpindia</div>
+      <div class="org">Authorised Representative</div>
+      <div class="sign-line"></div>
+      <div class="sign-foot">AUTHORISED SIGNATURE &amp; DATE</div>
+    </div>
+    <div class="sign-off-card">
+      <div class="role">Vendor</div>
+      <div class="name">OmKar More</div>
+      <div class="org">Design &amp; Development</div>
+      <div class="sign-line"></div>
+      <div class="sign-foot">AUTHORISED SIGNATURE &amp; DATE</div>
+    </div>
+  </div>
+  </div>
+</section>
+
+</body>
+</html>

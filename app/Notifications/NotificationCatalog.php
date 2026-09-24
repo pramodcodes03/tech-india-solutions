@@ -539,9 +539,12 @@ class NotificationCatalog
             'warning.issued' => [
                 'module' => 'HR — Discipline',
                 'name' => 'Warning issued',
-                'description' => 'Notify employee + their manager when a warning is issued.',
+                // Disciplinary action stays between HR and the employee — the
+                // reporting manager is deliberately NOT copied, matching
+                // warning.withdrawn / penalty.issued / penalty.reduced.
+                'description' => 'Notify the employee when a warning is issued.',
                 'subject' => 'A warning has been issued to you',
-                'recipients' => ['employee.email', 'reporting_manager'],
+                'recipients' => ['employee.email'],
                 'related' => 'warning',
             ],
             'warning.withdrawn' => [
@@ -688,6 +691,84 @@ class NotificationCatalog
                 'subject' => 'Payment OVERDUE: {entity.title}',
                 'recipients' => ['admin.all'],
                 'related' => 'expense',
+            ],
+
+            // ────────────────────── HR — PERFORMANCE (KRA / KPI) ──────────────────────
+            // The nine alerts from the proposal. All ride the existing
+            // notification system, so each one is permission-gated per role and
+            // can be switched off from Notification Settings like any other.
+            'performance.goal_assigned' => [
+                'module' => 'HR — Performance',
+                'name' => 'Goal assigned',
+                'description' => 'Sent to the employee when KRAs are assigned for a cycle.',
+                'subject' => 'New performance goals assigned for {context.cycle}',
+                'recipients' => ['employee.email'],
+                'related' => 'employee',
+            ],
+            'performance.goal_updated' => [
+                'module' => 'HR — Performance',
+                'name' => 'Goal updated',
+                'description' => 'Sent when an assigned goal or its weightage changes.',
+                'subject' => 'Your performance goals for {context.cycle} were updated',
+                'recipients' => ['employee.email'],
+                'related' => 'employee',
+                'default_on' => false,
+            ],
+            'performance.goal_approved' => [
+                'module' => 'HR — Performance',
+                'name' => 'Goal approved',
+                'description' => 'Sent when the assigned goal set is approved for a cycle.',
+                'subject' => 'Your goals for {context.cycle} are approved',
+                'recipients' => ['employee.email'],
+                'related' => 'employee',
+            ],
+            'performance.self_assessment_due' => [
+                'module' => 'HR — Performance',
+                'name' => 'Self-assessment due',
+                'description' => 'Reminder to the employee ahead of the self-assessment deadline.',
+                'subject' => 'Your self-assessment for {context.cycle} is due',
+                'recipients' => ['employee.email'],
+                'related' => 'employee',
+            ],
+            'performance.review_due' => [
+                'module' => 'HR — Performance',
+                'name' => 'Review due',
+                'description' => 'Reminder to the manager that a review is waiting.',
+                'subject' => 'Performance review due for {entity.first_name}',
+                'recipients' => ['reporting_manager_or_admin', 'admin.role:HR Manager'],
+                'related' => 'employee',
+            ],
+            'performance.review_completed' => [
+                'module' => 'HR — Performance',
+                'name' => 'Review completed',
+                'description' => 'Sent to HR when a manager finishes a review.',
+                'subject' => 'Manager review completed for {entity.first_name}',
+                'recipients' => ['admin.role:HR Manager'],
+                'related' => 'employee',
+            ],
+            'performance.manager_feedback' => [
+                'module' => 'HR — Performance',
+                'name' => 'Manager feedback available',
+                'description' => 'Tells the employee their manager\'s assessment is ready to read.',
+                'subject' => 'Manager feedback available for {context.cycle}',
+                'recipients' => ['employee.email'],
+                'related' => 'employee',
+            ],
+            'performance.appraisal_generated' => [
+                'module' => 'HR — Performance',
+                'name' => 'Appraisal generated',
+                'description' => 'Sent when HR finalises the score for a cycle.',
+                'subject' => 'Your {context.cycle} appraisal is ready',
+                'recipients' => ['employee.email'],
+                'related' => 'employee',
+            ],
+            'performance.promotion_recommended' => [
+                'module' => 'HR — Performance',
+                'name' => 'Promotion recommended',
+                'description' => 'Alerts Admin / HR when a review recommends a promotion.',
+                'subject' => 'Promotion recommended for {entity.first_name}',
+                'recipients' => ['admin.role:HR Manager', 'admin.all'],
+                'related' => 'employee',
             ],
 
             // ─────────────────────── EXPENSES — BUDGETS ───────────────────────

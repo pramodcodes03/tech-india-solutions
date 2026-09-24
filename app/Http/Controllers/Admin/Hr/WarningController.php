@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Hr;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\Warning;
+use App\Notifications\NotificationDispatcher;
 use App\Services\WarningService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,7 +46,7 @@ class WarningController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('warnings.create'), 403);
         $data = $request->validate([
             'employee_id' => ['required', 'exists:employees,id'],
-            'level' => ['required', 'integer', 'between:1,3'],
+            'level' => ['required', 'integer', 'between:1,5'],
             'title' => ['required', 'string', 'max:200'],
             'reason' => ['required', 'string'],
             'action_required' => ['nullable', 'string'],
@@ -53,7 +54,7 @@ class WarningController extends Controller
         ]);
         $warning = $this->service->create($data);
 
-        \App\Notifications\NotificationDispatcher::fire(
+        NotificationDispatcher::fire(
             'warning.issued',
             $warning->loadMissing('employee.reportingManager'),
         );
@@ -74,11 +75,21 @@ class WarningController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('warnings.edit'), 403);
         $warning->update(['status' => 'withdrawn']);
 
-        \App\Notifications\NotificationDispatcher::fire(
+        NotificationDispatcher::fire(
             'warning.withdrawn',
             $warning->loadMissing('employee'),
         );
 
         return back()->with('success', 'Warning withdrawn.');
+    }
+
+    public function destroy(Warning $warning)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('warnings.delete'), 403);
+
+        $warning->delete();
+
+        return redirect()->route('admin.hr.warnings.index')
+            ->with('success', 'Warning deleted.');
     }
 }

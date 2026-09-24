@@ -23,3 +23,13 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Sample PDFs rendered from live data for comparison — not part of the app.
+/sample-pdfs/
+
+# Client-supplied reference material, not source. The statutory forms in /pdf
+# contain real employee names, parentage and full salary breakdowns — putting
+# them in git history would be permanent and hard to undo.
+/pdf/
+/image001.png
+/fwrequirementswhichneedtobeconfiguredinthehrmsmod.zip

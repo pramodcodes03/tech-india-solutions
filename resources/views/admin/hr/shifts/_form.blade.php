@@ -4,7 +4,14 @@
     <div><label class="text-xs font-semibold text-gray-500 uppercase">Start *</label><input type="time" name="start_time" value="{{ old('start_time', $shift?->start_time ? \Carbon\Carbon::parse($shift->start_time)->format('H:i') : '09:30') }}" required class="form-input mt-1" /></div>
     <div><label class="text-xs font-semibold text-gray-500 uppercase">End *</label><input type="time" name="end_time" value="{{ old('end_time', $shift?->end_time ? \Carbon\Carbon::parse($shift->end_time)->format('H:i') : '18:30') }}" required class="form-input mt-1" /></div>
     <div><label class="text-xs font-semibold text-gray-500 uppercase">Grace (minutes) *</label><input type="number" name="grace_minutes" value="{{ old('grace_minutes', $shift?->grace_minutes ?? 10) }}" required min="0" max="120" class="form-input mt-1" /></div>
-    <div><label class="text-xs font-semibold text-gray-500 uppercase">Half-day after (min) *</label><input type="number" name="half_day_after_minutes" value="{{ old('half_day_after_minutes', $shift?->half_day_after_minutes ?? 120) }}" required min="30" class="form-input mt-1" /></div>
+    <div>
+        <label class="text-xs font-semibold text-gray-500 uppercase">Half-day minimum (min) *</label>
+        <input type="number" name="half_day_after_minutes" value="{{ old('half_day_after_minutes', $shift?->half_day_after_minutes ?? 270) }}" required min="30" class="form-input mt-1" />
+        <p class="text-[11px] text-gray-500 mt-1">
+            Minimum time that must be worked to earn a <b>Half day</b> — below this the day is
+            <b>Absent</b>. <span class="text-gray-400">e.g. 270 = 4 hrs 30 min.</span>
+        </p>
+    </div>
     <div><label class="text-xs font-semibold text-gray-500 uppercase">Status *</label>
         <select name="status" required class="form-select mt-1">
             <option value="active" @selected(old('status', $shift?->status ?? 'active') === 'active')>Active</option>

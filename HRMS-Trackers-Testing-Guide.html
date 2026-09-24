@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trackers — QA Test Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --navy:#0f2b5b; --navy-2:#12356f; --teal:#0d9488; --teal-br:#2dd4bf;
+  --bg:#eef1f6; --surface:#ffffff; --surface-2:#f7f9fc; --line:#e3e8f0;
+  --ink:#111827; --ink-2:#4b5563; --ink-3:#8a94a6;
+  --pass:#059669; --fail:#dc2626; --block:#d97706; --info:#2563eb;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06);
+  --radius:14px;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1220; --surface:#111a2b; --surface-2:#0e1728; --line:#1f2c42;
+    --ink:#e8edf6; --ink-2:#a8b3c7; --ink-3:#6b7789;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b1220; --surface:#111a2b; --surface-2:#0e1728; --line:#1f2c42;
+  --ink:#e8edf6; --ink-2:#a8b3c7; --ink-3:#6b7789;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+code,kbd,.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+a{color:var(--info); text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3,h4{line-height:1.2; margin:0}
+
+/* ── Top bar ─────────────────────────────────────────────── */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 60%,#071b3d 100%);
+  color:#fff; border-bottom:1px solid rgba(255,255,255,.08);
+}
+.topbar-inner{
+  max-width:1400px; margin:0 auto; padding:14px 24px;
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+}
+.brandmark{display:flex; align-items:center; gap:12px; margin-right:auto}
+.brandmark .dot{
+  width:38px;height:38px;border-radius:11px;flex:none;
+  background:rgba(45,212,191,.16); border:1.5px solid rgba(45,212,191,.45);
+  display:grid;place-content:center; color:var(--teal-br); font-weight:900; font-size:15px;
+}
+.brandmark h1{font-size:17px; font-weight:800; letter-spacing:-.2px}
+.brandmark p{margin:1px 0 0; font-size:11.5px; color:rgba(255,255,255,.62); font-weight:600; letter-spacing:.4px}
+
+.tally{display:flex; gap:8px; flex-wrap:wrap}
+.tally .chip{
+  padding:5px 11px; border-radius:999px; font-size:11.5px; font-weight:800;
+  background:rgba(255,255,255,.09); border:1px solid rgba(255,255,255,.14); color:#fff;
+  letter-spacing:.3px; white-space:nowrap;
+}
+.tally .chip b{font-variant-numeric:tabular-nums}
+.chip.p{background:rgba(5,150,105,.22); border-color:rgba(16,185,129,.5); color:#6ee7b7}
+.chip.f{background:rgba(220,38,38,.22); border-color:rgba(248,113,113,.5); color:#fca5a5}
+.chip.b{background:rgba(217,119,6,.22); border-color:rgba(251,191,36,.5); color:#fcd34d}
+
+.progress-wrap{display:flex; align-items:center; gap:10px; min-width:190px}
+.progress{height:8px; flex:1; border-radius:99px; background:rgba(255,255,255,.14); overflow:hidden}
+.progress i{display:block; height:100%; width:0; border-radius:99px;
+  background:linear-gradient(90deg,var(--teal),var(--teal-br)); transition:width .35s ease}
+.progress-pct{font-size:12px; font-weight:800; color:var(--teal-br); font-variant-numeric:tabular-nums; min-width:38px; text-align:right}
+
+.tool{
+  appearance:none; cursor:pointer; font:inherit; font-size:12px; font-weight:700;
+  padding:7px 13px; border-radius:9px; color:#fff;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18);
+  transition:background .15s;
+}
+.tool:hover{background:rgba(255,255,255,.16)}
+
+/* ── Layout ──────────────────────────────────────────────── */
+.shell{max-width:1400px; margin:0 auto; padding:26px 24px 90px; display:grid; grid-template-columns:250px 1fr; gap:26px}
+@media (max-width:1040px){ .shell{grid-template-columns:1fr; padding:20px 16px 70px} .toc{display:none} }
+
+.toc{position:sticky; top:86px; align-self:start; max-height:calc(100vh - 110px); overflow-y:auto}
+.toc h4{font-size:10.5px; text-transform:uppercase; letter-spacing:1.4px; color:var(--ink-3); margin:0 0 10px 12px}
+.toc a{
+  display:flex; align-items:center; gap:9px; padding:7px 12px; border-radius:9px;
+  color:var(--ink-2); font-size:13px; font-weight:600; text-decoration:none; margin-bottom:2px;
+}
+.toc a:hover{background:var(--surface); color:var(--ink); text-decoration:none}
+.toc a.on{background:var(--surface); color:var(--navy); box-shadow:var(--shadow)}
+:root[data-theme="dark"] .toc a.on, :root:not([data-theme="light"]) .toc a.on{color:var(--teal-br)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .toc a.on{color:var(--teal-br)} }
+.toc a .n{
+  width:22px;height:22px;border-radius:7px;flex:none;display:grid;place-content:center;
+  font-size:10px; font-weight:900; background:var(--line); color:var(--ink-2);
+}
+.toc a.on .n{background:var(--teal); color:#fff}
+.toc .mini{margin-left:auto; font-size:10.5px; font-weight:800; color:var(--ink-3); font-variant-numeric:tabular-nums}
+
+/* ── Cards ───────────────────────────────────────────────── */
+section{scroll-margin-top:92px; margin-bottom:26px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden}
+.card + .card{margin-top:16px}
+.card-head{padding:20px 22px 16px; border-bottom:1px solid var(--line)}
+.card-body{padding:20px 22px}
+.eyebrow{font-size:10.5px; font-weight:900; letter-spacing:1.8px; text-transform:uppercase; color:var(--teal)}
+.card-head h2{font-size:21px; font-weight:800; letter-spacing:-.3px; margin:6px 0 0}
+.card-head h3{font-size:17px; font-weight:800; margin:6px 0 0}
+.card-head p{margin:6px 0 0; color:var(--ink-2); font-size:13.5px; max-width:70ch}
+
+.lede{font-size:15.5px; color:var(--ink-2); max-width:74ch}
+.grid-2{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px}
+.grid-3{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px}
+
+.fact{background:var(--surface-2); border:1px solid var(--line); border-radius:11px; padding:13px 15px}
+.fact .k{font-size:10px; font-weight:900; letter-spacing:1.3px; text-transform:uppercase; color:var(--ink-3)}
+.fact .v{font-size:15px; font-weight:800; margin-top:3px}
+.fact .v small{display:block; font-size:12px; font-weight:600; color:var(--ink-2); margin-top:2px}
+
+.note{border-left:4px solid var(--teal); background:color-mix(in srgb,var(--teal) 8%, transparent);
+  padding:13px 16px; border-radius:0 10px 10px 0; font-size:13.5px; color:var(--ink-2)}
+.note strong{color:var(--ink)}
+.note.warn{border-left-color:var(--block); background:color-mix(in srgb,var(--block) 10%, transparent)}
+
+/* ── Sidebar mockup ──────────────────────────────────────── */
+.nav-demo{display:grid; grid-template-columns:270px 1fr; gap:20px; align-items:start}
+@media (max-width:720px){ .nav-demo{grid-template-columns:1fr} }
+.fake-sidebar{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:10px; font-size:13px;
+}
+.fake-sidebar .sec{
+  font-size:10px; font-weight:900; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink-3);
+  padding:9px 10px 6px; margin-top:4px; border-top:1px solid var(--line);
+}
+.fake-sidebar .sec:first-child{border-top:0; margin-top:0}
+.fake-sidebar .item{display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:8px; color:var(--ink-2); font-weight:600}
+.fake-sidebar .item.dim{opacity:.42}
+.fake-sidebar .item.hit{background:var(--navy); color:#fff; box-shadow:0 4px 14px rgba(15,43,91,.25)}
+.fake-sidebar .item .ico{width:16px;height:16px;flex:none;opacity:.85}
+.fake-sidebar .sub{padding:2px 0 4px 30px}
+.fake-sidebar .sub .item{padding:5px 10px; font-size:12.5px; font-weight:600}
+.fake-sidebar .sub .item.tgt{background:color-mix(in srgb,var(--teal) 16%, transparent); color:var(--teal); font-weight:800}
+.fake-sidebar .caret{margin-left:auto; font-size:10px; opacity:.6}
+
+.steps{counter-reset:s; list-style:none; margin:0; padding:0}
+.steps li{counter-increment:s; position:relative; padding:0 0 14px 38px; font-size:14px; color:var(--ink-2)}
+.steps li:last-child{padding-bottom:0}
+.steps li::before{
+  content:counter(s); position:absolute; left:0; top:0;
+  width:25px;height:25px;border-radius:8px; display:grid;place-content:center;
+  background:var(--navy); color:#fff; font-size:11px; font-weight:900;
+}
+.steps li strong{color:var(--ink)}
+
+/* ── Tables ──────────────────────────────────────────────── */
+.tw{overflow-x:auto; border:1px solid var(--line); border-radius:11px; background:var(--surface)}
+table{width:100%; border-collapse:collapse; font-size:13.2px; min-width:520px}
+th{
+  text-align:left; padding:10px 13px; background:var(--surface-2); color:var(--ink-3);
+  font-size:10.5px; font-weight:900; letter-spacing:1px; text-transform:uppercase;
+  border-bottom:1px solid var(--line); white-space:nowrap;
+}
+td{padding:10px 13px; border-bottom:1px solid var(--line); color:var(--ink-2); vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+td strong{color:var(--ink)}
+td.mono, th.mono{font-family:'JetBrains Mono',monospace; font-size:12px}
+
+.pill{display:inline-block; padding:2px 8px; border-radius:6px; font-size:10.5px; font-weight:800; letter-spacing:.3px; white-space:nowrap}
+.pill.g{background:color-mix(in srgb,var(--pass) 14%,transparent); color:var(--pass)}
+.pill.r{background:color-mix(in srgb,var(--fail) 14%,transparent); color:var(--fail)}
+.pill.a{background:color-mix(in srgb,var(--block) 16%,transparent); color:var(--block)}
+.pill.b{background:color-mix(in srgb,var(--info) 14%,transparent); color:var(--info)}
+.pill.n{background:var(--line); color:var(--ink-2)}
+
+kbd{
+  display:inline-block; padding:1.5px 6px; border-radius:5px; font-size:11.5px; font-weight:600;
+  background:var(--surface-2); border:1px solid var(--line); border-bottom-width:2px; color:var(--ink);
+}
+.path{display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:12.5px; font-weight:700}
+.path span{background:var(--surface-2); border:1px solid var(--line); padding:3px 9px; border-radius:7px; color:var(--ink)}
+.path i{color:var(--ink-3); font-style:normal}
+
+/* ── Test cases ──────────────────────────────────────────── */
+.filterbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px}
+.fbtn{
+  appearance:none; cursor:pointer; font:inherit; font-size:12px; font-weight:700;
+  padding:6px 13px; border-radius:999px; border:1px solid var(--line);
+  background:var(--surface); color:var(--ink-2);
+}
+.fbtn.on{background:var(--navy); border-color:var(--navy); color:#fff}
+.fbtn:hover{border-color:var(--navy)}
+
+.case{border:1px solid var(--line); border-radius:12px; background:var(--surface); margin-bottom:10px; overflow:hidden}
+.case[data-status="pass"]{border-color:color-mix(in srgb,var(--pass) 42%,var(--line))}
+.case[data-status="fail"]{border-color:color-mix(in srgb,var(--fail) 46%,var(--line))}
+.case[data-status="block"]{border-color:color-mix(in srgb,var(--block) 46%,var(--line))}
+.case-top{display:flex; align-items:flex-start; gap:12px; padding:13px 15px}
+.case-id{
+  font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; flex:none;
+  background:var(--surface-2); border:1px solid var(--line); padding:3px 8px; border-radius:6px; color:var(--ink-2);
+}
+.case-title{flex:1; font-weight:700; font-size:14.2px; color:var(--ink); min-width:180px}
+.case-title em{display:block; font-style:normal; font-weight:500; font-size:12.5px; color:var(--ink-3); margin-top:2px}
+.marks{display:flex; gap:5px; flex:none}
+.mark{
+  appearance:none; cursor:pointer; font:inherit; font-size:11px; font-weight:800; letter-spacing:.3px;
+  width:32px; height:28px; border-radius:8px; border:1px solid var(--line);
+  background:var(--surface-2); color:var(--ink-3); transition:.12s;
+}
+.mark:hover{border-color:var(--ink-3)}
+.mark[aria-pressed="true"][data-m="pass"]{background:var(--pass); border-color:var(--pass); color:#fff}
+.mark[aria-pressed="true"][data-m="fail"]{background:var(--fail); border-color:var(--fail); color:#fff}
+.mark[aria-pressed="true"][data-m="block"]{background:var(--block); border-color:var(--block); color:#fff}
+.case-body{padding:0 15px 14px 15px; display:grid; grid-template-columns:1fr 1fr; gap:14px}
+@media (max-width:700px){ .case-body{grid-template-columns:1fr} }
+.case-body h5{
+  margin:0 0 5px; font-size:10px; font-weight:900; letter-spacing:1.2px; text-transform:uppercase; color:var(--ink-3);
+}
+.case-body ol,.case-body ul{margin:0; padding-left:17px; font-size:13.2px; color:var(--ink-2)}
+.case-body li{margin-bottom:3px}
+.case-body .exp{background:color-mix(in srgb,var(--pass) 7%,transparent); border-radius:9px; padding:10px 12px}
+.case-body .exp li::marker{color:var(--pass)}
+
+/* ── Misc ────────────────────────────────────────────────── */
+.csv{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:10px;
+  padding:12px 14px; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--ink-2);
+  white-space:pre; overflow-x:auto; line-height:1.75;
+}
+.copyrow{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:7px}
+.copyrow .lbl{font-size:11px; font-weight:900; letter-spacing:1.1px; text-transform:uppercase; color:var(--ink-3)}
+.copybtn{
+  appearance:none; cursor:pointer; font:inherit; font-size:11px; font-weight:800;
+  padding:5px 11px; border-radius:7px; border:1px solid var(--line); background:var(--surface); color:var(--ink-2);
+}
+.copybtn:hover{border-color:var(--teal); color:var(--teal)}
+footer{max-width:1400px; margin:0 auto; padding:0 24px 40px; color:var(--ink-3); font-size:12.5px}
+
+@media print{
+  .topbar,.toc,.marks,.filterbar,.tool,.copybtn{display:none !important}
+  .shell{grid-template-columns:1fr; padding:0}
+  body{background:#fff; font-size:11px}
+  .card,.case{box-shadow:none; break-inside:avoid}
+  section{break-inside:avoid-page}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brandmark">
+      <div class="dot">QA</div>
+      <div>
+        <h1>Operational Trackers — Test Plan</h1>
+        <p>MODULE B · BREAK SHEET · DIESEL · DAILY VISITOR</p>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress"><i id="bar"></i></div>
+      <div class="progress-pct" id="pct">0%</div>
+    </div>
+
+    <div class="tally">
+      <span class="chip">Total <b id="t-all">0</b></span>
+      <span class="chip p">Pass <b id="t-pass">0</b></span>
+      <span class="chip f">Fail <b id="t-fail">0</b></span>
+      <span class="chip b">Blocked <b id="t-block">0</b></span>
+    </div>
+
+    <button class="tool" id="btn-summary">Copy summary</button>
+    <button class="tool" id="btn-reset">Reset</button>
+  </div>
+</header>
+
+<div class="shell">
+
+  <!-- ── TOC ───────────────────────────────────────────── -->
+  <nav class="toc" id="toc">
+    <h4>Test plan</h4>
+    <a href="#start"><span class="n">0</span> Before you start</a>
+    <a href="#navigate"><span class="n">1</span> Sidebar navigation</a>
+    <a href="#screens"><span class="n">2</span> Screen map</a>
+    <a href="#ts-nav"><span class="n">3</span> Access &amp; navigation</a>
+    <a href="#ts-break"><span class="n">4</span> Break Sheet</a>
+    <a href="#ts-diesel"><span class="n">5</span> Diesel</a>
+    <a href="#ts-visitor"><span class="n">6</span> Daily Visitor</a>
+    <a href="#ts-settings"><span class="n">7</span> Tracker Settings</a>
+    <a href="#ts-filter"><span class="n">8</span> Filters &amp; sorting</a>
+    <a href="#ts-import"><span class="n">9</span> Excel import</a>
+    <a href="#ts-export"><span class="n">10</span> Excel &amp; PDF export</a>
+    <a href="#ts-roles"><span class="n">11</span> Roles &amp; permissions</a>
+    <a href="#data"><span class="n">12</span> Test data pack</a>
+    <a href="#bugs"><span class="n">13</span> Raising a bug</a>
+  </nav>
+
+  <main>
+
+  <!-- ══ 0. BEFORE YOU START ══════════════════════════════ -->
+  <section id="start">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 0</div>
+        <h2>Before you start</h2>
+        <p class="lede">This plan covers the three operational registers added to the HRMS: <strong>Break Sheet</strong>,
+        <strong>Diesel</strong> and <strong>Daily Visitor</strong>. You do not need any prior knowledge of the ERP —
+        every case below tells you exactly where to click, what to type and what should happen.</p>
+      </div>
+      <div class="card-body">
+        <div class="grid-3" style="margin-bottom:18px">
+          <div class="fact"><div class="k">Where to test</div><div class="v">Admin panel<small>Log in at <span class="mono">/admin/login</span></small></div></div>
+          <div class="fact"><div class="k">Who to log in as</div><div class="v">Admin or HR Manager<small>Both roles get every tracker permission</small></div></div>
+          <div class="fact"><div class="k">Test cases</div><div class="v" id="fact-count">—<small>Mark each one P / F / B as you go</small></div></div>
+        </div>
+
+        <h3 style="font-size:15px; margin-bottom:8px">How to use this page</h3>
+        <ol class="steps" style="margin-bottom:18px">
+          <li>Work through the sections in order — later sections assume the records created in earlier ones exist.</li>
+          <li>For each case press <kbd>P</kbd> (pass), <kbd>F</kbd> (fail) or <kbd>B</kbd> (blocked). Your marks are saved
+              in this browser, so you can close the page and come back to it.</li>
+          <li>When something fails, note it against the case ID using the bug template in
+              <a href="#bugs">Section&nbsp;13</a>.</li>
+          <li>At the end press <strong>Copy summary</strong> in the header and paste the result into the QA thread.</li>
+        </ol>
+
+        <div class="note">
+          <strong>Prepare this first.</strong> You need at least <strong>three active employees</strong> in
+          <em>HR → Employees</em> (each with an Employee ID), and one <strong>PDF or JPG under 5&nbsp;MB</strong> on your
+          machine to use as a fuel slip. Nothing else needs setting up — the dropdown values ship pre-filled.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 1. SIDEBAR NAVIGATION ════════════════════════════ -->
+  <section id="navigate">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 1</div>
+        <h2>Finding it in the sidebar</h2>
+        <p>Everything lives in one place: the <strong>Trackers</strong> group inside <strong>Human Resources</strong>.</p>
+      </div>
+      <div class="card-body">
+        <div class="nav-demo">
+          <div class="fake-sidebar" aria-label="Sidebar navigation map">
+            <div class="sec">Human Resources</div>
+            <div class="item dim"><span class="ico">▤</span> HR Dashboard</div>
+            <div class="item dim"><span class="ico">▤</span> Employees <span class="caret">›</span></div>
+            <div class="item dim"><span class="ico">▤</span> Attendance <span class="caret">›</span></div>
+            <div class="item dim"><span class="ico">▤</span> Leaves <span class="caret">›</span></div>
+            <div class="item dim"><span class="ico">▤</span> Payroll <span class="caret">›</span></div>
+            <div class="item dim"><span class="ico">▤</span> Performance <span class="caret">›</span></div>
+            <div class="item hit"><span class="ico">▦</span> Trackers <span class="caret">⌄</span></div>
+            <div class="sub">
+              <div class="item tgt">All Trackers</div>
+              <div class="item tgt">Break Sheet</div>
+              <div class="item tgt">Diesel</div>
+              <div class="item tgt">Diesel Budget</div>
+              <div class="item tgt">Daily Visitor</div>
+              <div class="item tgt">Tracker Settings</div>
+            </div>
+            <div class="sec">Asset Management</div>
+            <div class="item dim"><span class="ico">▤</span> Assets <span class="caret">›</span></div>
+          </div>
+
+          <div>
+            <ol class="steps" style="margin-bottom:16px">
+              <li>Log in to the admin panel. The sidebar is the dark column down the left of every screen.</li>
+              <li>Scroll the sidebar to the <strong>HUMAN RESOURCES</strong> heading. It sits below Purchase and above Asset Management.</li>
+              <li>Click <strong>Trackers</strong>. The group expands to six links.</li>
+              <li><strong>All Trackers</strong> is the hub — three summary cards, one per register. Start there.</li>
+            </ol>
+
+            <div class="note">
+              <strong>Can't see Trackers?</strong> The whole group is permission-gated. If your login has none of the
+              tracker permissions the group is hidden entirely — that is correct behaviour, and it is what
+              <a href="#ts-roles">Section&nbsp;11</a> tests. Log in as Admin or HR Manager to see it.
+            </div>
+
+            <p style="margin:16px 0 6px; font-size:12.5px; font-weight:800; letter-spacing:.4px; color:var(--ink-3); text-transform:uppercase">Shortcut</p>
+            <p style="margin:0; font-size:13.5px; color:var(--ink-2)">
+              The sidebar has a <strong>Search menu…</strong> box at the top. Typing <span class="mono">track</span>
+              highlights the group without scrolling.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 2. SCREEN MAP ════════════════════════════════════ -->
+  <section id="screens">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 2</div>
+        <h2>Screen map</h2>
+        <p>Every screen in the module, and the permission that controls it. Paste a URL into the address bar if you'd rather jump straight there.</p>
+      </div>
+      <div class="card-body">
+        <div class="tw">
+          <table>
+            <thead><tr><th>Screen</th><th>Reached from</th><th class="mono">URL</th><th>Permission</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Trackers hub</strong></td><td>Trackers → All Trackers</td><td class="mono">/admin/hr/trackers</td><td class="mono">any tracker <code>.view</code></td></tr>
+              <tr><td>Break Sheet register</td><td>Trackers → Break Sheet</td><td class="mono">/admin/hr/trackers/break-sheet</td><td class="mono">break_tracker.view</td></tr>
+              <tr><td>Break Sheet — add / edit</td><td>“+ Add Break Entry”</td><td class="mono">…/break-sheet/create</td><td class="mono">break_tracker.create</td></tr>
+              <tr><td>Break Sheet — analytics</td><td>“Analytics” button</td><td class="mono">…/break-sheet/analytics</td><td class="mono">break_tracker.view</td></tr>
+              <tr><td>Diesel register</td><td>Trackers → Diesel</td><td class="mono">/admin/hr/trackers/diesel</td><td class="mono">diesel_tracker.view</td></tr>
+              <tr><td>Diesel — add / edit</td><td>“+ Add Diesel Entry”</td><td class="mono">…/diesel/create</td><td class="mono">diesel_tracker.create</td></tr>
+              <tr><td>Diesel — analytics</td><td>“Analytics” button</td><td class="mono">…/diesel/analytics</td><td class="mono">diesel_tracker.view</td></tr>
+              <tr><td>Diesel — monthly budget</td><td>Trackers → Diesel Budget</td><td class="mono">…/diesel/budgets</td><td class="mono">diesel_tracker.manage_budget</td></tr>
+              <tr><td>Daily Visitor register</td><td>Trackers → Daily Visitor</td><td class="mono">/admin/hr/trackers/visitors</td><td class="mono">visitor_tracker.view</td></tr>
+              <tr><td>Daily Visitor — add / edit</td><td>“+ Add Visitor Entry”</td><td class="mono">…/visitors/create</td><td class="mono">visitor_tracker.create</td></tr>
+              <tr><td>Daily Visitor — analytics</td><td>“Analytics” button</td><td class="mono">…/visitors/analytics</td><td class="mono">visitor_tracker.view</td></tr>
+              <tr><td>Tracker Settings (dropdowns)</td><td>Trackers → Tracker Settings</td><td class="mono">…/trackers/settings</td><td class="mono">tracker_settings.view</td></tr>
+              <tr><td>Import — Break Sheets</td><td>“Import Excel” on the register</td><td class="mono">/admin/imports/break_sheets</td><td class="mono">break_tracker.import</td></tr>
+              <tr><td>Import — Diesel</td><td>“Import Excel” on the register</td><td class="mono">/admin/imports/diesel_entries</td><td class="mono">diesel_tracker.import</td></tr>
+              <tr><td>Import — Visitors</td><td>“Import Excel” on the register</td><td class="mono">/admin/imports/visitor_logs</td><td class="mono">visitor_tracker.import</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 3. ACCESS & NAVIGATION ═══════════════════════════ -->
+  <section id="ts-nav">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 1 · 6 cases</div>
+        <h2>Access &amp; navigation</h2>
+        <p>Prove every screen opens from the sidebar and the hub reflects what is in the registers.</p>
+      </div>
+      <div class="card-body" id="suite-nav"></div>
+    </div>
+  </section>
+
+  <!-- ══ 4. BREAK SHEET ═══════════════════════════════════ -->
+  <section id="ts-break">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 2 · 12 cases</div>
+        <h2>Break Sheet Tracker</h2>
+        <p>An employee break register. The headline behaviour to prove: <strong>Total Timing is never typed</strong> —
+        the system works it out from Out Time and In Time, live on the form and again on save.</p>
+      </div>
+      <div class="card-body" id="suite-break"></div>
+    </div>
+  </section>
+
+  <!-- ══ 5. DIESEL ════════════════════════════════════════ -->
+  <section id="ts-diesel">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 3 · 14 cases</div>
+        <h2>Diesel Tracker</h2>
+        <p>A fuel register where every entry can carry its bill or slip as proof, measured against a monthly budget.</p>
+      </div>
+      <div class="card-body" id="suite-diesel"></div>
+    </div>
+  </section>
+
+  <!-- ══ 6. VISITOR ═══════════════════════════════════════ -->
+  <section id="ts-visitor">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 4 · 11 cases</div>
+        <h2>Daily Visitor Tracker</h2>
+        <p>Office visitors and interview candidates, with the source they came from and what came of the visit.</p>
+      </div>
+      <div class="card-body" id="suite-visitor"></div>
+    </div>
+  </section>
+
+  <!-- ══ 7. SETTINGS ══════════════════════════════════════ -->
+  <section id="ts-settings">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 5 · 6 cases</div>
+        <h2>Tracker Settings</h2>
+        <p>One screen maintains all three dynamic dropdowns: Break Type, Visitor Source and Purpose of Visit.</p>
+      </div>
+      <div class="card-body" id="suite-settings"></div>
+    </div>
+  </section>
+
+  <!-- ══ 8. FILTERS ═══════════════════════════════════════ -->
+  <section id="ts-filter">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 6 · 10 cases</div>
+        <h2>Filters, search &amp; sorting</h2>
+        <p>The same filter bar sits on all three registers: five period modes, a search box, register-specific
+        dropdowns, and sortable column headers.</p>
+      </div>
+      <div class="card-body" id="suite-filter"></div>
+    </div>
+  </section>
+
+  <!-- ══ 9. IMPORT ════════════════════════════════════════ -->
+  <section id="ts-import">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 7 · 8 cases</div>
+        <h2>Excel import</h2>
+        <p>Each register imports historical data through the shared import pipeline:
+        <strong>upload → validate → preview → confirm</strong>. Nothing is written until you confirm.</p>
+      </div>
+      <div class="card-body" id="suite-import"></div>
+    </div>
+  </section>
+
+  <!-- ══ 10. EXPORT ═══════════════════════════════════════ -->
+  <section id="ts-export">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 8 · 7 cases</div>
+        <h2>Excel &amp; PDF export</h2>
+        <p>Both buttons export <em>what is currently on screen</em> — the same period, search, filters and sort order.</p>
+      </div>
+      <div class="card-body" id="suite-export"></div>
+    </div>
+  </section>
+
+  <!-- ══ 11. ROLES ════════════════════════════════════════ -->
+  <section id="ts-roles">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 9 · 8 cases</div>
+        <h2>Roles &amp; permissions</h2>
+        <p>Each register is a separate module row in <em>Management → Roles &amp; Permissions</em>, so one register can be
+        granted without the others.</p>
+      </div>
+      <div class="card-body">
+        <div class="note" style="margin-bottom:16px">
+          <strong>Set-up for this suite.</strong> Go to <span class="path"><span>Management</span><i>›</i><span>Roles &amp; Permissions</span><i>›</i><span>Create Role</span></span>
+          and make a role called <strong>Front Desk</strong>. Tick only <span class="mono">visitor_tracker</span> →
+          <em>view, create, edit</em>. Save it, then create a test admin user with that role and log in as them
+          in a private window (so you keep your Admin session open in the other).
+        </div>
+        <div class="tw" style="margin-bottom:16px">
+          <table>
+            <thead><tr><th>Module row</th><th>Actions available</th><th>Controls</th></tr></thead>
+            <tbody>
+              <tr><td class="mono"><strong>break_tracker</strong></td><td>view · create · edit · delete · import · export</td><td>The Break Sheet register</td></tr>
+              <tr><td class="mono"><strong>diesel_tracker</strong></td><td>view · create · edit · delete · import · export · <strong>manage_budget</strong></td><td>The Diesel register, plus the monthly budget screen</td></tr>
+              <tr><td class="mono"><strong>visitor_tracker</strong></td><td>view · create · edit · delete · import · export</td><td>The Daily Visitor register</td></tr>
+              <tr><td class="mono"><strong>tracker_settings</strong></td><td>view · manage</td><td>The dropdown values screen</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="suite-roles"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 12. TEST DATA ════════════════════════════════════ -->
+  <section id="data">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 12</div>
+        <h2>Test data pack</h2>
+        <p>Type these in by hand for the form cases, and save them as <span class="mono">.csv</span> for the import cases.
+        The values are chosen so the arithmetic is easy to check in your head.</p>
+      </div>
+      <div class="card-body">
+
+        <h3 style="font-size:15px; margin-bottom:4px">Break Sheet — enter by hand</h3>
+        <p style="font-size:13.2px; color:var(--ink-2); margin:0 0 10px">The last row is the midnight case — it must read 45m, not a negative number.</p>
+        <div class="tw" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th>Employee</th><th>Date</th><th>Out</th><th>In</th><th>Break Type</th><th>Expected Total</th></tr></thead>
+            <tbody>
+              <tr><td>Employee&nbsp;1</td><td>Today</td><td class="mono">13:30</td><td class="mono">14:05</td><td>Lunch Break</td><td><strong>35m</strong></td></tr>
+              <tr><td>Employee&nbsp;1</td><td>Today</td><td class="mono">16:00</td><td class="mono">16:10</td><td>Tea Break</td><td><strong>10m</strong></td></tr>
+              <tr><td>Employee&nbsp;2</td><td>Today</td><td class="mono">11:00</td><td class="mono">12:30</td><td>Official Work</td><td><strong>1h 30m</strong></td></tr>
+              <tr><td>Employee&nbsp;2</td><td>Today</td><td class="mono">15:00</td><td><em>leave blank</em></td><td>Personal</td><td><span class="pill a">ON BREAK</span></td></tr>
+              <tr><td>Employee&nbsp;3</td><td>Today</td><td class="mono">23:40</td><td class="mono">00:25</td><td>Medical</td><td><strong>45m</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="font-size:15px; margin-bottom:4px">Diesel — enter by hand</h3>
+        <p style="font-size:13.2px; color:var(--ink-2); margin:0 0 10px">Rate per litre is Amount ÷ Quantity and must update as you type.</p>
+        <div class="tw" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th>Date</th><th>Bill No</th><th>Slip No</th><th>Vehicle</th><th>Quantity</th><th>Amount</th><th>Expected Rate</th></tr></thead>
+            <tbody>
+              <tr><td>Today</td><td class="mono">B-4471</td><td class="mono">S-119</td><td class="mono">MH12AB1234</td><td>40</td><td>4000</td><td><strong>₹100.00</strong></td></tr>
+              <tr><td>Yesterday</td><td class="mono">B-4472</td><td class="mono">S-120</td><td class="mono">MH12AB1234</td><td>25</td><td>2500</td><td><strong>₹100.00</strong></td></tr>
+              <tr><td>Yesterday</td><td class="mono">B-4473</td><td class="mono">S-121</td><td class="mono">MH14XY9999</td><td>50</td><td>5250</td><td><strong>₹105.00</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note" style="margin-bottom:20px">
+          Set this month's <strong>Diesel Budget to ₹10,000</strong>. After the three rows above the register should
+          read <strong>Allocated ₹10,000 · Consumed ₹11,750 · Remaining −₹1,750</strong>, the bar should be red, and
+          the caption should say it is over budget.
+        </div>
+
+        <h3 style="font-size:15px; margin-bottom:4px">Daily Visitor — enter by hand</h3>
+        <p style="font-size:13.2px; color:var(--ink-2); margin:0 0 10px">
+          Four visitors, three of whom turned up, one of those selected → <strong>conversion 33.3%</strong>,
+          <strong>attendance 75%</strong>.</p>
+        <div class="tw" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th>Name</th><th>Mobile</th><th>Source</th><th>Purpose</th><th>Availability</th><th>Outcome</th></tr></thead>
+            <tbody>
+              <tr><td>Ravi Kumar</td><td class="mono">9876543210</td><td>Naukri</td><td>Interview</td><td><span class="pill g">Available</span></td><td><span class="pill b">Selected</span></td></tr>
+              <tr><td>Sneha Patil</td><td class="mono">9876543211</td><td>Referral</td><td>Interview</td><td><span class="pill g">Available</span></td><td><span class="pill r">Rejected</span></td></tr>
+              <tr><td>Imran Shaikh</td><td class="mono">9876543212</td><td>Walk-in</td><td>Interview</td><td><span class="pill g">Available</span></td><td><span class="pill n">Pending</span></td></tr>
+              <tr><td>Vendor — Sai Traders</td><td class="mono">9876543213</td><td>Walk-in</td><td>Vendor Visit</td><td><span class="pill r">No Show</span></td><td><span class="pill n">Pending</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="font-size:15px; margin:0 0 10px">Import files</h3>
+        <p style="font-size:13.2px; color:var(--ink-2); margin:0 0 12px">
+          Copy each block into a new spreadsheet (or a plain <span class="mono">.csv</span> file) and upload it on the
+          matching import screen. Replace <span class="mono">EMP-0001</span> with a real Employee ID from your system.
+          Each block deliberately contains <strong>one bad row</strong> so you can check the validation preview.
+        </p>
+
+        <div class="grid-2">
+          <div>
+            <div class="copyrow"><span class="lbl">break-sheets.csv</span><button class="copybtn" data-copy="csv-break">Copy</button></div>
+            <div class="csv" id="csv-break">Employee Code,Break Date,Out Time,In Time,Break Type,Remarks
+EMP-0001,2026-08-04,13:30,14:05,Lunch Break,Canteen
+EMP-0001,2026-08-05,16:00,16:12,Tea Break,
+EMP-0001,2026-08-06,23:40,00:25,Field Visit,Night shift
+NO-SUCH-ID,2026-08-07,10:00,10:30,Tea Break,should fail</div>
+          </div>
+
+          <div>
+            <div class="copyrow"><span class="lbl">diesel-entries.csv</span><button class="copybtn" data-copy="csv-diesel">Copy</button></div>
+            <div class="csv" id="csv-diesel">Serial No,Date,Time,Bill No,Slip No,Vehicle No,Quantity,Amount,Remarks
+,04-08-2026,10:15,B-9001,S-501,MH12AB1234,35.50,"3,550.00",Site vehicle
+,05-08-2026,09:00,B-9002,S-502,MH14XY9999,20,2100,
+,06-08-2026,11:30,B-9003,S-503,MH12AB1234,0,0,should fail</div>
+          </div>
+
+          <div style="grid-column:1/-1">
+            <div class="copyrow"><span class="lbl">visitor-logs.csv</span><button class="copybtn" data-copy="csv-visitor">Copy</button></div>
+            <div class="csv" id="csv-visitor">Date Of Visit,Visitor Name,Mobile,Source,Arrival Time,Purpose,Called By,Interview By,Availability Status,Outcome,Remarks
+2026-08-04,Ravi Kumar,9876543210,Naukri,10:30,Interview,Priya (HR),Amit,Available,Selected,Round 1 done
+2026-08-04,Sneha Patil,9876543211,Referral,11:15,Interview,Priya (HR),Amit,Available,Rejected,
+2026-08-05,Imran Shaikh,9876543212,Apna App,09:45,Interview,Priya (HR),,No Show,Pending,New source on the fly
+2026-08-05,Broken Row,9876543213,Walk-in,10:00,Interview,,,Maybe,Pending,should fail</div>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:16px">
+          <strong>Two behaviours the import files are designed to prove.</strong>
+          The diesel file leaves <span class="mono">Serial No</span> blank — the system must number those rows itself
+          (<span class="mono">DSL-YYYYMM-0001</span> onward). The visitor file uses a source called
+          <span class="mono">Apna App</span> that does not exist yet — after importing it must appear in
+          <em>Tracker Settings → Visitor Source</em>.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 13. BUGS ═════════════════════════════════════════ -->
+  <section id="bugs">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 13</div>
+        <h2>Raising a bug</h2>
+        <p>Use the case ID so the developer can reproduce it without asking you anything.</p>
+      </div>
+      <div class="card-body">
+        <div class="copyrow"><span class="lbl">Bug template</span><button class="copybtn" data-copy="bug-tpl">Copy</button></div>
+        <div class="csv" id="bug-tpl">Case ID     : TC-BRK-04
+Screen      : HR → Trackers → Break Sheet → Add Break Entry
+Logged in as: HR Manager
+Steps       : 1. …
+              2. …
+              3. …
+Expected    : Total Timing shows 45m
+Actual      : Total Timing shows -1415m
+Severity    : High / Medium / Low
+Evidence    : screenshot + the URL from the address bar</div>
+
+        <div class="grid-3" style="margin-top:18px">
+          <div class="fact"><div class="k">High</div><div class="v">Blocks the work<small>Wrong number saved, a screen that will not open, data lost</small></div></div>
+          <div class="fact"><div class="k">Medium</div><div class="v">Works, but wrongly<small>Filter ignored, export missing a column, bad validation message</small></div></div>
+          <div class="fact"><div class="k">Low</div><div class="v">Cosmetic<small>Spacing, wording, alignment</small></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<footer>
+  Operational Trackers — QA test plan · Module B · Break Sheet, Diesel and Daily Visitor.
+  Marks are stored in this browser only; use <strong>Copy summary</strong> to share results.
+</footer>
+
+<script>
+/* ────────────────────────────────────────────────────────────
+   Test cases. Everything on the page below Section 2 is built
+   from this array so the counters, the filter and the summary
+   can never drift out of sync with what is rendered.
+   ──────────────────────────────────────────────────────────── */
+const SUITES = {
+  'suite-nav': [
+    ['TC-NAV-01','The Trackers group appears in the sidebar',
+      'Log in as Admin or HR Manager.',
+      ['Log in to the admin panel.','Scroll the sidebar to the HUMAN RESOURCES heading.','Click Trackers.'],
+      ['The group expands to six links: All Trackers, Break Sheet, Diesel, Diesel Budget, Daily Visitor, Tracker Settings.','The group stays open while you move between its screens.']],
+    ['TC-NAV-02','The hub opens and shows three cards','',
+      ['Click Trackers → All Trackers.'],
+      ['Three cards: Break Sheet, Diesel, Daily Visitor.','Each card has Open Register and Analytics buttons.','The heading names the current month, e.g. “August 2026”.']],
+    ['TC-NAV-03','Hub figures match the registers','Do this after entering the test data in Section 12.',
+      ['Note the Entries / Employees / Total figures on the Break Sheet card.','Click Open Register on that card.'],
+      ['The four stat tiles on the register show the same numbers as the hub card.','The register opens already filtered to the same month.']],
+    ['TC-NAV-04','The hub period filter drives all three cards','',
+      ['On the hub choose Period → Yearly and press Apply.'],
+      ['All three cards refresh together.','The heading now reads the year, not the month.','Card figures are equal to or larger than the monthly figures.']],
+    ['TC-NAV-05','Breadcrumbs go back up the tree','',
+      ['Open Break Sheet, then click Analytics.','Use the breadcrumb at the top of the page.'],
+      ['The breadcrumb reads Home › HR › Trackers › Break Sheet › Analytics.','Clicking Trackers returns to the hub; clicking Break Sheet returns to the register.']],
+    ['TC-NAV-06','Every screen in the map opens','Use the table in Section 2.',
+      ['Open each of the 15 screens listed in the Screen map, one by one.'],
+      ['No screen shows a 404, a 500, or a blank page.','Every screen shows the sidebar and the breadcrumb.']],
+  ],
+
+  'suite-break': [
+    ['TC-BRK-01','Add a break and see the total calculated','',
+      ['Trackers → Break Sheet → + Add Break Entry.','Pick Employee 1. Set Break Date to today.','Out Time 13:30, In Time 14:05, Break Type Lunch Break.','Press Record Break.'],
+      ['While typing, the Total Timing panel updates live to 35m.','After saving, the row appears in the register with Total Timing 35m.','A green “Break entry recorded.” message appears.']],
+    ['TC-BRK-02','Employee ID fills itself in','',
+      ['Open the add form.','Change the Employee dropdown to a different employee.'],
+      ['The Employee ID box fills with that employee’s code automatically.','The box is read-only — you cannot type into it.','Choosing a different employee replaces the code.']],
+    ['TC-BRK-03','Total Timing cannot be typed','',
+      ['On the add form, try to click and type in the Total Timing panel.'],
+      ['There is no input there — it is a calculated display only.','It stays “—” until both Out Time and In Time are filled.']],
+    ['TC-BRK-04','A break across midnight is not negative','This is the important edge case.',
+      ['Add a break with Out Time 23:40 and In Time 00:25.'],
+      ['The live panel reads 45m.','The saved row also reads 45m.','No negative number and no error appear anywhere.']],
+    ['TC-BRK-05','A break with no In Time stays open','',
+      ['Add a break with Out Time 15:00 and In Time left blank.'],
+      ['It saves without complaint.','The In Time column shows an amber ON BREAK badge.','Total Timing shows “—”.']],
+    ['TC-BRK-06','A future date is refused','',
+      ['Try to set Break Date to tomorrow and save.'],
+      ['The browser blocks it (the date picker has no future dates) — and if forced, the server refuses with “A break cannot be recorded for a future date.”','No row is created.']],
+    ['TC-BRK-07','A missing employee or Out Time is refused','',
+      ['Press Record Break with the form empty.'],
+      ['A red error panel lists the missing fields.','The messages name the field in plain English, not a database column.']],
+    ['TC-BRK-08','Editing recalculates the total','',
+      ['Open the 35m entry, click Edit.','Change In Time to 14:30 and save.'],
+      ['The register now shows 1h 0m for that row, not 35m.']],
+    ['TC-BRK-09','Delete asks first','',
+      ['Click Delete on any break row.'],
+      ['A confirmation box appears before anything happens.','Cancelling leaves the row alone; confirming removes it and shows a success message.']],
+    ['TC-BRK-10','The stat tiles add up','',
+      ['With the five sample breaks entered, read the four tiles above the table.'],
+      ['Entries = the number of rows.','Employees = the number of distinct people, not rows.','Total Break Time = the sum of the durations.','Average Break = Total ÷ Entries, ignoring the still-open break.']],
+    ['TC-BRK-11','Analytics matches the register','',
+      ['Click Analytics.'],
+      ['Daily break totals chart has one bar/point per day that has entries.','Break type mix donut adds to 100%.','The per-employee table totals equal the register’s Total Break Time.','The longest break in “Ten longest breaks” is genuinely the longest.']],
+    ['TC-BRK-12','An empty period says so politely','',
+      ['Set the period to a month with no entries, e.g. last year.'],
+      ['The table shows “No break entries for …”, not an error.','Analytics shows “Nothing to analyse …” instead of empty charts.']],
+  ],
+
+  'suite-diesel': [
+    ['TC-DSL-01','Serial number is offered automatically','',
+      ['Trackers → Diesel → + Add Diesel Entry.'],
+      ['Serial Number is pre-filled in the form DSL-YYYYMM-0001.','The field is editable — you can type your own numbering over it.']],
+    ['TC-DSL-02','Rate per litre calculates as you type','',
+      ['Type Quantity 40 and Amount 4000.'],
+      ['Rate per litre shows ₹100.00 immediately, before saving.','Clearing either box returns it to “—”.']],
+    ['TC-DSL-03','Save a complete entry','',
+      ['Fill row 1 of the Diesel test data and save.'],
+      ['The row appears with Serial, Date, Month, Bill No, Slip No, Vehicle, Quantity, Amount and Rate/L.','The Month column is derived from the Date — you never typed it.']],
+    ['TC-DSL-04','Serials continue in sequence','',
+      ['Add a second entry.'],
+      ['The suggested serial is …-0002, not …-0001 again.']],
+    ['TC-DSL-05','A duplicate serial is refused','',
+      ['Add an entry and type a serial that already exists.'],
+      ['Saving fails with “That serial number is already used by another diesel entry.”','Your other typed values are still on the form — nothing is lost.']],
+    ['TC-DSL-06','Upload a receipt / slip','',
+      ['On a new entry, attach a PDF or JPG under 5 MB and save.'],
+      ['The Proof column shows a green View link.','Clicking View opens the file in a new tab.']],
+    ['TC-DSL-07','An entry with no slip is flagged','',
+      ['Save an entry without attaching anything.'],
+      ['The Proof column shows a red Missing badge.']],
+    ['TC-DSL-08','Oversized or wrong-type uploads are refused','',
+      ['Try to attach a file over 5 MB, then a .docx or .xlsx.'],
+      ['Each is refused with a clear message naming the limit or the allowed types (PDF, JPG, PNG).','No entry is created.']],
+    ['TC-DSL-09','Replacing and removing a slip','',
+      ['Edit an entry that has a slip; attach a different file and save.','Edit it again and tick “Remove it”, then save.'],
+      ['After the first save, View opens the new file.','After the second, the Proof column shows Missing.']],
+    ['TC-DSL-10','Set a monthly budget','',
+      ['Trackers → Diesel Budget.','Set this month to ₹10,000 and save.'],
+      ['The row appears with Allocated ₹10,000 and Consumed equal to this month’s entries.','Remaining = Allocated − Consumed.']],
+    ['TC-DSL-11','Saving the same month again revises it','',
+      ['Save the same month again with ₹15,000.'],
+      ['There is still only one row for that month.','It now reads ₹15,000 — not two rows, and not ₹25,000.']],
+    ['TC-DSL-12','Going over budget is obvious','',
+      ['With a ₹10,000 budget, enter enough fuel to exceed it.'],
+      ['The bar turns red.','Remaining is negative and shown in red.','The caption says how much over budget you are.','Between 85% and 100% the bar is amber, below that green.']],
+    ['TC-DSL-13','No budget set is handled gracefully','',
+      ['Remove the budget for the month and reopen the register.'],
+      ['The overview says no budget has been set, with a link to set one.','No error, and no division-by-zero anywhere.']],
+    ['TC-DSL-14','Analytics matches the register','',
+      ['Click Analytics.'],
+      ['Consumption trend covers the selected period.','Cost per litre movement matches Amount ÷ Quantity for each point.','Month-on-month always shows the last six months, whatever the filter is set to.','The by-vehicle table amounts add up to the register total.']],
+  ],
+
+  'suite-visitor': [
+    ['TC-VIS-01','Log a visitor','',
+      ['Trackers → Daily Visitor → + Add Visitor Entry.','Enter Ravi Kumar from the test data and save.'],
+      ['The row appears with Source and Purpose shown as coloured tags.','Availability and Outcome show as coloured status pills.']],
+    ['TC-VIS-02','Source and Purpose come from Tracker Settings','',
+      ['Open the add form and expand the Source dropdown.'],
+      ['It lists Walk-in, Referral, Naukri, LinkedIn, Indeed, Consultancy, Campus, Website, Other.','A hint under the field links to Tracker Settings for adding more.']],
+    ['TC-VIS-03','Name is required, everything optional is optional','',
+      ['Save with only a date and a name.'],
+      ['It saves.','Empty columns show “—”, not blank space or the word “null”.']],
+    ['TC-VIS-04','A bad mobile number is refused','',
+      ['Type letters into Mobile Number and save.'],
+      ['Refused with “Enter a valid mobile number (digits, spaces, + and - only).”']],
+    ['TC-VIS-05','Availability and Outcome are restricted lists','',
+      ['Open both dropdowns.'],
+      ['Availability offers Available, Not Available, Rescheduled, No Show.','Outcome offers Pending, Selected, Rejected, On Hold, Joined.','Neither accepts free text.']],
+    ['TC-VIS-06','Conversion ignores people who never turned up','The key business rule of this register.',
+      ['Enter all four visitors from the test data (three Available, one No Show; one Selected).','Read the Conversion tile.'],
+      ['Conversion = 33.3% — that is 1 selected ÷ 3 who turned up.','It is NOT 25% (1 ÷ 4). A no-show must not count against the source.']],
+    ['TC-VIS-07','Attendance rate is measured against everyone','',
+      ['Read the analytics page’s Attended tile.'],
+      ['Attendance = 75% — 3 of the 4 people logged.']],
+    ['TC-VIS-08','The conversion funnel is consistent','',
+      ['Open Analytics and read the four funnel boxes.'],
+      ['Logged ≥ Turned up ≥ Selected ≥ Joined.','Each percentage is measured against Logged.']],
+    ['TC-VIS-09','By-source table shows conversion per channel','',
+      ['On Analytics, read the By source table.'],
+      ['Visitors column adds up to the total.','Rate = Converted ÷ Visitors for that row.','A source with no conversions shows 0% in grey, not a blank.']],
+    ['TC-VIS-10','Filter by source, purpose and outcome','',
+      ['On the register, set Source = Naukri and Apply.','Then set Outcome = Selected and Apply.'],
+      ['Only matching rows remain.','The stat tiles recalculate for the narrowed set.','Both filters stay selected in the dropdowns after the page reloads.']],
+    ['TC-VIS-11','Edit and delete behave like the other registers','',
+      ['Edit a visitor and change the Outcome to Joined; save.','Delete another visitor.'],
+      ['The pill colour changes to the Joined colour.','Delete asks for confirmation first.','The Joined tile on Analytics goes up by one.']],
+  ],
+
+  'suite-settings': [
+    ['TC-SET-01','The three lists are pre-filled','',
+      ['Trackers → Tracker Settings.'],
+      ['Three panels: Break Type, Visitor Source, Purpose of Visit.','Each already has sensible starter values.','Each panel says how many are active.']],
+    ['TC-SET-02','Add a new value','',
+      ['Type “Apna App” in the Visitor Source box and press Add.','Go to Daily Visitor → + Add Visitor Entry.'],
+      ['The value appears in the list immediately.','It is selectable in the Source dropdown on the form.']],
+    ['TC-SET-03','A duplicate name is refused','',
+      ['Add “Referral” to Visitor Source when it already exists.'],
+      ['Refused with “That value already exists in this list.”','No second copy is created.']],
+    ['TC-SET-04','Rename and reorder','',
+      ['Click Edit on a value, change its name and its sort number, save.'],
+      ['The new name shows in the list and on the entry forms.','A lower sort number moves it up the dropdown.']],
+    ['TC-SET-05','A value in use is hidden, not deleted','The safeguard that keeps old records readable.',
+      ['Make sure a break entry uses “Lunch Break”.','Delete “Lunch Break” from Tracker Settings.'],
+      ['A warning says it was deactivated instead of deleted.','It shows as struck-through with a Hidden badge and a “n used” count.','It disappears from the add-entry dropdown.','The existing break row still shows “Lunch Break” — the history is intact.']],
+    ['TC-SET-06','An unused value is deleted outright','',
+      ['Add a throwaway value, then delete it without using it anywhere.'],
+      ['It disappears from the list entirely.','The message says it was deleted, not deactivated.']],
+  ],
+
+  'suite-filter': [
+    ['TC-FLT-01','A register opens on the current month','',
+      ['Open any register with no query string in the URL.'],
+      ['Period is set to Monthly and the month box shows the current month.','The caption under the filter reads e.g. “Showing August 2026”.']],
+    ['TC-FLT-02','Monthly','',
+      ['Pick a different month and press Apply.'],
+      ['Only rows dated in that month remain.','The stat tiles recalculate.','The caption names the chosen month.']],
+    ['TC-FLT-03','Date-wise','',
+      ['Choose Date-wise, pick today, Apply.'],
+      ['Only today’s rows remain.']],
+    ['TC-FLT-04','Date Range','',
+      ['Choose Date Range, set From = 3 days ago, To = today, Apply.'],
+      ['Only rows in that window remain.','The caption reads “01 Aug 2026 — 04 Aug 2026”.']],
+    ['TC-FLT-05','A backwards range still works','',
+      ['Set From = today and To = 3 days ago, then Apply.'],
+      ['The dates are treated the right way round and rows are still returned.','You do not get an empty table.']],
+    ['TC-FLT-06','Yearly and All Time','',
+      ['Choose Yearly, then All Time.'],
+      ['Yearly shows the whole year; All Time drops the date restriction entirely.','All Time returns at least as many rows as Yearly.']],
+    ['TC-FLT-07','Search across the register','',
+      ['Type part of a name (Break/Visitor) or a bill number (Diesel) and Apply.'],
+      ['Only matching rows remain.','The search term is echoed in the caption and stays in the box.']],
+    ['TC-FLT-08','Sorting on any column','',
+      ['Click a column header with sort arrows. Click it again.'],
+      ['First click sorts descending, second ascending — the arrow indicates which.','The period and search filters are still applied after sorting.']],
+    ['TC-FLT-09','Filters survive paging','',
+      ['With more than 25 rows, filter, sort, then go to page 2.'],
+      ['Page 2 keeps the same period, search and sort.','No row appears on both pages, and none is skipped.']],
+    ['TC-FLT-10','Reset clears everything','',
+      ['Press Reset.'],
+      ['Search, dropdowns and sorting go back to their defaults.','The period returns to the current month.']],
+  ],
+
+  'suite-import': [
+    ['TC-IMP-01','Reach the import screen','Importing also needs the bulk_imports.run permission — Admin and HR Manager both have it.',
+      ['On any register press Import Excel.'],
+      ['The import screen opens for that register specifically.','A template download is offered.']],
+    ['TC-IMP-02','The template matches the register','',
+      ['Download the template for each of the three imports.'],
+      ['Break Sheet: Employee Code, Break Date, Out Time, In Time, Break Type, Remarks.','Diesel: Serial No, Date, Time, Bill No, Slip No, Vehicle No, Quantity, Amount, Remarks.','Visitor: Date Of Visit, Visitor Name, Mobile, Source, Arrival Time, Purpose, Called By, Interview By, Availability Status, Outcome, Remarks.','Each template has one filled example row.']],
+    ['TC-IMP-03','Bad rows are caught in the preview','',
+      ['Upload break-sheets.csv from the test data pack (it has one bad row).'],
+      ['The preview shows 3 valid and 1 in error.','The error names the row number and says the employee code is unknown.','Nothing has been saved yet.']],
+    ['TC-IMP-04','Confirming imports only the good rows','',
+      ['Press Confirm on that preview.'],
+      ['3 rows appear in the Break Sheet register; the bad one does not.','A summary states how many imported and how many failed.']],
+    ['TC-IMP-05','Imported durations are calculated too','',
+      ['Look at the imported rows, including the 23:40 → 00:25 one.'],
+      ['Total Timing is filled for every imported row.','The midnight row reads 45m.']],
+    ['TC-IMP-06','A new dropdown value is created on the fly','',
+      ['The break file uses “Field Visit”; the visitor file uses “Apna App”.','Import both, then open Tracker Settings.'],
+      ['Field Visit appears under Break Type.','Apna App appears under Visitor Source.']],
+    ['TC-IMP-07','Blank diesel serials are numbered automatically','',
+      ['Import diesel-entries.csv, which leaves Serial No blank.'],
+      ['Imported rows get DSL-YYYYMM-NNNN serials in sequence.','The row with quantity 0 is rejected in the preview with a clear reason.','Indian date format (04-08-2026) is read as 4 August, not 8 April.','“3,550.00” is read as 3550.00, commas and all.']],
+    ['TC-IMP-08','A file with no data rows is rejected','',
+      ['Upload a CSV containing only the header row.'],
+      ['A message says the file has no data rows.','Nothing is imported and no error page appears.']],
+  ],
+
+  'suite-export': [
+    ['TC-EXP-01','Excel export downloads','',
+      ['On any register press Excel in the filter bar.'],
+      ['An .xlsx file downloads.','The filename contains the register name and the period.']],
+    ['TC-EXP-02','PDF export downloads','',
+      ['Press PDF.'],
+      ['A PDF downloads and opens.','The header carries the business name, the register name and the period.']],
+    ['TC-EXP-03','The export respects the filter','',
+      ['Filter to a single day, then export to Excel.'],
+      ['The file contains only that day’s rows — not the whole month.']],
+    ['TC-EXP-04','The export respects the search and sort','',
+      ['Search for a term, sort by a column, then export.'],
+      ['Only matching rows are in the file, in the same order as on screen.']],
+    ['TC-EXP-05','Columns match the screen','',
+      ['Compare the exported columns with the register.'],
+      ['Break Sheet exports Employee ID alongside the name.','Diesel exports Month, Rate/L and a Slip Attached Yes/No column.','Visitor exports Availability and Outcome as readable words, not codes.']],
+    ['TC-EXP-06','The PDF carries a summary strip','',
+      ['Open an exported PDF.'],
+      ['A strip above the table shows the totals (e.g. entries, total break time, average).','Those totals agree with the tiles on screen.','Wide registers print landscape so nothing is cut off.']],
+    ['TC-EXP-07','Exporting an empty period is safe','',
+      ['Filter to a period with no rows and export both formats.'],
+      ['Both files download.','The PDF says “No records for this period.” instead of erroring.']],
+  ],
+
+  'suite-roles': [
+    ['TC-ROL-01','The four tracker rows exist in the matrix','',
+      ['Management → Roles & Permissions → Create Role.','Search the module list for “tracker”.'],
+      ['Four rows appear: break_tracker, diesel_tracker, visitor_tracker, tracker_settings.','diesel_tracker has the extra manage_budget action.']],
+    ['TC-ROL-02','A role with one register sees only that one','',
+      ['Log in as the Front Desk user (visitor_tracker only).','Open the sidebar.'],
+      ['Trackers shows only All Trackers, Daily Visitor.','Break Sheet, Diesel, Diesel Budget and Tracker Settings are absent.']],
+    ['TC-ROL-03','The hub hides cards you cannot see','',
+      ['As Front Desk, open All Trackers.'],
+      ['Only the Daily Visitor card is shown.','No empty placeholders for the other two.']],
+    ['TC-ROL-04','A URL you are not allowed is refused','Type it into the address bar directly.',
+      ['As Front Desk, go to /admin/hr/trackers/diesel.'],
+      ['A 403 Forbidden page appears.','You are not shown any diesel data.']],
+    ['TC-ROL-05','A role with no tracker access sees no group','',
+      ['Log in as a Sales user.'],
+      ['The Trackers group is not in the sidebar at all.','/admin/hr/trackers returns 403.']],
+    ['TC-ROL-06','View-only hides the action buttons','',
+      ['Edit Front Desk to keep only visitor_tracker.view. Log in again.'],
+      ['+ Add Visitor Entry is gone.','Edit and Delete are gone from every row.','The register itself still opens and Analytics still works.']],
+    ['TC-ROL-07','Budget management is its own permission','',
+      ['Give a role diesel_tracker.view but not manage_budget.'],
+      ['Diesel Budget is missing from the sidebar.','The register shows the budget figures but no “Manage budgets” link.','/admin/hr/trackers/diesel/budgets returns 403.']],
+    ['TC-ROL-08','Export and import are separate permissions','',
+      ['Give a role view + create but not export or import.'],
+      ['The Excel and PDF buttons are gone from the filter bar.','The Import Excel button is gone from the header.']],
+  ],
+};
+
+/* ── Render ─────────────────────────────────────────────── */
+const KEY = 'trackers-qa-v1';
+let marks = {};
+try { marks = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { marks = {}; }
+
+function esc(s){ return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function caseEl([id, title, hint, steps, expected]){
+  const el = document.createElement('article');
+  el.className = 'case';
+  el.dataset.status = marks[id] || 'none';
+  el.innerHTML = `
+    <div class="case-top">
+      <span class="case-id">${id}</span>
+      <div class="case-title">${esc(title)}${hint ? `<em>${esc(hint)}</em>` : ''}</div>
+      <div class="marks">
+        <button class="mark" data-m="pass"  data-id="${id}" title="Pass"    aria-pressed="false">P</button>
+        <button class="mark" data-m="fail"  data-id="${id}" title="Fail"    aria-pressed="false">F</button>
+        <button class="mark" data-m="block" data-id="${id}" title="Blocked" aria-pressed="false">B</button>
+      </div>
+    </div>
+    <div class="case-body">
+      <div>
+        <h5>Steps</h5>
+        <ol>${steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+      </div>
+      <div class="exp">
+        <h5>Expected result</h5>
+        <ul>${expected.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
+      </div>
+    </div>`;
+  return el;
+}
+
+const ALL_IDS = [];
+for (const [host, cases] of Object.entries(SUITES)) {
+  const mount = document.getElementById(host);
+  if (!mount) continue;
+  cases.forEach(c => { ALL_IDS.push(c[0]); mount.appendChild(caseEl(c)); });
+}
+
+/* Filter bar, injected above the first suite */
+const filterbar = document.createElement('div');
+filterbar.className = 'filterbar';
+filterbar.innerHTML = `
+  <span style="font-size:11px;font-weight:900;letter-spacing:1.1px;text-transform:uppercase;color:var(--ink-3)">Show</span>
+  <button class="fbtn on" data-f="all">All cases</button>
+  <button class="fbtn" data-f="none">Not run</button>
+  <button class="fbtn" data-f="fail">Failed</button>
+  <button class="fbtn" data-f="block">Blocked</button>`;
+document.getElementById('suite-nav').before(filterbar);
+
+let activeFilter = 'all';
+filterbar.addEventListener('click', e => {
+  const b = e.target.closest('.fbtn');
+  if (!b) return;
+  activeFilter = b.dataset.f;
+  filterbar.querySelectorAll('.fbtn').forEach(x => x.classList.toggle('on', x === b));
+  applyFilter();
+});
+
+function applyFilter(){
+  document.querySelectorAll('.case').forEach(c => {
+    c.style.display = (activeFilter === 'all' || c.dataset.status === activeFilter) ? '' : 'none';
+  });
+}
+
+/* Marking */
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.mark');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  marks[id] = (marks[id] === btn.dataset.m) ? undefined : btn.dataset.m;
+  if (!marks[id]) delete marks[id];
+  try { localStorage.setItem(KEY, JSON.stringify(marks)); } catch (e) {}
+  paint();
+  applyFilter();
+});
+
+function paint(){
+  document.querySelectorAll('.case').forEach(c => {
+    const id = c.querySelector('.case-id').textContent;
+    const m = marks[id] || 'none';
+    c.dataset.status = m;
+    c.querySelectorAll('.mark').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+  });
+
+  const counts = { pass:0, fail:0, block:0 };
+  ALL_IDS.forEach(id => { if (marks[id]) counts[marks[id]]++; });
+  const done = counts.pass + counts.fail + counts.block;
+
+  document.getElementById('t-all').textContent   = ALL_IDS.length;
+  document.getElementById('t-pass').textContent  = counts.pass;
+  document.getElementById('t-fail').textContent  = counts.fail;
+  document.getElementById('t-block').textContent = counts.block;
+  document.getElementById('fact-count').firstChild.nodeValue = ALL_IDS.length + ' cases';
+
+  const pct = ALL_IDS.length ? Math.round(done / ALL_IDS.length * 100) : 0;
+  document.getElementById('bar').style.width = pct + '%';
+  document.getElementById('pct').textContent = pct + '%';
+
+  document.querySelectorAll('.toc a').forEach(a => {
+    const sec = document.querySelector(a.getAttribute('href'));
+    const cases = sec ? sec.querySelectorAll('.case') : [];
+    if (!cases.length) return;
+    let ok = 0;
+    cases.forEach(c => { if (c.dataset.status !== 'none') ok++; });
+    let mini = a.querySelector('.mini');
+    if (!mini) { mini = document.createElement('span'); mini.className = 'mini'; a.appendChild(mini); }
+    mini.textContent = `${ok}/${cases.length}`;
+  });
+}
+paint();
+applyFilter();
+
+/* Header tools */
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (!confirm('Clear every pass / fail / blocked mark on this page?')) return;
+  marks = {};
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  paint(); applyFilter();
+});
+
+document.getElementById('btn-summary').addEventListener('click', () => copy(buildSummary()));
+
+function buildSummary(){
+  const counts = { pass:0, fail:0, block:0 };
+  const failed = [], blocked = [], notRun = [];
+  ALL_IDS.forEach(id => {
+    const m = marks[id];
+    if (m) counts[m]++;
+    if (m === 'fail') failed.push(id);
+    else if (m === 'block') blocked.push(id);
+    else if (!m) notRun.push(id);
+  });
+  const done = counts.pass + counts.fail + counts.block;
+  return [
+    'Operational Trackers — QA run',
+    `Cases: ${ALL_IDS.length} · Run: ${done} · Pass: ${counts.pass} · Fail: ${counts.fail} · Blocked: ${counts.block}`,
+    failed.length  ? `Failed:  ${failed.join(', ')}`   : 'Failed:  none',
+    blocked.length ? `Blocked: ${blocked.join(', ')}`  : 'Blocked: none',
+    notRun.length  ? `Not run: ${notRun.join(', ')}`   : 'Not run: none',
+  ].join('\n');
+}
+
+function copy(text){
+  const done = btn => { const o = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => btn.textContent = o, 1400); };
+  const btn = document.getElementById('btn-summary');
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => done(btn)).catch(() => fallback(text, btn));
+  } else fallback(text, btn);
+}
+function fallback(text, btn){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); btn.textContent = 'Copied'; setTimeout(() => btn.textContent = 'Copy summary', 1400); }
+  catch (e) { alert(text); }
+  document.body.removeChild(ta);
+}
+
+/* Copy buttons on the data blocks */
+document.addEventListener('click', e => {
+  const b = e.target.closest('.copybtn');
+  if (!b) return;
+  const src = document.getElementById(b.dataset.copy);
+  if (!src) return;
+  const text = src.textContent;
+  const restore = () => { b.textContent = 'Copy'; };
+  const ok = () => { b.textContent = 'Copied'; setTimeout(restore, 1400); };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(ok).catch(() => { fallbackBlock(text, b, ok); });
+  else fallbackBlock(text, b, ok);
+});
+function fallbackBlock(text, b, ok){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); ok(); } catch (e) { alert(text); }
+  document.body.removeChild(ta);
+}
+
+/* TOC highlight */
+const secs = [...document.querySelectorAll('main section')];
+const links = new Map([...document.querySelectorAll('.toc a')].map(a => [a.getAttribute('href').slice(1), a]));
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    const a = links.get(en.target.id);
+    if (a && en.isIntersecting) {
+      document.querySelectorAll('.toc a').forEach(x => x.classList.remove('on'));
+      a.classList.add('on');
+    }
+  });
+}, { rootMargin: '-90px 0px -70% 0px' });
+secs.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

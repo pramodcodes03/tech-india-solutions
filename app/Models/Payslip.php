@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\Tenancy\BelongsToBusiness;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,10 +16,13 @@ class Payslip extends Model
         'business_id',
         'payslip_code', 'employee_id', 'month', 'year',
         'period_start', 'period_end',
-        'working_days', 'paid_days', 'lop_days',
+        'working_days', 'calendar_days', 'week_off_days', 'holiday_days',
+        'paid_days', 'lop_days',
         'basic', 'hra', 'conveyance', 'medical', 'special',
         'other_allowance', 'bonus', 'gross_earnings',
-        'pf', 'esi', 'professional_tax', 'tds',
+        // Statutory register columns (Module E) — Form D, Form B, Form IV.
+        'arrears', 'overtime_hours', 'overtime_amount',
+        'pf', 'esi', 'professional_tax', 'tds', 'lwf', 'employer_pf',
         'penalty_deduction', 'lop_deduction', 'other_deductions', 'total_deductions',
         'net_pay',
         'status', 'paid_on', 'payment_reference', 'notes', 'generated_by',
@@ -40,6 +44,11 @@ class Payslip extends Model
             'other_allowance' => 'decimal:2',
             'bonus' => 'decimal:2',
             'gross_earnings' => 'decimal:2',
+            'arrears' => 'decimal:2',
+            'overtime_hours' => 'decimal:2',
+            'overtime_amount' => 'decimal:2',
+            'lwf' => 'decimal:2',
+            'employer_pf' => 'decimal:2',
             'pf' => 'decimal:2',
             'esi' => 'decimal:2',
             'professional_tax' => 'decimal:2',
@@ -64,6 +73,6 @@ class Payslip extends Model
 
     public function getPeriodLabelAttribute(): string
     {
-        return \Carbon\Carbon::createFromDate($this->year, $this->month, 1)->format('F Y');
+        return Carbon::createFromDate($this->year, $this->month, 1)->format('F Y');
     }
 }

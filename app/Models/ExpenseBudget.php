@@ -48,6 +48,45 @@ class ExpenseBudget extends Model
         return $this->hasMany(Expense::class, 'expense_budget_id');
     }
 
+    /** Extra money added to this budget mid-period. */
+    public function topups(): HasMany
+    {
+        return $this->hasMany(ExpenseBudgetTopup::class, 'expense_budget_id');
+    }
+
+    /**
+     * Sum of all top-ups. Prefers the eager-loaded relation; falls back to an
+     * unscoped query so a cross-business budget (super admin / employee who
+     * works for several companies) still totals correctly.
+     */
+    public function getTopupsTotalAttribute(): float
+    {
+        if ($this->relationLoaded('topups')) {
+            return (float) $this->topups->sum('amount');
+        }
+
+        return (float) ExpenseBudgetTopup::withoutGlobalScopes()
+            ->where('expense_budget_id', $this->id)
+            ->sum('amount');
+    }
+
+    /** Spendable total = sanctioned base + every top-up. */
+    public function getTotalAmountAttribute(): float
+    {
+        return (float) $this->amount + $this->topups_total;
+    }
+
+    /**
+     * Where the original sanctioned amount sits on a 0-100 bar of the total —
+     * drives the "original budget ended here" marker on the progress bar.
+     */
+    public function getBaseSharePercentAttribute(): float
+    {
+        $total = $this->total_amount;
+
+        return $total > 0 ? round((float) $this->amount / $total * 100, 2) : 100;
+    }
+
     /**
      * Amount spent against this budget.
      *
@@ -81,13 +120,16 @@ class ExpenseBudget extends Model
         return (float) ($expenses + $claims);
     }
 
+    /** Remaining is measured against the topped-up total, not the base. */
     public function getRemainingAttribute(): float
     {
-        return (float) $this->amount - $this->utilized;
+        return $this->total_amount - $this->utilized;
     }
 
     public function getUtilizationPercentAttribute(): float
     {
-        return $this->amount > 0 ? round($this->utilized / (float) $this->amount * 100, 1) : 0;
+        $total = $this->total_amount;
+
+        return $total > 0 ? round($this->utilized / $total * 100, 1) : 0;
     }
 }

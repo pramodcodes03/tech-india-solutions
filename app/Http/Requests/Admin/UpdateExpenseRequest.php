@@ -19,6 +19,14 @@ class UpdateExpenseRequest extends FormRequest
         if (in_array($this->input('expense_subcategory_id'), ['', 'null', null], true)) {
             $this->merge(['expense_subcategory_id' => null]);
         }
+
+        // One-off payments carry no recurrence fields. Strip any stray values
+        // (e.g. a stale cached form still submitting the hidden frequency
+        // select) so 'required_if:recurrence_frequency,monthly' can't demand
+        // due_day_of_month on a one-off save.
+        if ($this->input('type') === Expense::TYPE_ONE_OFF) {
+            $this->merge(['recurrence_frequency' => null, 'due_day_of_month' => null]);
+        }
     }
 
     public function rules(): array

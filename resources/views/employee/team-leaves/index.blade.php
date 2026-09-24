@@ -29,6 +29,9 @@
                             <td>
                                 <span class="inline-block w-2 h-2 rounded-full align-middle mr-1" style="background: {{ $r->leaveType->color }}"></span>
                                 {{ $r->leaveType->name }}
+                                @if($r->is_combined)
+                                    <div class="text-[10px] font-bold text-info mt-0.5">Combined · {{ $r->split_label }}</div>
+                                @endif
                             </td>
                             <td class="whitespace-nowrap">{{ $r->from_date->format('d M Y') }} → {{ $r->to_date->format('d M Y') }}</td>
                             <td class="font-semibold">{{ number_format($r->days, 1) }}{{ $r->day_portion !== 'full' ? ' ('.str_replace('_', ' ', $r->day_portion).')' : '' }}</td>
@@ -55,8 +58,32 @@
                                     {{-- Approve form (with optional paid/unpaid split) --}}
                                     <form id="approve-{{ $r->id }}" method="POST" action="{{ route('employee.team-leaves.approve', $r) }}" class="hidden mt-2 text-left bg-gray-50 dark:bg-[#0e1726] p-3 rounded-lg">
                                         @csrf
-                                        <label class="block text-[11px] font-semibold text-gray-500 mb-1">Paid days (leave blank = all {{ number_format($r->days, 1) }} paid)</label>
-                                        <input type="number" step="0.5" min="0" max="{{ $r->days }}" name="paid_days" class="form-input form-input-sm w-full mb-2" placeholder="{{ number_format($r->days, 1) }}" />
+                                        @php
+                                            $avail = $available[$r->id] ?? 0;
+                                            $maxPaid = $r->leaveType?->is_paid ? min((float) $r->days, (float) $avail) : 0;
+                                        @endphp
+                                        {{-- A manager approves or rejects the days that were
+                                             asked for. The paid / unpaid split is a payroll
+                                             decision and lives on the HR screen, so this panel
+                                             states the outcome rather than offering to change
+                                             it. --}}
+                                        <div class="flex items-center justify-between text-[11px] mb-2">
+                                            <span class="text-gray-500">Days requested</span>
+                                            <strong>{{ number_format($r->days, 1) }}</strong>
+                                        </div>
+                                        @if($r->leaveType?->is_paid)
+                                            <div class="flex items-center justify-between text-[11px] mb-2">
+                                                <span class="text-gray-500">Available in {{ $r->leaveType->code }}</span>
+                                                <strong class="{{ $maxPaid < $r->days ? 'text-warning' : 'text-success' }}">{{ number_format($avail, 1) }}</strong>
+                                            </div>
+                                            @if($maxPaid < $r->days)
+                                                <p class="text-[11px] text-warning mb-2">
+                                                    Only {{ number_format($maxPaid, 1) }} day(s) can be paid; the rest will be LOP.
+                                                </p>
+                                            @endif
+                                        @else
+                                            <p class="text-[11px] text-gray-500 mb-2">{{ $r->leaveType?->code }} is an unpaid type — the full request is LOP.</p>
+                                        @endif
                                         <input type="text" name="remarks" class="form-input form-input-sm w-full mb-2" placeholder="Remarks (optional)" />
                                         <button class="btn btn-sm btn-success w-full">Confirm Approve</button>
                                     </form>

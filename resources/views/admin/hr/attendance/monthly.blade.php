@@ -43,7 +43,7 @@
 
     <div class="panel p-0 overflow-x-auto">
         <table class="table-striped text-sm">
-            <thead><tr><th>Employee</th><th>Department</th><th>Working</th><th>Present</th><th>Absent</th><th>Half</th><th>Leave</th><th>Paid Days</th><th>LOP</th></tr></thead>
+            <thead><tr><th>Employee</th><th>Department</th><th>Working</th><th>Present</th><th>Absent</th><th>Half</th><th>HD/Leave</th><th>HD/WO</th><th>0.5L/0.5A</th><th>Week Off</th><th>Leave</th><th>L/WO</th><th>Paid Days</th><th>LOP</th></tr></thead>
             <tbody>
                 @forelse($employees as $e)
                     @php $s = $summaries[$e->id] ?? null; @endphp
@@ -54,12 +54,22 @@
                         <td class="text-success font-bold">{{ $s['present'] ?? 0 }}</td>
                         <td class="text-danger font-bold">{{ $s['absent'] ?? 0 }}</td>
                         <td>{{ $s['half_day'] ?? 0 }}</td>
+                        <td>{{ $s['half_day_leave'] ?? 0 }}</td>
+                        <td>{{ $s['half_day_week_off'] ?? 0 }}</td>
+                        {{-- Half sanctioned leave, half never accounted for.
+                             Shown on its own so the unworked half is visible
+                             rather than buried inside the Leave column. --}}
+                        <td class="text-warning">{{ $s['half_day_leave_absent'] ?? 0 }}</td>
+                        {{-- Full week-off counts 1, half-day/week-off counts 0.5,
+                             so this agrees with the calendar and the corrections. --}}
+                        <td class="font-semibold">{{ rtrim(rtrim(number_format($s['week_offs'] ?? 0, 1), '0'), '.') }}</td>
                         <td class="text-info">{{ $s['on_leave'] ?? 0 }}</td>
+                        <td>{{ $s['leave_week_off'] ?? 0 }}</td>
                         <td class="font-semibold">{{ $s['paid_days'] ?? 0 }}</td>
                         <td class="text-danger">{{ $s['lop_days'] ?? 0 }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="10" class="text-center text-gray-500 py-6">No employees.</td></tr>
+                    <tr><td colspan="14" class="text-center text-gray-500 py-6">No employees.</td></tr>
                 @endforelse
             </tbody>
         </table>

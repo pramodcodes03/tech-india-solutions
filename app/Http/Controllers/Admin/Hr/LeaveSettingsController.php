@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Hr;
 
 use App\Http\Controllers\Controller;
+use App\Models\LeaveType;
 use App\Services\LeaveAccrualService;
 use App\Support\HrSettings;
 use App\Support\Tenancy\CurrentBusiness;
@@ -20,6 +21,9 @@ class LeaveSettingsController extends Controller
         'el_working_days_required',
         'cl_sl_working_days_required',
         'el_carry_forward_cap',
+        'leave_balance_gate_enabled',
+        'leave_lwp_exception_enabled',
+        'leave_combination_enabled',
         'full_day_hours',
         'half_day_hours',
         'leave_policy_document',
@@ -28,6 +32,9 @@ class LeaveSettingsController extends Controller
     /** Keys stored per-business rather than globally. */
     private array $perBusinessKeys = [
         'leave_accrual_day',
+        'leave_balance_gate_enabled',
+        'leave_lwp_exception_enabled',
+        'leave_combination_enabled',
         'el_working_days_required',
         'cl_sl_working_days_required',
         'full_day_hours',
@@ -63,10 +70,21 @@ class LeaveSettingsController extends Controller
             'el_working_days_required' => ['required', 'integer', 'min:0', 'max:1000'],
             'cl_sl_working_days_required' => ['required', 'integer', 'min:0', 'max:1000'],
             'el_carry_forward_cap' => ['required', 'numeric', 'min:0'],
+            // Checkboxes: absent from the POST when unticked, so normalise to
+            // 0/1 below rather than requiring them here.
+            'leave_balance_gate_enabled' => ['nullable', 'boolean'],
+            'leave_lwp_exception_enabled' => ['nullable', 'boolean'],
+            'leave_combination_enabled' => ['nullable', 'boolean'],
             'full_day_hours' => ['required', 'numeric', 'min:1', 'max:24'],
             'half_day_hours' => ['required', 'numeric', 'min:0.5', 'lt:full_day_hours'],
             'leave_policy_document' => ['nullable', 'string'],
         ]);
+
+        // An unticked checkbox posts nothing at all — without this, turning a
+        // toggle off would silently leave the old value in place.
+        $data['leave_balance_gate_enabled'] = $request->boolean('leave_balance_gate_enabled') ? 1 : 0;
+        $data['leave_lwp_exception_enabled'] = $request->boolean('leave_lwp_exception_enabled') ? 1 : 0;
+        $data['leave_combination_enabled'] = $request->boolean('leave_combination_enabled') ? 1 : 0;
 
         $businessId = app(CurrentBusiness::class)->id();
 
@@ -82,7 +100,7 @@ class LeaveSettingsController extends Controller
         // engine reads per-leave-type fields, so push the configured thresholds
         // onto every Earned Leave type (code starting with "EL"). This keeps the
         // global Leave Settings page authoritative over EL behaviour.
-        \App\Models\LeaveType::withoutGlobalScopes()
+        LeaveType::withoutGlobalScopes()
             ->whereRaw('UPPER(code) LIKE ?', ['EL%'])
             ->update([
                 'min_working_days' => (int) $data['el_working_days_required'],
@@ -91,7 +109,7 @@ class LeaveSettingsController extends Controller
             ]);
 
         // Seed the default accrual frequency onto any type that hasn't set one.
-        \App\Models\LeaveType::withoutGlobalScopes()
+        LeaveType::withoutGlobalScopes()
             ->where(fn ($q) => $q->whereNull('accrual_frequency')->orWhere('accrual_frequency', ''))
             ->update(['accrual_frequency' => $data['leave_accrual_frequency']]);
 

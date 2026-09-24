@@ -39,7 +39,7 @@
         </div>
         <div class="p-5 rounded-xl bg-white dark:bg-[#1b2e4b] shadow">
             <div class="text-xs uppercase tracking-wider text-gray-500 font-bold">Issued By</div>
-            <div class="text-lg font-bold mt-1">{{ $penalty->issuer?->name ?? 'HR' }}</div>
+            <div class="text-lg font-bold mt-1">{{ $penalty->issuer?->display_name ?? 'HR' }}</div>
             <div class="text-xs text-gray-400">{{ $penalty->created_at->format('d M Y, g:i A') }}</div>
         </div>
         <div class="p-5 rounded-xl bg-white dark:bg-[#1b2e4b] shadow">

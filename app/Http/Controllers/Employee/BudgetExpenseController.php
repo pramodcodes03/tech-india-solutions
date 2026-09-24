@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Employee;
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Models\ExpenseBudget;
+use App\Support\Tenancy\BusinessScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,7 @@ class BudgetExpenseController extends Controller
         // companies have budgets in other businesses, and the scoped route
         // binding would 404 those. Authorisation is by employee_id below, so
         // an employee can still only spend a budget sanctioned to them.
-        $budget = ExpenseBudget::withoutGlobalScope(\App\Support\Tenancy\BusinessScope::class)
+        $budget = ExpenseBudget::withoutGlobalScope(BusinessScope::class)
             ->findOrFail($budget);
 
         // Only the employee this budget is sanctioned to may spend it.
@@ -48,26 +49,77 @@ class BudgetExpenseController extends Controller
             }
 
             Expense::create([
-                'business_id'              => $budget->business_id,            // budget's business
-                'expense_code'             => $this->generateCode($budget->business_id),
-                'expense_category_id'      => $budget->expense_category_id,     // LOCKED to budget category
-                'expense_budget_id'        => $budget->id,
+                'business_id' => $budget->business_id,            // budget's business
+                'expense_code' => $this->generateCode($budget->business_id),
+                'expense_category_id' => $budget->expense_category_id,     // LOCKED to budget category
+                'expense_budget_id' => $budget->id,
                 'submitted_by_employee_id' => $employee->id,
-                'type'                     => Expense::TYPE_ONE_OFF,
-                'title'                    => $data['title'],
-                'description'              => $data['description'] ?? null,
-                'amount'                   => $data['amount'],
-                'expense_date'             => $data['expense_date'],            // bill date
-                'due_date'                 => $data['due_date'] ?? null,
-                'payment_method'           => $data['payment_method'] ?? null,
-                'payment_reference'        => $data['payment_reference'] ?? null,
-                'attachment'               => $attachmentPath,
-                'status'                   => Expense::STATUS_PAID,            // deduct immediately
-                'paid_date'                => $data['expense_date'],
+                'type' => Expense::TYPE_ONE_OFF,
+                'title' => $data['title'],
+                'description' => $data['description'] ?? null,
+                'amount' => $data['amount'],
+                'expense_date' => $data['expense_date'],            // bill date
+                'due_date' => $data['due_date'] ?? null,
+                'payment_method' => $data['payment_method'] ?? null,
+                'payment_reference' => $data['payment_reference'] ?? null,
+                'attachment' => $attachmentPath,
+                'status' => Expense::STATUS_PAID,            // deduct immediately
+                'paid_date' => $data['expense_date'],
             ]);
         });
 
         return back()->with('success', 'Expense submitted and deducted from your budget.');
+    }
+
+    /**
+     * Edit a spend the employee themselves recorded against their budget.
+     * Amount changes flow straight through to the budget's utilisation.
+     */
+    public function update(Request $request, $budget, $expense)
+    {
+        $employee = Auth::guard('employee')->user();
+
+        $budget = ExpenseBudget::withoutGlobalScope(BusinessScope::class)
+            ->findOrFail($budget);
+
+        abort_unless($budget->employee_id === $employee->id, 403);
+
+        // Only a spend that belongs to THIS budget and was submitted by THIS
+        // employee is editable — admins edit others through the admin module.
+        $expense = Expense::withoutGlobalScopes()
+            ->where('id', $expense)
+            ->where('expense_budget_id', $budget->id)
+            ->where('submitted_by_employee_id', $employee->id)
+            ->firstOrFail();
+
+        abort_if($expense->status === Expense::STATUS_CANCELLED, 403, 'This spend has been cancelled.');
+
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:160'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'expense_date' => ['required', 'date', 'before_or_equal:today'],
+            'due_date' => ['nullable', 'date'],
+            'payment_method' => ['nullable', 'in:bank,cash,cheque,upi,card'],
+            'payment_reference' => ['nullable', 'string', 'max:120'],
+            'attachment' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+        ]);
+
+        DB::transaction(function () use ($expense, $data, $request) {
+            // A new upload replaces the receipt; no upload keeps the existing one.
+            if ($request->hasFile('attachment')) {
+                $data['attachment'] = $request->file('attachment')->store('expenses/receipts', 'public');
+            } else {
+                unset($data['attachment']);
+            }
+
+            // paid_date tracks the bill date for these self-service spends.
+            $data['paid_date'] = $data['expense_date'];
+
+            $expense->forceFill($data)->save();
+        });
+
+        return back()->with('success', 'Spend updated. Your budget utilisation has been recalculated.');
     }
 
     /**

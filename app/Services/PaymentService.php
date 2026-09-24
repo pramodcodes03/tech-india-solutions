@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Invoice;
 use App\Models\Payment;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -48,6 +49,36 @@ class PaymentService
     }
 
     /**
+     * Update a payment and re-derive invoice totals.
+     *
+     * If the payment was moved to a different invoice, BOTH the old and the new
+     * invoice have to be recalculated — otherwise the old one keeps counting a
+     * payment it no longer has.
+     */
+    public function update(Payment $payment, array $data): Payment
+    {
+        return DB::transaction(function () use ($payment, $data) {
+            $originalInvoiceId = $payment->invoice_id;
+
+            $data['updated_by'] = Auth::guard('admin')->id();
+
+            $payment->update($data);
+            $payment->refresh();
+
+            $this->invoiceService->recalculatePayments($payment->invoice);
+
+            if ($originalInvoiceId && $originalInvoiceId !== $payment->invoice_id) {
+                $previous = Invoice::withoutGlobalScopes()->find($originalInvoiceId);
+                if ($previous) {
+                    $this->invoiceService->recalculatePayments($previous);
+                }
+            }
+
+            return $payment;
+        });
+    }
+
+    /**
      * Delete a payment and recalculate the associated invoice totals.
      */
     public function delete(Payment $payment): void
@@ -58,7 +89,7 @@ class PaymentService
             // deletion never 500s on an orphaned payment.
             $invoice = $payment->invoice
                 ?? ($payment->invoice_id
-                    ? \App\Models\Invoice::withoutGlobalScopes()->find($payment->invoice_id)
+                    ? Invoice::withoutGlobalScopes()->find($payment->invoice_id)
                     : null);
 
             $payment->update(['deleted_by' => Auth::guard('admin')->id()]);

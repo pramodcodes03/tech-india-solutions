@@ -4,27 +4,42 @@
         <h1 class="text-2xl font-extrabold">Daily Attendance</h1>
         <div class="flex gap-2">
             {{-- Export the current day's list, preserving the active filters. --}}
-            <a href="{{ route('admin.hr.attendance.export', array_filter(['date' => $date] + request()->only(['department_id', 'status', 'search']))) }}" class="btn btn-outline-success">⬇ Export Excel</a>
+            <a href="{{ route('admin.hr.attendance.export', array_filter(['date' => $date] + request()->only(['department_id', 'shift_id', 'status', 'search']))) }}" class="btn btn-outline-success">⬇ Export Excel</a>
             @can('attendance.import')<a href="{{ route('admin.hr.attendance.import-form') }}" class="btn btn-outline-info">Import CSV</a>@endcan
             @can('attendance.create')<a href="{{ route('admin.hr.attendance.create') }}" class="btn btn-primary">+ Mark Attendance</a>@endcan
             <a href="{{ route('admin.hr.attendance.monthly') }}" class="btn btn-outline-primary">Monthly Summary</a>
         </div>
     </div>
 
-    <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-2 mb-4">
+    <form method="GET" class="grid grid-cols-1 md:grid-cols-6 gap-2 mb-4">
         <input type="date" name="date" value="{{ $date }}" class="form-input" />
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search employee..." class="form-input md:col-span-2" />
         <select name="department_id" class="form-select">
             <option value="">All Departments</option>
             @foreach($departments as $d)<option value="{{ $d->id }}" @selected(request('department_id') == $d->id)>{{ $d->name }}</option>@endforeach
         </select>
+        {{-- Shift filter: attendance is judged against the shift window, so
+             HR needs to review one shift at a time. "Unassigned" surfaces the
+             employees who have no shift and therefore fall back to the
+             total-hours rule — usually a setup gap worth fixing. --}}
+        <select name="shift_id" class="form-select">
+            <option value="">All Shifts</option>
+            @foreach($shifts as $sh)
+                <option value="{{ $sh->id }}" @selected((string) request('shift_id') === (string) $sh->id)>{{ $sh->name }} ({{ \Carbon\Carbon::parse($sh->start_time)->format('g:i A') }}–{{ \Carbon\Carbon::parse($sh->end_time)->format('g:i A') }})</option>
+            @endforeach
+            <option value="none" @selected(request('shift_id') === 'none')>— No shift assigned —</option>
+        </select>
         <select name="status" class="form-select">
             <option value="">All Status</option>
-            @foreach(['present','absent','half_day','on_leave','holiday'] as $s)
-                <option value="{{ $s }}" @selected(request('status') == $s)>{{ ucfirst(str_replace('_',' ',$s)) }}</option>
+            {{-- Stored statuses only: this filter is a WHERE on the status
+                 column, and '0.5 Leave / 0.5 Absent' is derived per-day by the
+                 calendar rather than written to a row, so offering it here
+                 would always return nothing. --}}
+            @foreach(['present','absent','half_day','half_day_leave','half_day_week_off','on_leave','leave_week_off','holiday'] as $s)
+                <option value="{{ $s }}" @selected(request('status') == $s)>{{ \App\Models\Attendance::statusLabel($s) }}</option>
             @endforeach
         </select>
-        <button class="btn btn-primary md:col-span-5">Filter</button>
+        <button class="btn btn-primary md:col-span-6">Filter</button>
     </form>
 
     {{-- Total attendance records for the current date + filters. When a
@@ -42,12 +57,13 @@
     </div>
 
     <div class="panel p-0 overflow-x-auto">
-        <table class="table-striped"><thead><tr><th>Employee</th><th>Department</th><th>Check-in</th><th>Check-out</th><th>Hours</th><th>Status</th><th>Source</th>@can('attendance.edit')<th class="text-right">Actions</th>@endcan</tr></thead>
+        <table class="table-striped"><thead><tr><th>Employee</th><th>Department</th><th>Shift</th><th>Check-in</th><th>Check-out</th><th>Hours</th><th>Status</th><th>Source</th>@can('attendance.edit')<th class="text-right">Actions</th>@endcan</tr></thead>
             <tbody>
                 @forelse($records as $r)
                     <tr>
                         <td><a href="{{ route('admin.hr.employees.show', $r->employee) }}" class="text-primary font-semibold">{{ $r->employee->full_name }}</a> <span class="text-xs text-gray-500">({{ $r->employee->employee_code }})</span></td>
                         <td>{{ $r->employee->department?->name ?? '—' }}</td>
+                        <td><x-shift-badge :shift="$r->employee->shift" stack /></td>
                         <td>{{ $r->check_in ? \Carbon\Carbon::parse($r->check_in)->format('g:i A') : '—' }}</td>
                         <td>
                             @if($r->check_out)
@@ -64,10 +80,14 @@
                             'px-2 py-0.5 rounded text-xs font-semibold',
                             'bg-success/10 text-success' => $r->status === 'present',
                             'bg-warning/10 text-warning' => $r->status === 'half_day',
+                            // Same teal / indigo the employee calendar uses for
+                            // the split days, so both screens read alike.
+                            'bg-teal-100 text-teal-700' => $r->status === 'half_day_leave',
+                            'bg-indigo-100 text-indigo-700' => $r->status === 'half_day_week_off',
                             'bg-danger/10 text-danger' => $r->status === 'absent',
                             'bg-info/10 text-info' => $r->status === 'on_leave',
                             'bg-gray-200 text-gray-600' => in_array($r->status, ['holiday', 'weekend']),
-                        ])>{{ ucfirst(str_replace('_',' ',$r->status)) }}</span></td>
+                        ])>{{ \App\Models\Attendance::statusLabel($r->status) }}</span></td>
                         <td class="text-xs text-gray-500">{{ str_replace('_',' ', $r->source) }}</td>
                         @can('attendance.edit')
                             <td class="text-right">
@@ -83,7 +103,7 @@
                         @endcan
                     </tr>
                 @empty
-                    <tr><td colspan="{{ auth('admin')->user()->can('attendance.edit') ? 8 : 7 }}" class="text-center text-gray-500 py-6">No attendance records for {{ \Carbon\Carbon::parse($date)->format('d M Y') }}.</td></tr>
+                    <tr><td colspan="{{ auth('admin')->user()->can('attendance.edit') ? 9 : 8 }}" class="text-center text-gray-500 py-6">No attendance records for {{ \Carbon\Carbon::parse($date)->format('d M Y') }}.</td></tr>
                 @endforelse
             </tbody>
         </table>

@@ -49,10 +49,18 @@
                             'bg-success/10 text-success' => $p->status === 'waived',
                             'bg-info/10 text-info' => $p->status === 'reduced',
                         ])>{{ ucfirst($p->status) }}</span></td>
-                        <td>
+                        <td class="whitespace-nowrap">
                             @can('penalties.reduce')
                                 @if($p->status === 'pending' && $p->eligible_reduction_after && $p->eligible_reduction_after->lte(now()))
                                     <button class="text-info text-xs" onclick="openReduceModal({{ $p->id }}, {{ $p->amount }})">Reduce/Waive</button>
+                                @endif
+                            @endcan
+                            @can('penalties.delete')
+                                @if($p->status !== 'deducted')
+                                    <form method="POST" action="{{ route('admin.hr.penalties.destroy', $p) }}" class="inline ml-2" onsubmit="return confirm('Delete this penalty? This cannot be undone.')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="text-danger text-xs">Delete</button>
+                                    </form>
                                 @endif
                             @endcan
                         </td>

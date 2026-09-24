@@ -68,8 +68,18 @@
             <div class="row"><span class="label">PAN:</span> {{ $emp->pan_number ?? '—' }}</div>
             <div class="row"><span class="label">UAN:</span> {{ $emp->uan_number ?? '—' }}</div>
             <div class="row"><span class="label">Bank A/C:</span> {{ $emp->bank_account_number ? '****'.substr($emp->bank_account_number, -4) : '—' }}</div>
-            <div class="row"><span class="label">Working Days:</span> {{ $p->working_days }}</div>
-            <div class="row"><span class="label">Paid Days:</span> {{ number_format($p->paid_days, 1) }} ({{ number_format($p->lop_days, 1) }} LOP)</div>
+            {{-- Day breakdown. calendar_days is null on payslips generated
+                 before the breakdown was recorded — fall back gracefully. --}}
+            <div class="row"><span class="label">Calendar Days:</span> {{ $p->calendar_days ?? $p->working_days }}</div>
+            <div class="row"><span class="label">Working Days:</span> {{ $p->working_days }}@if($p->calendar_days)
+                <span style="color:#666;">(Week-offs {{ number_format($p->week_off_days ?? 0, 0) }}@if(($p->holiday_days ?? 0) > 0), Holidays {{ number_format($p->holiday_days, 0) }}@endif)</span>
+            @endif</div>
+            <div class="row"><span class="label">Paid Days:</span> {{ number_format($p->paid_days, 1) }}</div>
+            @if($p->lop_days > 0)
+                <div class="row"><span class="label">Loss of Pay:</span>
+                    <span style="color:#b91c1c; font-weight:bold;">{{ number_format($p->lop_days, 1) }} day(s) &middot; &#8377;{{ number_format($p->lop_deduction, 2) }}</span>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -81,12 +91,22 @@
                     <tr><td>{{ $l }}</td><td class="num">₹{{ number_format($v, 2) }}</td></tr>
                 @endforeach
                 <tr class="total-row"><td>Gross Earnings</td><td class="num">₹{{ number_format($p->gross_earnings, 2) }}</td></tr>
+                @if($p->lop_days > 0)
+                    <tr><td colspan="2" style="font-size:9px; color:#b91c1c; padding-top:4px; border:0;">
+                        Earnings are for {{ number_format($p->paid_days, 1) }} paid day(s).
+                        {{ number_format($p->lop_days, 1) }} LOP day(s) &mdash; &#8377;{{ number_format($p->lop_deduction, 2) }} &mdash; already deducted above.
+                    </td></tr>
+                @endif
             </table>
         </div>
         <div class="col">
             <table>
                 <tr class="earn-head-d"><th colspan="2">Deductions</th></tr>
-                @foreach([['PF (Employee)', $p->pf],['ESI', $p->esi],['LWF / Professional Tax', $p->professional_tax],['TDS', $p->tds],['LOP Deduction', $p->lop_deduction],['Penalty Deduction', $p->penalty_deduction],['Other Deductions', $p->other_deductions]] as [$l, $v])
+                {{-- LOP is NOT listed here: earnings above are already pro-rated
+                     for paid days, so charging it again would double-deduct.
+                     It's shown against Loss of Pay in the header and under
+                     Earnings, so Gross − Total Deductions = Net always holds. --}}
+                @foreach([['PF (Employee)', $p->pf],['ESI', $p->esi],['LWF / Professional Tax', $p->professional_tax],['TDS', $p->tds],['Penalty Deduction', $p->penalty_deduction],['Other Deductions', $p->other_deductions]] as [$l, $v])
                     <tr><td>{{ $l }}</td><td class="num">₹{{ number_format($v, 2) }}</td></tr>
                 @endforeach
                 <tr class="total-row"><td>Total Deductions</td><td class="num">₹{{ number_format($p->total_deductions, 2) }}</td></tr>

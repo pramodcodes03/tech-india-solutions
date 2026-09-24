@@ -6,6 +6,7 @@ use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptItem;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Support\Tenancy\CurrentBusiness;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -21,7 +22,7 @@ class PurchaseOrderService
     public function generateNumber(): string
     {
         $year = date('Y');
-        $base = app(\App\Support\Tenancy\CurrentBusiness::class)->get()?->po_prefix ?? 'PO-';
+        $base = app(CurrentBusiness::class)->get()?->po_prefix ?? 'PO-';
         $prefix = $base.$year.'-';
         $last = PurchaseOrder::withTrashed()
             ->where('po_number', 'like', $prefix.'%')
@@ -119,7 +120,7 @@ class PurchaseOrderService
 
             // Generate GRN number
             $year = date('Y');
-            $grnBase = app(\App\Support\Tenancy\CurrentBusiness::class)->get()?->grn_prefix ?? 'GRN-';
+            $grnBase = app(CurrentBusiness::class)->get()?->grn_prefix ?? 'GRN-';
             $grnPrefix = $grnBase.$year.'-';
             $lastGrn = GoodsReceipt::withTrashed()
                 ->where('grn_number', 'like', $grnPrefix.'%')
@@ -202,6 +203,14 @@ class PurchaseOrderService
 
             $afterDisc = ($qty * $rate) * (1 - $discPct / 100);
             $items[$i]['line_total'] = round($afterDisc * (1 + $taxPct / 100), 2);
+
+            // Write the coerced numerics back: the item columns are NOT NULL
+            // (default 0), and a blank form field arrives as an explicit null
+            // that passes the 'nullable' rule but violates the constraint.
+            $items[$i]['quantity'] = $qty;
+            $items[$i]['rate'] = $rate;
+            $items[$i]['discount_percent'] = $discPct;
+            $items[$i]['tax_percent'] = $taxPct;
         }
 
         return $items;

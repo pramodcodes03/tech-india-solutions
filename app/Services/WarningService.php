@@ -26,9 +26,16 @@ class WarningService
 
         $warning = Warning::create($data);
 
-        // Level 3 = termination-track: move employee to on_notice
-        if ((int) $warning->level === 3) {
-            Employee::where('id', $warning->employee_id)->update(['status' => 'on_notice']);
+        // Only ZTP carries an employment-status consequence — the employee is
+        // terminated (last working day = the issue date). All lower rungs,
+        // Director / Final Warning included, just record the warning.
+        // Terminated employees drop out of payroll, attendance import and
+        // biometric sync automatically — those services filter on status.
+        if (in_array((int) $warning->level, Warning::TERMINATION_LEVELS, true)) {
+            Employee::where('id', $warning->employee_id)->update([
+                'status' => 'terminated',
+                'last_working_date' => $warning->issued_on,
+            ]);
         }
 
         return $warning;

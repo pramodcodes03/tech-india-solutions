@@ -18,7 +18,7 @@
                 <div><dt class="text-gray-500">Department</dt><dd>{{ $claim->employee->department?->name ?? '—' }}</dd></div>
             </dl>
             @if($claim->purpose)<div class="mt-3 text-sm"><dt class="text-gray-500">Purpose</dt><dd>{{ $claim->purpose }}</dd></div>@endif
-            @if($claim->bill_path)<a href="{{ route('admin.reimbursements.bill', $claim) }}" class="btn btn-outline-primary btn-sm mt-4">View Bill</a>@endif
+            @if($claim->bill_path)<a href="{{ route('admin.reimbursements.bill', $claim) }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm mt-4">View Bill</a>@endif
 
             <div class="mt-5 border-t pt-3">
                 <h6 class="font-semibold text-sm mb-2">Timeline</h6>

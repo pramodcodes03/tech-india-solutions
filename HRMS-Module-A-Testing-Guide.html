@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Performance Management — QA Test Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --navy:#0f2b5b; --navy-2:#12356f; --teal:#0d9488; --teal-br:#2dd4bf;
+  --bg:#eef1f6; --surface:#ffffff; --surface-2:#f7f9fc; --line:#e3e8f0;
+  --ink:#111827; --ink-2:#4b5563; --ink-3:#8a94a6;
+  --pass:#059669; --fail:#dc2626; --block:#d97706; --info:#2563eb;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06);
+  --radius:14px;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1220; --surface:#111a2b; --surface-2:#0e1728; --line:#1f2c42;
+    --ink:#e8edf6; --ink-2:#a8b3c7; --ink-3:#6b7789;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b1220; --surface:#111a2b; --surface-2:#0e1728; --line:#1f2c42;
+  --ink:#e8edf6; --ink-2:#a8b3c7; --ink-3:#6b7789;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+code,kbd,.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+a{color:var(--info); text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3,h4{line-height:1.2; margin:0}
+
+/* ── Top bar ─────────────────────────────────────────────── */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 60%,#071b3d 100%);
+  color:#fff; border-bottom:1px solid rgba(255,255,255,.08);
+}
+.topbar-inner{
+  max-width:1400px; margin:0 auto; padding:14px 24px;
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+}
+.brandmark{display:flex; align-items:center; gap:12px; margin-right:auto}
+.brandmark .dot{
+  width:38px;height:38px;border-radius:11px;flex:none;
+  background:rgba(45,212,191,.16); border:1.5px solid rgba(45,212,191,.45);
+  display:grid;place-content:center; color:var(--teal-br); font-weight:900; font-size:15px;
+}
+.brandmark h1{font-size:17px; font-weight:800; letter-spacing:-.2px}
+.brandmark p{margin:1px 0 0; font-size:11.5px; color:rgba(255,255,255,.62); font-weight:600; letter-spacing:.4px}
+
+.tally{display:flex; gap:8px; flex-wrap:wrap}
+.tally .chip{
+  padding:5px 11px; border-radius:999px; font-size:11.5px; font-weight:800;
+  background:rgba(255,255,255,.09); border:1px solid rgba(255,255,255,.14); color:#fff;
+  letter-spacing:.3px; white-space:nowrap;
+}
+.tally .chip b{font-variant-numeric:tabular-nums}
+.chip.p{background:rgba(5,150,105,.22); border-color:rgba(16,185,129,.5); color:#6ee7b7}
+.chip.f{background:rgba(220,38,38,.22); border-color:rgba(248,113,113,.5); color:#fca5a5}
+.chip.b{background:rgba(217,119,6,.22); border-color:rgba(251,191,36,.5); color:#fcd34d}
+
+.progress-wrap{display:flex; align-items:center; gap:10px; min-width:190px}
+.progress{height:8px; flex:1; border-radius:99px; background:rgba(255,255,255,.14); overflow:hidden}
+.progress i{display:block; height:100%; width:0; border-radius:99px;
+  background:linear-gradient(90deg,var(--teal),var(--teal-br)); transition:width .35s ease}
+.progress-pct{font-size:12px; font-weight:800; color:var(--teal-br); font-variant-numeric:tabular-nums; min-width:38px; text-align:right}
+
+.tool{
+  appearance:none; cursor:pointer; font:inherit; font-size:12px; font-weight:700;
+  padding:7px 13px; border-radius:9px; color:#fff;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18);
+  transition:background .15s;
+}
+.tool:hover{background:rgba(255,255,255,.16)}
+
+/* ── Layout ──────────────────────────────────────────────── */
+.shell{max-width:1400px; margin:0 auto; padding:26px 24px 90px; display:grid; grid-template-columns:250px 1fr; gap:26px}
+@media (max-width:1040px){ .shell{grid-template-columns:1fr; padding:20px 16px 70px} .toc{display:none} }
+
+.toc{position:sticky; top:86px; align-self:start; max-height:calc(100vh - 110px); overflow-y:auto}
+.toc h4{font-size:10.5px; text-transform:uppercase; letter-spacing:1.4px; color:var(--ink-3); margin:0 0 10px 12px}
+.toc a{
+  display:flex; align-items:center; gap:9px; padding:7px 12px; border-radius:9px;
+  color:var(--ink-2); font-size:13px; font-weight:600; text-decoration:none; margin-bottom:2px;
+}
+.toc a:hover{background:var(--surface); color:var(--ink); text-decoration:none}
+.toc a.on{background:var(--surface); color:var(--navy); box-shadow:var(--shadow)}
+:root[data-theme="dark"] .toc a.on, :root:not([data-theme="light"]) .toc a.on{color:var(--teal-br)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .toc a.on{color:var(--teal-br)} }
+.toc a .n{
+  width:22px;height:22px;border-radius:7px;flex:none;display:grid;place-content:center;
+  font-size:10px; font-weight:900; background:var(--line); color:var(--ink-2);
+}
+.toc a.on .n{background:var(--teal); color:#fff}
+.toc .mini{margin-left:auto; font-size:10.5px; font-weight:800; color:var(--ink-3); font-variant-numeric:tabular-nums}
+
+/* ── Cards ───────────────────────────────────────────────── */
+section{scroll-margin-top:92px; margin-bottom:26px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden}
+.card + .card{margin-top:16px}
+.card-head{padding:20px 22px 16px; border-bottom:1px solid var(--line)}
+.card-body{padding:20px 22px}
+.eyebrow{font-size:10.5px; font-weight:900; letter-spacing:1.8px; text-transform:uppercase; color:var(--teal)}
+.card-head h2{font-size:21px; font-weight:800; letter-spacing:-.3px; margin:6px 0 0}
+.card-head h3{font-size:17px; font-weight:800; margin:6px 0 0}
+.card-head p{margin:6px 0 0; color:var(--ink-2); font-size:13.5px; max-width:70ch}
+
+.lede{font-size:15.5px; color:var(--ink-2); max-width:74ch}
+.grid-2{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px}
+.grid-3{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px}
+
+.fact{background:var(--surface-2); border:1px solid var(--line); border-radius:11px; padding:13px 15px}
+.fact .k{font-size:10px; font-weight:900; letter-spacing:1.3px; text-transform:uppercase; color:var(--ink-3)}
+.fact .v{font-size:15px; font-weight:800; margin-top:3px}
+.fact .v small{display:block; font-size:12px; font-weight:600; color:var(--ink-2); margin-top:2px}
+
+.note{border-left:4px solid var(--teal); background:color-mix(in srgb,var(--teal) 8%, transparent);
+  padding:13px 16px; border-radius:0 10px 10px 0; font-size:13.5px; color:var(--ink-2)}
+.note strong{color:var(--ink)}
+.note.warn{border-left-color:var(--block); background:color-mix(in srgb,var(--block) 10%, transparent)}
+
+/* ── Sidebar mockup ──────────────────────────────────────── */
+.nav-demo{display:grid; grid-template-columns:270px 1fr; gap:20px; align-items:start}
+@media (max-width:720px){ .nav-demo{grid-template-columns:1fr} }
+.fake-sidebar{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:10px; font-size:13px;
+}
+.fake-sidebar .sec{
+  font-size:10px; font-weight:900; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink-3);
+  padding:9px 10px 6px; margin-top:4px; border-top:1px solid var(--line);
+}
+.fake-sidebar .sec:first-child{border-top:0; margin-top:0}
+.fake-sidebar .item{display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:8px; color:var(--ink-2); font-weight:600}
+.fake-sidebar .item.dim{opacity:.42}
+.fake-sidebar .item.hit{background:var(--navy); color:#fff; box-shadow:0 4px 14px rgba(15,43,91,.25)}
+.fake-sidebar .item .ico{width:16px;height:16px;flex:none;opacity:.85}
+.fake-sidebar .sub{padding:2px 0 4px 30px}
+.fake-sidebar .sub .item{padding:5px 10px; font-size:12.5px; font-weight:600}
+.fake-sidebar .sub .item.tgt{background:color-mix(in srgb,var(--teal) 16%, transparent); color:var(--teal); font-weight:800}
+.fake-sidebar .caret{margin-left:auto; font-size:10px; opacity:.6}
+
+.steps{counter-reset:s; list-style:none; margin:0; padding:0}
+.steps li{counter-increment:s; position:relative; padding:0 0 14px 38px; font-size:14px; color:var(--ink-2)}
+.steps li:last-child{padding-bottom:0}
+.steps li::before{
+  content:counter(s); position:absolute; left:0; top:0;
+  width:25px;height:25px;border-radius:8px; display:grid;place-content:center;
+  background:var(--navy); color:#fff; font-size:11px; font-weight:900;
+}
+.steps li strong{color:var(--ink)}
+
+/* ── Tables ──────────────────────────────────────────────── */
+.tw{overflow-x:auto; border:1px solid var(--line); border-radius:11px; background:var(--surface)}
+table{width:100%; border-collapse:collapse; font-size:13.2px; min-width:520px}
+th{
+  text-align:left; padding:10px 13px; background:var(--surface-2); color:var(--ink-3);
+  font-size:10.5px; font-weight:900; letter-spacing:1px; text-transform:uppercase;
+  border-bottom:1px solid var(--line); white-space:nowrap;
+}
+td{padding:10px 13px; border-bottom:1px solid var(--line); color:var(--ink-2); vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+td strong{color:var(--ink)}
+td.mono, th.mono{font-family:'JetBrains Mono',monospace; font-size:12px}
+
+.pill{display:inline-block; padding:2px 8px; border-radius:6px; font-size:10.5px; font-weight:800; letter-spacing:.3px; white-space:nowrap}
+.pill.g{background:color-mix(in srgb,var(--pass) 14%,transparent); color:var(--pass)}
+.pill.r{background:color-mix(in srgb,var(--fail) 14%,transparent); color:var(--fail)}
+.pill.a{background:color-mix(in srgb,var(--block) 16%,transparent); color:var(--block)}
+.pill.b{background:color-mix(in srgb,var(--info) 14%,transparent); color:var(--info)}
+.pill.n{background:var(--line); color:var(--ink-2)}
+
+kbd{
+  display:inline-block; padding:1.5px 6px; border-radius:5px; font-size:11.5px; font-weight:600;
+  background:var(--surface-2); border:1px solid var(--line); border-bottom-width:2px; color:var(--ink);
+}
+.path{display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:12.5px; font-weight:700}
+.path span{background:var(--surface-2); border:1px solid var(--line); padding:3px 9px; border-radius:7px; color:var(--ink)}
+.path i{color:var(--ink-3); font-style:normal}
+
+/* ── Test cases ──────────────────────────────────────────── */
+.filterbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px}
+.fbtn{
+  appearance:none; cursor:pointer; font:inherit; font-size:12px; font-weight:700;
+  padding:6px 13px; border-radius:999px; border:1px solid var(--line);
+  background:var(--surface); color:var(--ink-2);
+}
+.fbtn.on{background:var(--navy); border-color:var(--navy); color:#fff}
+.fbtn:hover{border-color:var(--navy)}
+
+.case{border:1px solid var(--line); border-radius:12px; background:var(--surface); margin-bottom:10px; overflow:hidden}
+.case[data-status="pass"]{border-color:color-mix(in srgb,var(--pass) 42%,var(--line))}
+.case[data-status="fail"]{border-color:color-mix(in srgb,var(--fail) 46%,var(--line))}
+.case[data-status="block"]{border-color:color-mix(in srgb,var(--block) 46%,var(--line))}
+.case-top{display:flex; align-items:flex-start; gap:12px; padding:13px 15px}
+.case-id{
+  font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; flex:none;
+  background:var(--surface-2); border:1px solid var(--line); padding:3px 8px; border-radius:6px; color:var(--ink-2);
+}
+.case-title{flex:1; font-weight:700; font-size:14.2px; color:var(--ink); min-width:180px}
+.case-title em{display:block; font-style:normal; font-weight:500; font-size:12.5px; color:var(--ink-3); margin-top:2px}
+.marks{display:flex; gap:5px; flex:none}
+.mark{
+  appearance:none; cursor:pointer; font:inherit; font-size:11px; font-weight:800; letter-spacing:.3px;
+  width:32px; height:28px; border-radius:8px; border:1px solid var(--line);
+  background:var(--surface-2); color:var(--ink-3); transition:.12s;
+}
+.mark:hover{border-color:var(--ink-3)}
+.mark[aria-pressed="true"][data-m="pass"]{background:var(--pass); border-color:var(--pass); color:#fff}
+.mark[aria-pressed="true"][data-m="fail"]{background:var(--fail); border-color:var(--fail); color:#fff}
+.mark[aria-pressed="true"][data-m="block"]{background:var(--block); border-color:var(--block); color:#fff}
+.case-body{padding:0 15px 14px 15px; display:grid; grid-template-columns:1fr 1fr; gap:14px}
+@media (max-width:700px){ .case-body{grid-template-columns:1fr} }
+.case-body h5{
+  margin:0 0 5px; font-size:10px; font-weight:900; letter-spacing:1.2px; text-transform:uppercase; color:var(--ink-3);
+}
+.case-body ol,.case-body ul{margin:0; padding-left:17px; font-size:13.2px; color:var(--ink-2)}
+.case-body li{margin-bottom:3px}
+.case-body .exp{background:color-mix(in srgb,var(--pass) 7%,transparent); border-radius:9px; padding:10px 12px}
+.case-body .exp li::marker{color:var(--pass)}
+
+/* ── Misc ────────────────────────────────────────────────── */
+.csv{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:10px;
+  padding:12px 14px; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--ink-2);
+  white-space:pre; overflow-x:auto; line-height:1.75;
+}
+.copyrow{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:7px}
+.copyrow .lbl{font-size:11px; font-weight:900; letter-spacing:1.1px; text-transform:uppercase; color:var(--ink-3)}
+.copybtn{
+  appearance:none; cursor:pointer; font:inherit; font-size:11px; font-weight:800;
+  padding:5px 11px; border-radius:7px; border:1px solid var(--line); background:var(--surface); color:var(--ink-2);
+}
+.copybtn:hover{border-color:var(--teal); color:var(--teal)}
+footer{max-width:1400px; margin:0 auto; padding:0 24px 40px; color:var(--ink-3); font-size:12.5px}
+
+@media print{
+  .topbar,.toc,.marks,.filterbar,.tool,.copybtn{display:none !important}
+  .shell{grid-template-columns:1fr; padding:0}
+  body{background:#fff; font-size:11px}
+  .card,.case{box-shadow:none; break-inside:avoid}
+  section{break-inside:avoid-page}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brandmark">
+      <div class="dot">QA</div>
+      <div>
+        <h1>Performance Management — Test Plan</h1>
+        <p>MODULE A · KRA / KPI · CYCLES · REVIEWS · SCORING · REWARDS</p>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress"><i id="bar"></i></div>
+      <div class="progress-pct" id="pct">0%</div>
+    </div>
+
+    <div class="tally">
+      <span class="chip">Total <b id="t-all">0</b></span>
+      <span class="chip p">Pass <b id="t-pass">0</b></span>
+      <span class="chip f">Fail <b id="t-fail">0</b></span>
+      <span class="chip b">Blocked <b id="t-block">0</b></span>
+    </div>
+
+    <button class="tool" id="btn-summary">Copy summary</button>
+    <button class="tool" id="btn-reset">Reset</button>
+  </div>
+</header>
+
+<div class="shell">
+
+  <nav class="toc" id="toc">
+    <h4>Test plan</h4>
+    <a href="#start"><span class="n">0</span> Before you start</a>
+    <a href="#navigate"><span class="n">1</span> Sidebar navigation</a>
+    <a href="#flow"><span class="n">2</span> How the cycle flows</a>
+    <a href="#ts-cycle"><span class="n">3</span> Cycles</a>
+    <a href="#ts-master"><span class="n">4</span> KRA &amp; KPI master</a>
+    <a href="#ts-assign"><span class="n">5</span> Goal assignment</a>
+    <a href="#ts-weight"><span class="n">6</span> Weightages</a>
+    <a href="#ts-self"><span class="n">7</span> Self assessment</a>
+    <a href="#ts-manager"><span class="n">8</span> Manager review</a>
+    <a href="#ts-hr"><span class="n">9</span> HR review &amp; finalise</a>
+    <a href="#ts-score"><span class="n">10</span> Scoring maths</a>
+    <a href="#ts-band"><span class="n">11</span> Bands &amp; bell curve</a>
+    <a href="#ts-reward"><span class="n">12</span> Rewards</a>
+    <a href="#ts-dash"><span class="n">13</span> Dashboards &amp; reports</a>
+    <a href="#ts-perm"><span class="n">14</span> Permissions</a>
+    <a href="#data"><span class="n">15</span> Test data pack</a>
+    <a href="#bugs"><span class="n">16</span> Raising a bug</a>
+  </nav>
+
+  <main>
+
+  <section id="start">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 0</div>
+        <h2>Before you start</h2>
+        <p class="lede">Module A replaces the old text-box appraisal with a full KRA / KPI system: masters, goal
+        assignment, three assessment stages, a weighted scoring engine, bands, a bell curve and thirteen reports.
+        This plan walks it end to end in the order you would actually use it.</p>
+      </div>
+      <div class="card-body">
+        <div class="note warn" style="margin-bottom:18px">
+          <strong>Everything belongs to a cycle.</strong> A <em>performance cycle</em> is the review period. Assessments
+          are only accepted while its status is <strong>Open</strong> — a Draft cycle takes goals but no scores, and a
+          <strong>Locked</strong> cycle refuses every change. If something is unexpectedly read-only, check the cycle
+          status first; it is the single most common cause.
+        </div>
+
+        <h3 style="font-size:15px; margin-bottom:8px">Logins you will need</h3>
+        <div class="tw" style="margin-bottom:18px">
+          <table>
+            <thead><tr><th>Login</th><th>Plays the part of</th><th>Used in</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Admin</strong> or <strong>HR Manager</strong></td><td>HR / Admin</td><td>Sections 3–6, 9–14 — everything in the admin panel</td></tr>
+              <tr><td><strong>An employee</strong> (portal)</td><td>The person being reviewed</td><td>Section 7 — the self-assessment</td></tr>
+              <tr><td><strong>That employee's manager</strong> (portal)</td><td>The reviewer</td><td>Section 8 — the manager review</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <strong>Set up the reporting line first.</strong> In <em>HR → Employees</em>, make sure your test employee has a
+          <strong>Reporting Manager</strong> set, and that the manager has a portal password. Goals route to that person
+          by default, and without it Section 8 has nowhere to go.
+        </div>
+
+        <h3 style="font-size:15px; margin:18px 0 8px">How to use this page</h3>
+        <ol class="steps">
+          <li>Work through in order — each section builds the data the next one needs.</li>
+          <li>Mark each case <kbd>P</kbd>, <kbd>F</kbd> or <kbd>B</kbd>. Marks are saved in this browser.</li>
+          <li>Section 10 is the arithmetic. If a number there is wrong, everything downstream is too — flag it as High.</li>
+          <li>At the end press <strong>Copy summary</strong> and paste it into the QA thread.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section id="navigate">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 1</div>
+        <h2>Finding it in the sidebar</h2>
+        <p>One new group in the admin panel, two new items in the employee portal.</p>
+      </div>
+      <div class="card-body">
+        <div class="nav-demo">
+          <div class="fake-sidebar" aria-label="Admin sidebar map">
+            <div class="sec">Human Resources</div>
+            <div class="item dim">HR Dashboard</div>
+            <div class="item dim">Employees <span class="caret">›</span></div>
+            <div class="item dim">Attendance <span class="caret">›</span></div>
+            <div class="item dim">Leaves <span class="caret">›</span></div>
+            <div class="item dim">Payroll <span class="caret">›</span></div>
+            <div class="item dim">Performance <span class="caret">›</span></div>
+            <div class="item hit">Performance (KRA/KPI) <span class="caret">⌄</span></div>
+            <div class="sub">
+              <div class="item tgt">Dashboard</div>
+              <div class="item tgt">Performance Cycles</div>
+              <div class="item tgt">KRA Master</div>
+              <div class="item tgt">KPI Master</div>
+              <div class="item tgt">Goal Assignment</div>
+              <div class="item tgt">Weightages</div>
+              <div class="item tgt">Review Desk</div>
+              <div class="item tgt">Bands &amp; Bell Curve</div>
+              <div class="item tgt">Rewards</div>
+              <div class="item tgt">Reports</div>
+            </div>
+            <div class="item dim">Trackers <span class="caret">›</span></div>
+          </div>
+
+          <div>
+            <div class="note" style="margin-bottom:16px">
+              <strong>Two "Performance" entries, deliberately.</strong> The older <em>Performance</em> item is the existing
+              attendance-and-discipline snapshot. The new one is <strong>Performance (KRA/KPI)</strong> — that is Module A.
+              They are separate features; do not report the duplicate name as a bug.
+            </div>
+
+            <div class="tw">
+              <table>
+                <thead><tr><th>Screen</th><th class="mono">URL</th><th>Permission</th></tr></thead>
+                <tbody>
+                  <tr><td>Performance dashboard</td><td class="mono">/admin/hr/performance</td><td class="mono">analytics_performance.view</td></tr>
+                  <tr><td>Cycles</td><td class="mono">…/performance/cycles</td><td class="mono">performance.view</td></tr>
+                  <tr><td>KRA master</td><td class="mono">…/performance/kras</td><td class="mono">performance_kra.view</td></tr>
+                  <tr><td>KPI master</td><td class="mono">…/performance/kpis</td><td class="mono">performance_kpi.view</td></tr>
+                  <tr><td>Goal assignment</td><td class="mono">…/performance/goals</td><td class="mono">performance_goals.view</td></tr>
+                  <tr><td>Weightages</td><td class="mono">…/performance/goals/weightages</td><td class="mono">performance_goals.view</td></tr>
+                  <tr><td>Review desk</td><td class="mono">…/performance/reviews</td><td class="mono">performance_reviews.view</td></tr>
+                  <tr><td>Bands &amp; bell curve</td><td class="mono">…/performance/bands</td><td class="mono">performance.view</td></tr>
+                  <tr><td>Rewards</td><td class="mono">…/performance/rewards</td><td class="mono">performance_rewards.view</td></tr>
+                  <tr><td>Reports</td><td class="mono">…/performance/reports</td><td class="mono">performance_reports.view</td></tr>
+                  <tr><td><strong>Employee portal</strong> — My Goals</td><td class="mono">/employee/my-goals</td><td>own records only</td></tr>
+                  <tr><td><strong>Employee portal</strong> — Team Performance</td><td class="mono">/employee/team-performance</td><td>appears only for reviewers</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="flow">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 2</div>
+        <h2>How a cycle flows</h2>
+        <p>The order matters. Testing out of order will produce empty screens that look like bugs.</p>
+      </div>
+      <div class="card-body">
+        <ol class="steps">
+          <li><strong>Create a cycle</strong> (Draft), then <strong>Open</strong> it. Nothing accepts an assessment until it is Open.</li>
+          <li><strong>Build the masters</strong> — KRAs, then KPIs under each. This is the template, not anyone's goals yet.</li>
+          <li><strong>Assign goals</strong> to people for the cycle. The KPIs are copied onto each person at this moment.</li>
+          <li><strong>Balance the weightages</strong> so every employee totals 100%.</li>
+          <li><strong>Employee</strong> self-assesses in the portal and attaches evidence.</li>
+          <li><strong>Manager</strong> records what was achieved per KPI and rates each KRA.</li>
+          <li><strong>HR</strong> moderates if needed, then <strong>finalises</strong> — producing the score, band and recommended reward.</li>
+          <li><strong>HR decides</strong> the reward on the Rewards screen, which writes the appraisal record.</li>
+          <li><strong>Lock</strong> the cycle to freeze everything.</li>
+        </ol>
+
+        <div class="note" style="margin-top:16px">
+          <strong>What a "send back" does.</strong> At any stage a review can be returned. Only the stage you send it to
+          reopens — sending back to the employee leaves the manager's notes intact, and sending back to the manager
+          leaves the employee's self-assessment intact. That asymmetry is deliberate and is tested in cases
+          <span class="mono">TC-MGR-06</span> and <span class="mono">TC-HR-05</span>.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ts-cycle">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 1 · 9 cases</div><h2>Performance cycles</h2>
+        <p>The review period, and the open / lock control that freezes scores.</p></div>
+      <div class="card-body" id="suite-cycle"></div>
+    </div>
+  </section>
+
+  <section id="ts-master">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 2 · 11 cases</div><h2>KRA &amp; KPI master</h2>
+        <p>The templates. A KRA is <em>what</em> someone is measured on; its KPIs are <em>how</em>.</p></div>
+      <div class="card-body" id="suite-master"></div>
+    </div>
+  </section>
+
+  <section id="ts-assign">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 3 · 10 cases</div><h2>Goal assignment</h2>
+        <p>Four ways to get KRAs onto people: direct, bulk, cascade and copy-forward.</p></div>
+      <div class="card-body" id="suite-assign"></div>
+    </div>
+  </section>
+
+  <section id="ts-weight">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 4 · 8 cases</div><h2>Weightages</h2>
+        <p>The 100% rule, the bulk grid, and the Excel round-trip.</p></div>
+      <div class="card-body" id="suite-weight"></div>
+    </div>
+  </section>
+
+  <section id="ts-self">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 5 · 9 cases</div><h2>Self assessment</h2>
+        <p>Employee portal. Draft stays private; submitting locks it and moves it to the manager.</p></div>
+      <div class="card-body" id="suite-self"></div>
+    </div>
+  </section>
+
+  <section id="ts-manager">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 6 · 9 cases</div><h2>Manager review</h2>
+        <p>The reviewer records what was actually achieved, then rates.</p></div>
+      <div class="card-body" id="suite-manager"></div>
+    </div>
+  </section>
+
+  <section id="ts-hr">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 7 · 9 cases</div><h2>HR review &amp; finalise</h2>
+        <p>Moderation, verification against the attendance record, and the moment the score is locked in.</p></div>
+      <div class="card-body" id="suite-hr"></div>
+    </div>
+  </section>
+
+  <section id="ts-score">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 8 · 11 cases</div><h2>Scoring maths</h2>
+        <p>The arithmetic behind every number on every screen. Check these with a calculator.</p></div>
+      <div class="card-body">
+        <div class="note" style="margin-bottom:16px">
+          <strong>How a score is built, in four steps.</strong>
+          <span style="display:block;margin-top:8px">
+          1. Each <strong>KPI</strong> scores 0–100 from target vs achieved.<br>
+          2. Those roll up into their <strong>KRA</strong>, weighted by each KPI's own weightage.<br>
+          3. KRAs roll up into the <strong>overall score</strong>, weighted by KRA weightage.<br>
+          4. A KRA with no KPIs is scored from the reviewer's 1–5 rating instead (×20).
+          </span>
+        </div>
+        <div id="suite-score"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ts-band">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 9 · 9 cases</div><h2>Bands &amp; bell curve</h2>
+        <p>What a score means, and the optional forced distribution.</p></div>
+      <div class="card-body">
+        <div class="tw" style="margin-bottom:16px">
+          <table>
+            <thead><tr><th>Band</th><th class="mono">Range</th><th>Recommends</th><th class="mono">Bell curve share</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Outstanding</strong></td><td class="mono">95 – 100</td><td>Promotion</td><td class="mono">10%</td></tr>
+              <tr><td><strong>Excellent</strong></td><td class="mono">85 – 94.99</td><td>Salary Increment</td><td class="mono">20%</td></tr>
+              <tr><td><strong>Very Good</strong></td><td class="mono">75 – 84.99</td><td>Bonus</td><td class="mono">—</td></tr>
+              <tr><td><strong>Good</strong></td><td class="mono">60 – 74.99</td><td>No action</td><td class="mono">50%</td></tr>
+              <tr><td><strong>Needs Improvement</strong></td><td class="mono">40 – 59.99</td><td>Training</td><td class="mono">15%</td></tr>
+              <tr><td><strong>Unsatisfactory</strong></td><td class="mono">0 – 39.99</td><td>PIP</td><td class="mono">5%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="suite-band"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ts-reward">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 10 · 7 cases</div><h2>Rewards</h2>
+        <p>HR's decision on what the system suggests, and the appraisal record it writes.</p></div>
+      <div class="card-body" id="suite-reward"></div>
+    </div>
+  </section>
+
+  <section id="ts-dash">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 11 · 11 cases</div><h2>Dashboards &amp; reports</h2>
+        <p>Two dashboards, thirteen reports, each exportable to Excel and PDF.</p></div>
+      <div class="card-body" id="suite-dash"></div>
+    </div>
+  </section>
+
+  <section id="ts-perm">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 12 · 8 cases</div><h2>Permissions</h2>
+        <p>The proposal's four-role matrix, built from eight permission rows.</p></div>
+      <div class="card-body">
+        <div class="tw" style="margin-bottom:16px">
+          <table>
+            <thead><tr><th>Role</th><th>Should be able to</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Admin</strong></td><td>Create KRA/KPI · assign goals · final approval · full reports</td></tr>
+              <tr><td><strong>HR</strong></td><td>Create KRA/KPI · assign goals · HR review &amp; finalise · full reports</td></tr>
+              <tr><td><strong>Manager</strong></td><td>Manager review of their own team, in the employee portal</td></tr>
+              <tr><td><strong>Employee</strong></td><td>Self-assessment and their own results only</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="suite-perm"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="data">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 15</div>
+        <h2>Test data pack</h2>
+        <p>Set this up exactly and every expected number in Section 8 will match to the decimal.</p>
+      </div>
+      <div class="card-body">
+        <h3 style="font-size:15px; margin-bottom:4px">The cycle</h3>
+        <div class="tw" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th>Field</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>Name</td><td class="mono">QA Test Cycle</td></tr>
+              <tr><td>Frequency</td><td>Quarterly</td></tr>
+              <tr><td>Period</td><td>The current quarter</td></tr>
+              <tr><td>Deadlines</td><td>Set all three — they drive the "upcoming reviews" list</td></tr>
+              <tr><td>Status</td><td><strong>Open</strong> — nothing works until it is</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="font-size:15px; margin-bottom:4px">Four KRAs — the proposal's worked example</h3>
+        <p style="font-size:13.2px; color:var(--ink-2); margin:0 0 10px">These weightages total 100 and produce the score checked in <span class="mono">TC-SCORE-07</span>.</p>
+        <div class="tw" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th>KRA</th><th class="mono">Weightage</th><th>KPIs</th><th>Rate it</th><th>Contributes</th></tr></thead>
+            <tbody>
+              <tr><td>Sales Growth</td><td class="mono">40%</td><td>See below</td><td><strong>5</strong> — Outstanding</td><td class="mono">100 × 40</td></tr>
+              <tr><td>Attendance</td><td class="mono">20%</td><td>None</td><td><strong>4</strong> — Exceeds</td><td class="mono">80 × 20</td></tr>
+              <tr><td>Behaviour</td><td class="mono">20%</td><td>None</td><td><strong>3</strong> — Meets</td><td class="mono">60 × 20</td></tr>
+              <tr><td>Learning</td><td class="mono">20%</td><td>None</td><td><strong>2</strong> — Needs Improvement</td><td class="mono">40 × 20</td></tr>
+              <tr><td colspan="4"><strong>Expected final score</strong></td><td><strong class="mono">76.00</strong> · Good</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="font-size:15px; margin-bottom:4px">Two KPIs under Sales Growth</h3>
+        <div class="tw" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th>KPI</th><th>Unit</th><th class="mono">Target</th><th class="mono">Weightage</th><th>Formula</th><th class="mono">Enter achieved</th><th>Expected score</th></tr></thead>
+            <tbody>
+              <tr><td>Monthly Revenue</td><td>Currency</td><td class="mono">100000</td><td class="mono">70%</td><td>Higher is better</td><td class="mono">100000</td><td><strong>100.00</strong></td></tr>
+              <tr><td>Escalations</td><td>Number</td><td class="mono">10</td><td class="mono">30%</td><td><strong>Lower is better</strong></td><td class="mono">12.5</td><td><strong>80.00</strong></td></tr>
+              <tr><td colspan="6"><strong>KRA rolls up to</strong> (100×70 + 80×30) ÷ 100</td><td><strong class="mono">94.00</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note warn" style="margin-bottom:20px">
+          <strong>Watch the "lower is better" one.</strong> Entering <span class="mono">12.5</span> against a target of
+          <span class="mono">10</span> should score <strong>80</strong>, because 10 ÷ 12.5 = 0.8. Entering
+          <span class="mono">5</span> — beating the target — should score <strong>100</strong>, not 200. That cap is
+          case <span class="mono">TC-SCORE-04</span> and it matters: without it one runaway KPI could push someone into
+          the top band on its own.
+        </div>
+
+        <h3 style="font-size:15px; margin-bottom:4px">People</h3>
+        <div class="tw" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th>Who</th><th>Set up</th><th>Why</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Employee A</strong></td><td>Active, with a reporting manager and a portal password</td><td>The person under review</td></tr>
+              <tr><td><strong>Manager M</strong></td><td>Employee A's reporting manager, with a portal password</td><td>Does the manager review</td></tr>
+              <tr><td><strong>Employees B–H</strong></td><td>Six or seven more in the same department</td><td>Needed for the bell curve and the department comparison to mean anything</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <strong>Shortcut for the bell curve.</strong> Section 9 needs several finalised scores with different values.
+          The quickest way is to assign one KRA (100% weightage, no KPIs) to seven or eight people, rate each of them
+          differently on the Review Desk, and finalise each one. That takes about five minutes and gives you a
+          realistic spread.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="bugs">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 16</div>
+        <h2>Raising a bug</h2>
+        <p>For anything in Section 8, include the numbers you entered — the maths is reproducible and that makes it a one-minute fix.</p>
+      </div>
+      <div class="card-body">
+        <div class="copyrow"><span class="lbl">Bug template</span><button class="copybtn" data-copy="bug-tpl">Copy</button></div>
+        <div class="csv" id="bug-tpl">Case ID     : TC-SCORE-07
+Screen      : HR → Performance (KRA/KPI) → Review Desk → [employee]
+Logged in as: HR Manager
+Cycle       : QA Test Cycle (Open)
+Set up      : KRAs at 40/20/20/20, rated 5/4/3/2, no KPIs
+Expected    : Final score 76.00, band Good
+Actual      : Final score 70.00, band Good
+Severity    : High
+Evidence    : screenshot of the Goals & KPIs panel showing the weightages and ratings</div>
+
+        <div class="grid-3" style="margin-top:18px">
+          <div class="fact"><div class="k">High</div><div class="v">A number is wrong<small>Any scoring error, a weightage that does not apply, a locked cycle that still accepts changes, one person seeing another's review</small></div></div>
+          <div class="fact"><div class="k">Medium</div><div class="v">Works, but wrongly<small>A filter ignored, an export missing a column, a send-back clearing the wrong stage</small></div></div>
+          <div class="fact"><div class="k">Low</div><div class="v">Cosmetic<small>Spacing, wording, a chart label</small></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<footer>
+  Performance Management — QA test plan · Module A · KRA / KPI, cycles, assessments, scoring, bands, rewards and reports.
+  Marks are stored in this browser only; use <strong>Copy summary</strong> to share results.
+</footer>
+
+<script>
+/* Test cases — the counters, filter and summary are all built from this. */
+const SUITES = {
+  'suite-cycle': [
+    ['TC-CYC-01','Create a cycle','',
+      ['HR → Performance (KRA/KPI) → Performance Cycles → + New Cycle.','Name it "QA Test Cycle", frequency Quarterly, set the period to this quarter.','Set all three review deadlines. Save.'],
+      ['It saves as Draft and opens on its detail page.','A message says to open it when you are ready for assessments.']],
+    ['TC-CYC-02','The next period is suggested for you','',
+      ['With one cycle already saved, open + New Cycle again.'],
+      ['The name, start and end are pre-filled with the period straight after the last cycle.','The frequency matches the previous one.']],
+    ['TC-CYC-03','Deadlines must run in order','',
+      ['Edit the cycle and set the manager review due date before the self-assessment due date. Save.'],
+      ['It is refused: "Manager review cannot be due before the self-assessment is."','The same rule applies to HR review versus manager review.']],
+    ['TC-CYC-04','Opening the cycle','',
+      ['On the cycle page press Open Cycle.'],
+      ['The status badge turns green and reads Open.','A message confirms assessments are now accepted.']],
+    ['TC-CYC-05','Locking freezes everything','The point of the control.',
+      ['With goals assigned and at least one assessment in progress, press Lock Scores and confirm.','Try to submit a self-assessment, save an HR review, and finalise.'],
+      ['Each is refused with a message naming the status.','The review screen shows a read-only banner.','The cycle page records who locked it and when.']],
+    ['TC-CYC-06','Re-opening a locked cycle warns you','',
+      ['On a locked cycle press Back to Draft, then Open Cycle.'],
+      ['The confirmation says signed-off scores become editable again.','After re-opening, assessments are accepted once more.']],
+    ['TC-CYC-07','The progress strip reflects reality','',
+      ['With people at different stages, read the five-box Progress panel.'],
+      ['The counts add up to the number of employees with goals in the cycle.','Percentages are of that number, not of headcount.']],
+    ['TC-CYC-08','Roll forward creates the next cycle','',
+      ['Press Roll Forward → on a quarterly cycle.'],
+      ['A Draft cycle is created for the next quarter with the same frequency.','The deadlines sit the same number of days after the period end as they did on the original.','Rolling forward twice reports that the cycle already exists.']],
+    ['TC-CYC-09','A cycle with finalised scores cannot be deleted','',
+      ['Finalise at least one review, then try to delete that cycle.'],
+      ['Refused: it has finalised scores and should be closed instead.','A cycle with nothing finalised deletes normally.']],
+  ],
+
+  'suite-master': [
+    ['TC-KRA-01','Create a KRA','',
+      ['Performance → KRA Master → + New KRA.','Name "Sales Growth", weightage 40, frequency Quarterly, leave department and designation blank. Save.'],
+      ['The code is pre-filled as KRA-0001 and increments on the next one.','It appears in the list showing "All departments" as its scope.']],
+    ['TC-KRA-02','Scoping a KRA to a department','',
+      ['Create a second KRA and set Department = Sales.'],
+      ['The list shows the department as its scope.','It is only offered to Sales people when cascading (TC-ASG-05).']],
+    ['TC-KRA-03','A KRA with no KPIs is flagged','',
+      ['Look at a KRA you have not added KPIs to.'],
+      ['The KPIs column shows an amber "No KPIs" badge.','Its detail page explains it will be scored from the reviewer rating alone — which is correct for something like Team Collaboration.']],
+    ['TC-KPI-01','Add a KPI','',
+      ['Open the KRA → + Add KPI.','Name "Monthly Revenue", unit Currency, target 100000, weightage 70, formula Higher is better. Save.'],
+      ['It appears under the KRA with the target formatted as currency (₹100,000.00).']],
+    ['TC-KPI-02','The formula picker explains itself','',
+      ['On the KPI form, click through the three score formulas.'],
+      ['A worked example updates under the picker for each one, using the target you typed.','It states that over-achievement is capped at 100.']],
+    ['TC-KPI-03','Units format values correctly','',
+      ['Create KPIs with each unit: Number, Percentage, Currency, Hours, Rating.'],
+      ['Targets display as 40, 85%, ₹100,000.00, 40 hrs and 4.0 / 5 respectively.']],
+    ['TC-KPI-04','KPI weightage total is shown','',
+      ['Add a second KPI at weightage 30 under the same KRA.','Open the KRA detail page.'],
+      ['The KPI weightage panel shows 100% and reads "balanced".','Change one to 50 and it flags the imbalance.']],
+    ['TC-KRA-04','An assigned KRA cannot be deleted','',
+      ['Assign a KRA to someone (Suite 3), then try to delete it from the master.'],
+      ['Refused, with the advice to set it Inactive instead.','Setting it Inactive keeps it out of new assignments and leaves existing reviews untouched.']],
+    ['TC-KPI-05','Deleting a KPI does not disturb live reviews','',
+      ['Assign a KRA with KPIs, then delete one of those KPIs from the master.'],
+      ['The master KPI is removed.','The assigned copy on the employee is still there with its target — the message says so.']],
+    ['TC-KRA-05','Search and filter','',
+      ['Use the search box and the department / status filters on both master lists.'],
+      ['Results narrow correctly and the filters stay selected after the page reloads.']],
+    ['TC-KPI-06','KPI master lists everything across KRAs','',
+      ['Performance → KPI Master.'],
+      ['Every KPI is listed with its parent KRA, and the KRA name links to its page.']],
+  ],
+
+  'suite-assign': [
+    ['TC-ASG-01','Direct assignment','',
+      ['Performance → Goal Assignment → Assign → mode Direct.','Tick your test employee and the four test KRAs. Assign.'],
+      ['A success message names how many goals were assigned and to how many people.','The goals list shows the employee with all four KRAs.']],
+    ['TC-ASG-02','KPIs are copied at assignment','The important one.',
+      ['Open Goal Assignment and look at the Sales Growth row for your employee.'],
+      ['It shows 2 KPIs.','Now change the target on the master KPI. The assigned copy keeps its original target — editing a template must never rewrite a review already under way.']],
+    ['TC-ASG-03','The reviewer defaults to the reporting manager','',
+      ['Check the Reviewer column on the assigned goals.'],
+      ['It shows the employee\'s reporting manager.','If the KRA itself names a default reviewer, that one wins instead.']],
+    ['TC-ASG-04','Bulk assignment to a department','',
+      ['Assign → mode Bulk → pick the four KRAs and Department = Sales. Assign.'],
+      ['Every active employee in Sales gets those KRAs.','The message states how many employees were covered.']],
+    ['TC-ASG-05','Cascade gives each person only what matches them','',
+      ['Assign → mode Cascade → leave the KRAs unticked, pick Department = Sales.'],
+      ['Sales people receive the unrestricted KRAs plus the Sales-only one.','A KRA scoped to a different department is not assigned to them.']],
+    ['TC-ASG-06','Assigning twice does not duplicate','',
+      ['Run the same direct assignment again.'],
+      ['No duplicate rows appear.','The message reports them as already assigned.']],
+    ['TC-ASG-07','A reviewed goal keeps its weightage','',
+      ['Take a goal through the manager review, then re-run an assignment that would change its weightage.'],
+      ['The weightage does not change — moving the target after a manager has scored would change what their review meant.']],
+    ['TC-ASG-08','Copy forward into the next cycle','',
+      ['Create a second cycle.','Assign → mode Copy Forward → choose the first cycle as the source.'],
+      ['Every goal is recreated in the new cycle with the same weightages.','Ratings and scores do NOT come across — every goal reads Assigned.']],
+    ['TC-ASG-09','An unstarted goal can be removed','',
+      ['On the goals list, press Remove on a goal still at Assigned.','Then try the same on one that has been reviewed.'],
+      ['The first is removed.','The second is refused — removing a scored goal would change the employee\'s total.']],
+    ['TC-ASG-10','A Locked cycle refuses assignment','',
+      ['Lock the cycle, then try to assign goals to it.'],
+      ['Refused with a message naming the status.','The Assign button on the form is disabled with an explanation.']],
+  ],
+
+  'suite-weight': [
+    ['TC-WGT-01','Out-of-balance employees are flagged','',
+      ['Assign KRAs totalling 90% to someone.','Performance → Weightages.'],
+      ['Their card is highlighted and the total shows 90% with "10 short".','The header counts how many employees are out of balance.']],
+    ['TC-WGT-02','Totals update as you type','',
+      ['Change a weightage box.'],
+      ['The employee total recalculates immediately, without saving.','It turns green at exactly 100, amber under, red over.']],
+    ['TC-WGT-03','Split evenly lands exactly on 100','Rounding matters here.',
+      ['Press Split evenly on an employee with three KRAs.'],
+      ['The total reads exactly 100.00% — not 99.99 — with the remainder given to the first KRA.']],
+    ['TC-WGT-04','Saving reports what changed','',
+      ['Adjust several employees to 100 and press Save All Weightages.'],
+      ['The message says how many were updated and confirms everyone now totals 100%.','If some are still out of balance it warns instead, with the count.']],
+    ['TC-WGT-05','Export produces the import template','',
+      ['Press Export Excel.'],
+      ['A sheet downloads with Employee Code, Employee, KRA Code, KRA and Weightage.','The values match what is on screen.']],
+    ['TC-WGT-06','Import updates the weightages','',
+      ['Edit the Weightage column in that sheet and import it back.'],
+      ['The message reports how many were imported.','The grid shows the new values.']],
+    ['TC-WGT-07','Unmatched import rows are reported, not guessed','',
+      ['Change an Employee Code in the sheet to something that does not exist, and import.'],
+      ['That row is skipped and named in the warning message.','Valid rows in the same file still import.']],
+    ['TC-WGT-08','A Locked cycle refuses weightage changes','',
+      ['Lock the cycle and open Weightages.'],
+      ['The inputs are disabled and the Save button is off.','Posting anyway is refused with a message naming the status.']],
+  ],
+
+  'suite-self': [
+    ['TC-SELF-01','The employee sees their goals','',
+      ['Sign in to the employee portal as your test employee → My Goals.'],
+      ['Their KRAs are listed with weightages and the KPIs underneath.','The stage stepper shows where the review currently sits.']],
+    ['TC-SELF-02','Live progress before anything is measured','',
+      ['Read the progress ring at the top.'],
+      ['It shows a live figure, labelled Progress rather than Final.','Each KPI bar sits at zero until the manager records an achieved value.']],
+    ['TC-SELF-03','Start the self-assessment','',
+      ['Press Start Self-Assessment.'],
+      ['A form opens listing each KRA with a 1–5 rating and a remarks box.','Each KRA shows what it is measured by and its target.']],
+    ['TC-SELF-04','Save Draft keeps it private','',
+      ['Fill in a rating and some text, press Save Draft.','Check the goals page.'],
+      ['A message confirms the draft was saved.','The stage has NOT moved on — it still reads Assigned.','Reopening the form shows what you typed.']],
+    ['TC-SELF-05','Submitting requires achievements','',
+      ['Clear the Achievements box and press Submit to Manager.'],
+      ['Refused with "Write at least your achievements before submitting."','Nothing is submitted.']],
+    ['TC-SELF-06','Submitting locks it','',
+      ['Fill in the achievements and submit.'],
+      ['You land back on My Goals with a confirmation.','The stage moves to Self-Assessed.','Reopening the form shows it as locked — the employee cannot change it now.']],
+    ['TC-SELF-07','Attach evidence','',
+      ['Before submitting, use the Attach evidence panel to upload a PDF against a KRA.'],
+      ['It lists under that goal with its size.','A file over 5 MB, or a .docx, is refused with a clear message.']],
+    ['TC-SELF-08','Evidence locks with the assessment','',
+      ['After submitting, try to remove an attached file.'],
+      ['Refused — it is part of what the manager is reviewing.']],
+    ['TC-SELF-09','An employee sees only their own','',
+      ['While signed in as the employee, try another employee\'s goal or evidence URL.'],
+      ['403 Forbidden. No other person\'s review is reachable.']],
+  ],
+
+  'suite-manager': [
+    ['TC-MGR-01','The manager sees their team','',
+      ['Sign in to the portal as the reporting manager → Team Performance.'],
+      ['The employee appears under "Waiting on you" once they have self-assessed.','Counts across the three groups add up to the team size.','A badge on the sidebar item shows how many are waiting.']],
+    ['TC-MGR-02','Only their own team','',
+      ['As a different employee who manages nobody, open the same URL.'],
+      ['Team Performance is absent from their sidebar.','Opening another manager\'s review URL returns 403.']],
+    ['TC-MGR-03','The manager sees the self-assessment and evidence','',
+      ['Open the employee\'s review.'],
+      ['The full self-assessment write-up is shown.','Their per-KRA rating and remarks are shown beside yours.','Attached evidence is downloadable.']],
+    ['TC-MGR-04','Record what was achieved','',
+      ['Enter achieved values against each KPI using the test data pack.','Rate each KRA and write feedback. Submit.'],
+      ['KPI scores compute — Monthly Revenue 100.00, Escalations 80.00.','The goal moves to Manager Reviewed.']],
+    ['TC-MGR-05','Feedback is required','',
+      ['Submit with the Feedback box empty.'],
+      ['Refused: written feedback is required because the employee sees it.']],
+    ['TC-MGR-06','Send back to the employee','The asymmetry test.',
+      ['Press Send Back to Employee with a reason.'],
+      ['The employee\'s self-assessment reopens and shows a "sent back" banner with your reason.','Your own ratings and notes so far are still there when you reopen the review.']],
+    ['TC-MGR-07','Recommendations are recorded','',
+      ['Tick Recommend for promotion and Recommend training, then submit.'],
+      ['Both flags show on the HR review screen.','A promotion recommendation notifies Admin / HR.']],
+    ['TC-MGR-08','A submitted review is read-only for the manager','',
+      ['Reopen a review you have already submitted.'],
+      ['The fields are disabled and a banner says it is with HR.']],
+    ['TC-MGR-09','An admin can stand in for the manager','',
+      ['As HR, open Review Desk → the employee → expand "Record the assessment on the manager\'s behalf".'],
+      ['The same fields are available and submitting moves the goal to HR.','The review records that an admin did it, not the manager.']],
+  ],
+
+  'suite-hr': [
+    ['TC-HR-01','The pending queues are accurate','',
+      ['Performance → Review Desk. Click through the three tabs.'],
+      ['"Waiting on employees" holds those who have not self-assessed.','"Waiting on managers" holds those who have.','"Waiting on HR" holds those the manager has reviewed.','Each count matches the rows listed.']],
+    ['TC-HR-02','The review screen shows every stage','',
+      ['Open an employee from the HR queue.'],
+      ['Goals with their KPIs, targets, achieved values and scores.','The self-assessment, the manager assessment, the evidence and the escalation trail.','A live score panel showing self, manager and final side by side.']],
+    ['TC-HR-03','Verification against the record','',
+      ['Read the "Verify against the record" panel.'],
+      ['Attendance %, penalty count and warning count are shown.','They cover the cycle period only — a warning dated outside it is not counted.']],
+    ['TC-HR-04','Moderation needs a reason','',
+      ['Set a moderated rating without filling the reason. Save.'],
+      ['Refused: a reason is required because it is part of the audit trail.','With a reason, it saves and the live final score changes to reflect the moderated rating.']],
+    ['TC-HR-05','Send back to the manager','The other half of the asymmetry.',
+      ['From the HR screen, send back to the manager with remarks.'],
+      ['The manager review reopens.','The employee\'s self-assessment is untouched — still submitted.','The remarks appear in the escalation trail.']],
+    ['TC-HR-06','Finalise produces the score, band and reward','',
+      ['Press Finalise Review and confirm.'],
+      ['A message states the score, the band and the recommended reward.','The goals close for that employee.','The cycle page lists them under finalised scores.']],
+    ['TC-HR-07','The escalation trail records every step','',
+      ['Read the trail on the review screen.'],
+      ['One entry per transition: submitted, reviewed, sent back, finalised.','Each names who did it and when, with any remarks.']],
+    ['TC-HR-08','Re-finalising recomputes','',
+      ['Change a manager rating, then finalise again.'],
+      ['The score updates to match.','Any reward decision HR has already made is NOT reset (see TC-RWD-06).']],
+    ['TC-HR-09','A locked cycle refuses all of it','',
+      ['Lock the cycle and try to moderate, finalise or send back.'],
+      ['Each is refused with a message naming the status.','The controls on the screen are disabled.']],
+  ],
+
+  'suite-score': [
+    ['TC-SCORE-01','Higher is better','Use a calculator.',
+      ['KPI target 100, achieved 80, formula Higher is better.'],
+      ['Score is 80.00.','Achieved 100 scores 100.00.']],
+    ['TC-SCORE-02','Lower is better inverts it','',
+      ['KPI target 10, achieved 12.5, formula Lower is better.'],
+      ['Score is 80.00 — that is 10 ÷ 12.5.']],
+    ['TC-SCORE-03','Beating a "lower is better" target is full marks','',
+      ['Same KPI, achieved 5. Then achieved 0.'],
+      ['Both score 100.00, not 200.']],
+    ['TC-SCORE-04','Over-achievement is capped at 100','The safeguard.',
+      ['KPI target 100, achieved 250, Higher is better.'],
+      ['Score is 100.00, not 250.','Without this one runaway KPI could push someone into the top band on its own.']],
+    ['TC-SCORE-05','Exact match is all or nothing','',
+      ['KPI target 30, formula Exact match. Achieved 30, then 29.'],
+      ['30 scores 100.00; 29 scores 0.00.']],
+    ['TC-SCORE-06','An unmeasured KPI is not a zero','Important.',
+      ['A KRA with two KPIs at 50% each. Record 80 against one, leave the other blank.'],
+      ['The KRA reads 80, NOT 40.','A KPI nobody has filled in must not count as a zero the employee did not earn.']],
+    ['TC-SCORE-07','KRAs roll up weighted','The proposal\'s worked example.',
+      ['Four KRAs at 40 / 20 / 20 / 20, no KPIs, rated 5 / 4 / 3 / 2.','Read the live final score.'],
+      ['Exactly 76.00 — (100×40 + 80×20 + 60×20 + 40×20) ÷ 100.','Band: Good.']],
+    ['TC-SCORE-08','KPIs roll up weighted within their KRA','',
+      ['Sales Growth with KPIs at 70% and 30%, scoring 100 and 80.'],
+      ['The KRA rolls up to 94.00 — (100×70 + 80×30) ÷ 100.']],
+    ['TC-SCORE-09','A KRA with no KPIs uses the rating','',
+      ['A KRA with no KPIs, manager rating 4.'],
+      ['It contributes 80 out of 100 — the 1–5 rating multiplied by 20.']],
+    ['TC-SCORE-10','HR moderation overrides the manager','',
+      ['With a manager rating of 5 (=100), set a moderated rating of 3.'],
+      ['The final score drops to 60.','The manager\'s original rating is still displayed — it is not overwritten.']],
+    ['TC-SCORE-11','A part-configured employee still scores sensibly','',
+      ['Assign one KRA at 50% weightage only, rate it 4.'],
+      ['The score is 80, not 40 — it divides by the weight that actually exists.','The screen still flags them as out of balance.']],
+  ],
+
+  'suite-band': [
+    ['TC-BND-01','The six bands are seeded','',
+      ['Performance → Bands & Bell Curve.'],
+      ['Outstanding, Excellent, Very Good, Good, Needs Improvement, Unsatisfactory.','The ladder is drawn to scale with each band\'s recommended reward.']],
+    ['TC-BND-02','Scores map to the right band','',
+      ['Finalise people scoring 96, 90, 80, 65, 50 and 12.'],
+      ['They land in Outstanding, Excellent, Very Good, Good, Needs Improvement and Unsatisfactory respectively.']],
+    ['TC-BND-03','A boundary score goes to the better band','',
+      ['Produce a score of exactly 95, then exactly 85.'],
+      ['95 is Outstanding, not Excellent. 85 is Excellent, not Very Good.']],
+    ['TC-BND-04','Bands are editable','',
+      ['Edit a band\'s range, colour and recommended reward. Save.'],
+      ['The ladder redraws and new finalisations use the new range.']],
+    ['TC-BND-05','A band in use cannot be deleted','',
+      ['Try to delete a band that finalised scores already carry.'],
+      ['Refused, with the advice to edit its range instead.']],
+    ['TC-BND-06','Turning the bell curve on','',
+      ['Press Turn on.'],
+      ['The panel turns green and reads Enabled.','If the shares do not total 100 a warning explains the last band absorbs the remainder.']],
+    ['TC-BND-07','Applying the curve','Needs several finalised scores.',
+      ['Finalise seven or eight people with different scores.','Choose the cycle and press Apply Bell Curve.'],
+      ['A message lists the distribution, e.g. Outstanding: 1 · Excellent: 2 · Good: 4.','The shares follow the configured 10 / 20 / 50 / 15 / 5 as closely as the headcount allows.']],
+    ['TC-BND-08','The curve does not overwrite the earned band','',
+      ['On the cycle page, look at a finalised score after applying the curve.'],
+      ['The Band column still shows the band the score earned.','A separate Bell Curve column shows where the curve placed them.','HR needs both to defend a moderation decision.']],
+    ['TC-BND-09','Clearing the curve','',
+      ['Press Clear Curve for that cycle.'],
+      ['The Bell Curve column empties.','Every score keeps the band its number earns.']],
+  ],
+
+  'suite-reward': [
+    ['TC-RWD-01','The band drives the suggestion','',
+      ['Finalise someone into Outstanding, then someone into Needs Improvement.','Performance → Rewards.'],
+      ['The first is recommended Promotion, the second Training — matching each band.','The summary tiles across the top count each reward type.']],
+    ['TC-RWD-02','A promotion recommendation needs the score to back it','The interesting rule.',
+      ['As the manager, tick Recommend for promotion on someone who will score in the Needs Improvement band. Finalise them.'],
+      ['The recommendation is Training — the band\'s own suggestion.','A promotion recommendation only carries when the score is already in the top bands.']],
+    ['TC-RWD-03','Accepting writes an appraisal','',
+      ['On Rewards, press Decide → Accept, add a hike %, save.'],
+      ['The status turns Accepted.','An appraisal code appears on the row and the record shows under HR → Appraisals with the score and hike.']],
+    ['TC-RWD-04','Overriding','',
+      ['Decide → Override → choose a different reward, save.'],
+      ['The status reads Overridden and the row shows the new reward.','The appraisal record is updated, not duplicated.']],
+    ['TC-RWD-05','Rejecting leaves no appraisal','',
+      ['Decide → Reject, save.'],
+      ['The status reads Rejected.','No appraisal record is linked; if one existed from an earlier accept it is unlinked.']],
+    ['TC-RWD-06','A decision survives re-finalising','',
+      ['After accepting or overriding, go back and finalise that employee again.'],
+      ['The score recomputes.','Your decision is NOT reset back to Suggested.']],
+    ['TC-RWD-07','Filtering','',
+      ['Filter by recommendation and by decision status.'],
+      ['Only matching rows remain and the filters stay selected.']],
+  ],
+
+  'suite-dash': [
+    ['TC-DSH-01','The admin dashboard headline metrics','',
+      ['Performance → Dashboard.'],
+      ['Employees, Active KRAs, Active KPIs, Pending Reviews, Completed and Average Score.','Average Score is a ring, and reads "—" when nothing is finalised.']],
+    ['TC-DSH-02','Department comparison','',
+      ['With finalised scores across two departments, read the chart.'],
+      ['One bar per department with its average, sorted highest first.','The numbers match the Department Report.']],
+    ['TC-DSH-03','Band spread donut','',
+      ['Read the band spread chart.'],
+      ['Segment counts add up to the number of finalised scores.']],
+    ['TC-DSH-04','Top and low performer lists','',
+      ['Read both panels.'],
+      ['Top shows the five highest, Needs Attention the five lowest.','Each links to the full report.']],
+    ['TC-DSH-05','Upcoming review dates','',
+      ['Read the Upcoming panel.'],
+      ['Draft and Open cycles with deadlines set are listed with all three dates.']],
+    ['TC-DSH-06','Performance trend','',
+      ['With two or more cycles finalised, read the trend chart.'],
+      ['One point per cycle, in date order, showing the organisation average.']],
+    ['TC-DSH-07','The empty state is helpful','',
+      ['Open the dashboard on a system with no cycles.'],
+      ['It explains what a cycle is and offers buttons to create one or set up KRAs — rather than showing empty charts.']],
+    ['TC-DSH-08','The employee dashboard','',
+      ['Employee portal → My Goals.'],
+      ['My KRAs and KPIs with live progress, the achievement ring, the stage stepper.','Manager feedback once submitted, the performance trend across cycles, and rewards earned.']],
+    ['TC-DSH-09','All thirteen reports render','',
+      ['Performance → Reports. Open every card.'],
+      ['Each renders with a summary strip and a table.','A report with no data says so plainly rather than erroring.']],
+    ['TC-DSH-10','Reports export to Excel and PDF','',
+      ['On each report press Excel, then PDF.'],
+      ['Both download.','The PDF carries the business name, the cycle and the summary strip.','Wide reports print landscape.']],
+    ['TC-DSH-11','Report filters apply to the export','',
+      ['Filter a report by department, then export.'],
+      ['The file contains only the filtered rows, matching what is on screen.']],
+  ],
+
+  'suite-perm': [
+    ['TC-PRM-01','The permission rows exist','',
+      ['Management → Roles & Permissions → Create Role. Search for "performance".'],
+      ['Eight rows: performance, performance_kra, performance_kpi, performance_goals, performance_reviews, performance_rewards, performance_reports, analytics_performance.']],
+    ['TC-PRM-02','A role with no performance access','',
+      ['Sign in as a Sales-role user.'],
+      ['The Performance (KRA/KPI) group is absent from the sidebar.','Every performance URL returns 403.']],
+    ['TC-PRM-03','View-only review access','',
+      ['Give a role only performance_reviews.view. Sign in as them.'],
+      ['They can open the Review Desk and read a review.','No HR review panel, no Finalise, no Send Back.']],
+    ['TC-PRM-04','Finalise is its own permission','',
+      ['Give a role performance_reviews.hr_review but not finalize.'],
+      ['They can moderate and save an HR review.','The Finalise panel is not shown, and posting to it returns 403.']],
+    ['TC-PRM-05','Configure controls the cycles and bands','',
+      ['Give a role performance.view but not performance.configure.'],
+      ['They can read cycles and bands.','No New Cycle button, no status controls, no band editing.']],
+    ['TC-PRM-06','Export is separate from view','',
+      ['Give a role performance_reports.view but not export.'],
+      ['Reports render.','The Excel and PDF buttons are gone.']],
+    ['TC-PRM-07','The employee portal is gated by ownership','',
+      ['As an employee, try another employee\'s My Goals, self-assessment or evidence URL.'],
+      ['403 in every case — the portal does not use admin permissions, it checks whose record it is.']],
+    ['TC-PRM-08','Team Performance appears only for reviewers','',
+      ['Compare the sidebar of a manager with goals routed to them against an employee with none.'],
+      ['Only the manager sees Team Performance.','The badge counts how many are waiting on them.']],
+  ],
+};
+/* ── Render ─────────────────────────────────────────────── */
+const KEY = 'module-a-qa-v1';
+let marks = {};
+try { marks = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { marks = {}; }
+
+function esc(s){ return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function caseEl([id, title, hint, steps, expected]){
+  const el = document.createElement('article');
+  el.className = 'case';
+  el.dataset.status = marks[id] || 'none';
+  el.innerHTML = `
+    <div class="case-top">
+      <span class="case-id">${id}</span>
+      <div class="case-title">${esc(title)}${hint ? `<em>${esc(hint)}</em>` : ''}</div>
+      <div class="marks">
+        <button class="mark" data-m="pass"  data-id="${id}" title="Pass"    aria-pressed="false">P</button>
+        <button class="mark" data-m="fail"  data-id="${id}" title="Fail"    aria-pressed="false">F</button>
+        <button class="mark" data-m="block" data-id="${id}" title="Blocked" aria-pressed="false">B</button>
+      </div>
+    </div>
+    <div class="case-body">
+      <div>
+        <h5>Steps</h5>
+        <ol>${steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+      </div>
+      <div class="exp">
+        <h5>Expected result</h5>
+        <ul>${expected.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
+      </div>
+    </div>`;
+  return el;
+}
+
+const ALL_IDS = [];
+for (const [host, cases] of Object.entries(SUITES)) {
+  const mount = document.getElementById(host);
+  if (!mount) continue;
+  cases.forEach(c => { ALL_IDS.push(c[0]); mount.appendChild(caseEl(c)); });
+}
+
+/* Filter bar, injected above the first suite */
+const filterbar = document.createElement('div');
+filterbar.className = 'filterbar';
+filterbar.innerHTML = `
+  <span style="font-size:11px;font-weight:900;letter-spacing:1.1px;text-transform:uppercase;color:var(--ink-3)">Show</span>
+  <button class="fbtn on" data-f="all">All cases</button>
+  <button class="fbtn" data-f="none">Not run</button>
+  <button class="fbtn" data-f="fail">Failed</button>
+  <button class="fbtn" data-f="block">Blocked</button>`;
+document.getElementById('suite-cycle').before(filterbar);
+
+let activeFilter = 'all';
+filterbar.addEventListener('click', e => {
+  const b = e.target.closest('.fbtn');
+  if (!b) return;
+  activeFilter = b.dataset.f;
+  filterbar.querySelectorAll('.fbtn').forEach(x => x.classList.toggle('on', x === b));
+  applyFilter();
+});
+
+function applyFilter(){
+  document.querySelectorAll('.case').forEach(c => {
+    c.style.display = (activeFilter === 'all' || c.dataset.status === activeFilter) ? '' : 'none';
+  });
+}
+
+/* Marking */
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.mark');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  marks[id] = (marks[id] === btn.dataset.m) ? undefined : btn.dataset.m;
+  if (!marks[id]) delete marks[id];
+  try { localStorage.setItem(KEY, JSON.stringify(marks)); } catch (e) {}
+  paint();
+  applyFilter();
+});
+
+function paint(){
+  document.querySelectorAll('.case').forEach(c => {
+    const id = c.querySelector('.case-id').textContent;
+    const m = marks[id] || 'none';
+    c.dataset.status = m;
+    c.querySelectorAll('.mark').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+  });
+
+  const counts = { pass:0, fail:0, block:0 };
+  ALL_IDS.forEach(id => { if (marks[id]) counts[marks[id]]++; });
+  const done = counts.pass + counts.fail + counts.block;
+
+  document.getElementById('t-all').textContent   = ALL_IDS.length;
+  document.getElementById('t-pass').textContent  = counts.pass;
+  document.getElementById('t-fail').textContent  = counts.fail;
+  document.getElementById('t-block').textContent = counts.block;
+
+  const pct = ALL_IDS.length ? Math.round(done / ALL_IDS.length * 100) : 0;
+  document.getElementById('bar').style.width = pct + '%';
+  document.getElementById('pct').textContent = pct + '%';
+
+  document.querySelectorAll('.toc a').forEach(a => {
+    const sec = document.querySelector(a.getAttribute('href'));
+    const cases = sec ? sec.querySelectorAll('.case') : [];
+    if (!cases.length) return;
+    let ok = 0;
+    cases.forEach(c => { if (c.dataset.status !== 'none') ok++; });
+    let mini = a.querySelector('.mini');
+    if (!mini) { mini = document.createElement('span'); mini.className = 'mini'; a.appendChild(mini); }
+    mini.textContent = `${ok}/${cases.length}`;
+  });
+}
+paint();
+applyFilter();
+
+/* Header tools */
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (!confirm('Clear every pass / fail / blocked mark on this page?')) return;
+  marks = {};
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  paint(); applyFilter();
+});
+
+document.getElementById('btn-summary').addEventListener('click', () => copy(buildSummary()));
+
+function buildSummary(){
+  const counts = { pass:0, fail:0, block:0 };
+  const failed = [], blocked = [], notRun = [];
+  ALL_IDS.forEach(id => {
+    const m = marks[id];
+    if (m) counts[m]++;
+    if (m === 'fail') failed.push(id);
+    else if (m === 'block') blocked.push(id);
+    else if (!m) notRun.push(id);
+  });
+  const done = counts.pass + counts.fail + counts.block;
+  return [
+    'Performance Management (Module A) — QA run',
+    `Cases: ${ALL_IDS.length} · Run: ${done} · Pass: ${counts.pass} · Fail: ${counts.fail} · Blocked: ${counts.block}`,
+    failed.length  ? `Failed:  ${failed.join(', ')}`   : 'Failed:  none',
+    blocked.length ? `Blocked: ${blocked.join(', ')}`  : 'Blocked: none',
+    notRun.length  ? `Not run: ${notRun.join(', ')}`   : 'Not run: none',
+  ].join('\n');
+}
+
+function copy(text){
+  const done = btn => { const o = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => btn.textContent = o, 1400); };
+  const btn = document.getElementById('btn-summary');
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => done(btn)).catch(() => fallback(text, btn));
+  } else fallback(text, btn);
+}
+function fallback(text, btn){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); btn.textContent = 'Copied'; setTimeout(() => btn.textContent = 'Copy summary', 1400); }
+  catch (e) { alert(text); }
+  document.body.removeChild(ta);
+}
+
+/* Copy buttons on the data blocks */
+document.addEventListener('click', e => {
+  const b = e.target.closest('.copybtn');
+  if (!b) return;
+  const src = document.getElementById(b.dataset.copy);
+  if (!src) return;
+  const text = src.textContent;
+  const restore = () => { b.textContent = 'Copy'; };
+  const ok = () => { b.textContent = 'Copied'; setTimeout(restore, 1400); };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(ok).catch(() => { fallbackBlock(text, b, ok); });
+  else fallbackBlock(text, b, ok);
+});
+function fallbackBlock(text, b, ok){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); ok(); } catch (e) { alert(text); }
+  document.body.removeChild(ta);
+}
+
+/* TOC highlight */
+const secs = [...document.querySelectorAll('main section')];
+const links = new Map([...document.querySelectorAll('.toc a')].map(a => [a.getAttribute('href').slice(1), a]));
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    const a = links.get(en.target.id);
+    if (a && en.isIntersecting) {
+      document.querySelectorAll('.toc a').forEach(x => x.classList.remove('on'));
+      a.classList.add('on');
+    }
+  });
+}, { rootMargin: '-90px 0px -70% 0px' });
+secs.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

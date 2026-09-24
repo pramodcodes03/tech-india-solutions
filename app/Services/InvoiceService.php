@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Support\Tenancy\CurrentBusiness;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +16,7 @@ class InvoiceService
     public function generateNumber(): string
     {
         $year = date('Y');
-        $base = app(\App\Support\Tenancy\CurrentBusiness::class)->get()?->invoice_prefix ?? 'INV-';
+        $base = app(CurrentBusiness::class)->get()?->invoice_prefix ?? 'INV-';
         $prefix = $base.$year.'-';
         $last = Invoice::withTrashed()
             ->where('invoice_number', 'like', $prefix.'%')
@@ -145,6 +146,14 @@ class InvoiceService
             $gross = $qty * $rate;
             $lineDisc = $gross * ($lineDiscPct / 100);
             $items[$i]['line_total'] = round($gross - $lineDisc, 2);
+
+            // Write the coerced numerics back: the item columns are NOT NULL
+            // (default 0), and a blank form field arrives as an explicit null
+            // that passes the 'nullable' rule but violates the constraint.
+            $items[$i]['quantity'] = $qty;
+            $items[$i]['rate'] = $rate;
+            $items[$i]['discount_percent'] = $lineDiscPct;
+            $items[$i]['tax_percent'] = (float) ($item['tax_percent'] ?? 0);
         }
 
         return $items;

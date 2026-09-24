@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Employee;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Notifications\NotificationDispatcher;
 use App\Services\LeaveService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -47,13 +48,42 @@ class TeamLeaveController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        // Balance each pending request can actually draw on — excludes the hold
+        // the request itself placed, so a 0.5-day request against a 0.5-day
+        // balance reads 0.5, not 0. Keyed by request id for the view.
+        $available = [];
+        foreach ($requests as $r) {
+            if ($r->status === 'pending') {
+                $available[$r->id] = $this->service->availableForRequest($r);
+            }
+        }
+
         $counts = [
-            'pending'  => $this->scopedCount($me->id, 'pending'),
+            'pending' => $this->scopedCount($me->id, 'pending'),
             'approved' => $this->scopedCount($me->id, 'approved'),
             'rejected' => $this->scopedCount($me->id, 'rejected'),
         ];
 
-        return view('employee.team-leaves.index', compact('requests', 'counts'));
+        return view('employee.team-leaves.index', compact('requests', 'counts', 'available'));
+    }
+
+    /**
+     * How much of a request the balance can actually fund.
+     *
+     * This is exactly what the manager's screen used to prefill the paid-days
+     * box with, so removing the box changes nothing about the outcome — it only
+     * removes the manager's ability to override it.
+     */
+    private function payableDays(LeaveRequest $leaveRequest): float
+    {
+        if (! $leaveRequest->leaveType?->is_paid) {
+            return 0.0;
+        }
+
+        return min(
+            (float) $leaveRequest->days,
+            (float) $this->service->availableForRequest($leaveRequest),
+        );
     }
 
     public function approve(Request $request, LeaveRequest $leaveRequest)
@@ -62,22 +92,27 @@ class TeamLeaveController extends Controller
 
         $data = $request->validate([
             'remarks' => ['nullable', 'string', 'max:500'],
-            'paid_days' => ['nullable', 'numeric', 'min:0', 'max:'.$leaveRequest->days],
         ]);
 
-        $paid = array_key_exists('paid_days', $data) && $data['paid_days'] !== null && $data['paid_days'] !== ''
-            ? (float) $data['paid_days']
-            : null;
+        // A reporting manager approves or rejects the days that were asked for
+        // — nothing else. Splitting a request into paid and unpaid days is a
+        // payroll decision and stays on the HR screen, so any paid_days posted
+        // here is ignored rather than trusted.
+        $paid = $this->payableDays($leaveRequest);
 
-        $this->service->approve(
-            $leaveRequest,
-            null, // not an admin approver
-            $data['remarks'] ?? null,
-            $paid,
-            Auth::guard('employee')->id(), // manager (employee) approver
-        );
+        try {
+            $this->service->approve(
+                $leaveRequest,
+                null, // not an admin approver
+                $data['remarks'] ?? null,
+                $paid,
+                Auth::guard('employee')->id(), // manager (employee) approver
+            );
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
-        \App\Notifications\NotificationDispatcher::fire(
+        NotificationDispatcher::fire(
             'leave.approved',
             $leaveRequest->loadMissing('employee', 'leaveType'),
             ['remarks' => $data['remarks'] ?? null],
@@ -99,7 +134,7 @@ class TeamLeaveController extends Controller
             Auth::guard('employee')->id(),
         );
 
-        \App\Notifications\NotificationDispatcher::fire(
+        NotificationDispatcher::fire(
             'leave.rejected',
             $leaveRequest->loadMissing('employee', 'leaveType'),
             ['reason' => $data['remarks']],

@@ -56,7 +56,7 @@
                                     @endif">L{{ $w->level }}</span>
                                 <div class="flex-1 min-w-0">
                                     <a href="{{ route('employee.warnings.index') }}" class="text-sm font-semibold hover:text-primary line-clamp-1">{{ $w->title }}</a>
-                                    <div class="text-[11px] text-gray-500">{{ $w->issued_on->diffForHumans() }} · {{ $w->issuer?->name ?? 'HR' }}</div>
+                                    <div class="text-[11px] text-gray-500">{{ $w->issued_on->diffForHumans() }} · {{ $w->issuer?->display_name ?? 'HR' }}</div>
                                 </div>
                                 @if($w->status === 'active')
                                     <span class="text-[10px] font-bold text-warning whitespace-nowrap">Acknowledge</span>
@@ -88,7 +88,7 @@
                                     @endswitch">{{ $p->status }}</span>
                                 <div class="flex-1 min-w-0">
                                     <a href="{{ route('employee.penalties.show', $p) }}" class="text-sm font-semibold hover:text-primary line-clamp-1">{{ $p->penaltyType?->name ?? 'Penalty' }}</a>
-                                    <div class="text-[11px] text-gray-500">{{ $p->incident_date?->diffForHumans() }} · {{ $p->issuer?->name ?? 'HR' }}</div>
+                                    <div class="text-[11px] text-gray-500">{{ $p->incident_date?->diffForHumans() }} · {{ $p->issuer?->display_name ?? 'HR' }}</div>
                                 </div>
                                 <div class="text-sm font-bold text-danger whitespace-nowrap">₹{{ number_format($p->amount, 0) }}</div>
                             </li>
@@ -147,6 +147,42 @@
                     <div class="text-[10px] text-gray-400 mt-1">{{ now()->format('F Y') }}</div>
                 </div>
             @endforeach
+
+            {{-- Break Sheet. The register already existed under HR → Trackers,
+                 but an employee had no way to see the breaks recorded against
+                 them; this is the read-only view of their own rows. --}}
+            @php $bs = [\App\Http\Controllers\Employee\BreakSheetController::class, 'humanMinutes']; @endphp
+            <a href="{{ route('employee.break-sheet.index') }}"
+               class="col-span-2 md:col-span-4 p-4 rounded-xl bg-white dark:bg-[#1b2e4b] shadow block hover:shadow-md transition">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-xs uppercase tracking-wider text-gray-500 font-bold">Break Sheet — {{ now()->format('F') }}</div>
+                    <span class="text-[11px] text-primary font-semibold">View all →</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                        <div class="text-xl font-extrabold text-primary">{{ $breakSummary['today_count'] }}</div>
+                        <div class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">Breaks today</div>
+                    </div>
+                    <div>
+                        <div class="text-xl font-extrabold text-warning">{{ $bs($breakSummary['today_minutes']) }}</div>
+                        <div class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">Time today</div>
+                    </div>
+                    <div>
+                        <div class="text-xl font-extrabold">{{ $breakSummary['count'] }}</div>
+                        <div class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">This month</div>
+                    </div>
+                    <div>
+                        <div class="text-xl font-extrabold">{{ $bs($breakSummary['minutes']) }}</div>
+                        <div class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">Time this month</div>
+                    </div>
+                </div>
+                @if($breakSummary['open'] > 0)
+                    {{-- A break with no in-time was never closed off. --}}
+                    <div class="mt-2 text-[11px] text-warning font-semibold">
+                        {{ $breakSummary['open'] }} break(s) this month have no return time recorded.
+                    </div>
+                @endif
+            </a>
 
             <div class="col-span-2 md:col-span-4 p-4 rounded-xl bg-white dark:bg-[#1b2e4b] shadow">
                 <div class="flex items-center justify-between mb-2">

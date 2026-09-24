@@ -91,7 +91,7 @@
                         <tr>
                             <th class="px-4 py-2">#</th>
                             <th class="px-4 py-2">Description</th>
-                            <th class="px-4 py-2">HSN Code</th>
+                            <th class="px-4 py-2">HSN / SAC</th>
                             <th class="px-4 py-2 text-right">Qty</th>
                             <th class="px-4 py-2">Unit</th>
                             <th class="px-4 py-2 text-right">Rate</th>

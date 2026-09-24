@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\SalesOrder;
+use App\Support\Tenancy\CurrentBusiness;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -20,7 +21,7 @@ class QuotationService
     public function generateNumber(): string
     {
         $year = date('Y');
-        $base = app(\App\Support\Tenancy\CurrentBusiness::class)->get()?->quotation_prefix ?? 'QUO-';
+        $base = app(CurrentBusiness::class)->get()?->quotation_prefix ?? 'QUO-';
         $prefix = $base.$year.'-';
         $last = Quotation::withTrashed()
             ->where('quotation_number', 'like', $prefix.'%')
@@ -123,6 +124,14 @@ class QuotationService
 
             $afterDisc = ($qty * $rate) * (1 - $discPct / 100);
             $items[$i]['line_total'] = round($afterDisc * (1 + $taxPct / 100), 2);
+
+            // Write the coerced numerics back: the item columns are NOT NULL
+            // (default 0), and a blank form field arrives as an explicit null
+            // that passes the 'nullable' rule but violates the constraint.
+            $items[$i]['quantity'] = $qty;
+            $items[$i]['rate'] = $rate;
+            $items[$i]['discount_percent'] = $discPct;
+            $items[$i]['tax_percent'] = $taxPct;
         }
 
         return $items;

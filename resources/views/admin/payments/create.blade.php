@@ -10,7 +10,7 @@
             </a>
         </div>
 
-        <form action="{{ route('admin.payments.store') }}" method="POST">
+        <form action="{{ route('admin.payments.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
 
             @if ($errors->any())
@@ -137,6 +137,12 @@
                     <div>
                         <label for="reference_no">Reference / UTR No</label>
                         <input id="reference_no" name="reference_no" type="text" class="form-input" value="{{ old('reference_no') }}" placeholder="UTR / Cheque / Transaction reference" />
+                    </div>
+
+                    <div>
+                        <label for="attachment">Receipt / Proof</label>
+                        <input id="attachment" name="attachment" type="file" class="form-input" accept=".pdf,.jpg,.jpeg,.png" />
+                        <p class="text-xs text-gray-500 mt-1">Bank slip, cheque scan or UPI screenshot. PDF/JPG/PNG, max 5 MB.</p>
                     </div>
 
                     <div class="md:col-span-2">

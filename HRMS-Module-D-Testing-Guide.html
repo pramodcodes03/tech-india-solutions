@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Documents &amp; PDF Pack — QA Test Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --navy:#0f2b5b; --navy-2:#12356f; --teal:#0d9488; --teal-br:#2dd4bf;
+  --bg:#eef1f6; --surface:#ffffff; --surface-2:#f7f9fc; --line:#e3e8f0;
+  --ink:#111827; --ink-2:#4b5563; --ink-3:#8a94a6;
+  --pass:#059669; --fail:#dc2626; --block:#d97706; --info:#2563eb;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06);
+  --radius:14px;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1220; --surface:#111a2b; --surface-2:#0e1728; --line:#1f2c42;
+    --ink:#e8edf6; --ink-2:#a8b3c7; --ink-3:#6b7789;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b1220; --surface:#111a2b; --surface-2:#0e1728; --line:#1f2c42;
+  --ink:#e8edf6; --ink-2:#a8b3c7; --ink-3:#6b7789;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+code,kbd,.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+a{color:var(--info); text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3,h4{line-height:1.2; margin:0}
+
+/* ── Top bar ─────────────────────────────────────────────── */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 60%,#071b3d 100%);
+  color:#fff; border-bottom:1px solid rgba(255,255,255,.08);
+}
+.topbar-inner{
+  max-width:1400px; margin:0 auto; padding:14px 24px;
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+}
+.brandmark{display:flex; align-items:center; gap:12px; margin-right:auto}
+.brandmark .dot{
+  width:38px;height:38px;border-radius:11px;flex:none;
+  background:rgba(45,212,191,.16); border:1.5px solid rgba(45,212,191,.45);
+  display:grid;place-content:center; color:var(--teal-br); font-weight:900; font-size:15px;
+}
+.brandmark h1{font-size:17px; font-weight:800; letter-spacing:-.2px}
+.brandmark p{margin:1px 0 0; font-size:11.5px; color:rgba(255,255,255,.62); font-weight:600; letter-spacing:.4px}
+
+.tally{display:flex; gap:8px; flex-wrap:wrap}
+.tally .chip{
+  padding:5px 11px; border-radius:999px; font-size:11.5px; font-weight:800;
+  background:rgba(255,255,255,.09); border:1px solid rgba(255,255,255,.14); color:#fff;
+  letter-spacing:.3px; white-space:nowrap;
+}
+.tally .chip b{font-variant-numeric:tabular-nums}
+.chip.p{background:rgba(5,150,105,.22); border-color:rgba(16,185,129,.5); color:#6ee7b7}
+.chip.f{background:rgba(220,38,38,.22); border-color:rgba(248,113,113,.5); color:#fca5a5}
+.chip.b{background:rgba(217,119,6,.22); border-color:rgba(251,191,36,.5); color:#fcd34d}
+
+.progress-wrap{display:flex; align-items:center; gap:10px; min-width:190px}
+.progress{height:8px; flex:1; border-radius:99px; background:rgba(255,255,255,.14); overflow:hidden}
+.progress i{display:block; height:100%; width:0; border-radius:99px;
+  background:linear-gradient(90deg,var(--teal),var(--teal-br)); transition:width .35s ease}
+.progress-pct{font-size:12px; font-weight:800; color:var(--teal-br); font-variant-numeric:tabular-nums; min-width:38px; text-align:right}
+
+.tool{
+  appearance:none; cursor:pointer; font:inherit; font-size:12px; font-weight:700;
+  padding:7px 13px; border-radius:9px; color:#fff;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18);
+  transition:background .15s;
+}
+.tool:hover{background:rgba(255,255,255,.16)}
+
+/* ── Layout ──────────────────────────────────────────────── */
+.shell{max-width:1400px; margin:0 auto; padding:26px 24px 90px; display:grid; grid-template-columns:250px 1fr; gap:26px}
+@media (max-width:1040px){ .shell{grid-template-columns:1fr; padding:20px 16px 70px} .toc{display:none} }
+
+.toc{position:sticky; top:86px; align-self:start; max-height:calc(100vh - 110px); overflow-y:auto}
+.toc h4{font-size:10.5px; text-transform:uppercase; letter-spacing:1.4px; color:var(--ink-3); margin:0 0 10px 12px}
+.toc a{
+  display:flex; align-items:center; gap:9px; padding:7px 12px; border-radius:9px;
+  color:var(--ink-2); font-size:13px; font-weight:600; text-decoration:none; margin-bottom:2px;
+}
+.toc a:hover{background:var(--surface); color:var(--ink); text-decoration:none}
+.toc a.on{background:var(--surface); color:var(--navy); box-shadow:var(--shadow)}
+:root[data-theme="dark"] .toc a.on, :root:not([data-theme="light"]) .toc a.on{color:var(--teal-br)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .toc a.on{color:var(--teal-br)} }
+.toc a .n{
+  width:22px;height:22px;border-radius:7px;flex:none;display:grid;place-content:center;
+  font-size:10px; font-weight:900; background:var(--line); color:var(--ink-2);
+}
+.toc a.on .n{background:var(--teal); color:#fff}
+.toc .mini{margin-left:auto; font-size:10.5px; font-weight:800; color:var(--ink-3); font-variant-numeric:tabular-nums}
+
+/* ── Cards ───────────────────────────────────────────────── */
+section{scroll-margin-top:92px; margin-bottom:26px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden}
+.card + .card{margin-top:16px}
+.card-head{padding:20px 22px 16px; border-bottom:1px solid var(--line)}
+.card-body{padding:20px 22px}
+.eyebrow{font-size:10.5px; font-weight:900; letter-spacing:1.8px; text-transform:uppercase; color:var(--teal)}
+.card-head h2{font-size:21px; font-weight:800; letter-spacing:-.3px; margin:6px 0 0}
+.card-head h3{font-size:17px; font-weight:800; margin:6px 0 0}
+.card-head p{margin:6px 0 0; color:var(--ink-2); font-size:13.5px; max-width:70ch}
+
+.lede{font-size:15.5px; color:var(--ink-2); max-width:74ch}
+.grid-2{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px}
+.grid-3{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px}
+
+.fact{background:var(--surface-2); border:1px solid var(--line); border-radius:11px; padding:13px 15px}
+.fact .k{font-size:10px; font-weight:900; letter-spacing:1.3px; text-transform:uppercase; color:var(--ink-3)}
+.fact .v{font-size:15px; font-weight:800; margin-top:3px}
+.fact .v small{display:block; font-size:12px; font-weight:600; color:var(--ink-2); margin-top:2px}
+
+.note{border-left:4px solid var(--teal); background:color-mix(in srgb,var(--teal) 8%, transparent);
+  padding:13px 16px; border-radius:0 10px 10px 0; font-size:13.5px; color:var(--ink-2)}
+.note strong{color:var(--ink)}
+.note.warn{border-left-color:var(--block); background:color-mix(in srgb,var(--block) 10%, transparent)}
+
+/* ── Sidebar mockup ──────────────────────────────────────── */
+.nav-demo{display:grid; grid-template-columns:270px 1fr; gap:20px; align-items:start}
+@media (max-width:720px){ .nav-demo{grid-template-columns:1fr} }
+.fake-sidebar{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:10px; font-size:13px;
+}
+.fake-sidebar .sec{
+  font-size:10px; font-weight:900; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink-3);
+  padding:9px 10px 6px; margin-top:4px; border-top:1px solid var(--line);
+}
+.fake-sidebar .sec:first-child{border-top:0; margin-top:0}
+.fake-sidebar .item{display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:8px; color:var(--ink-2); font-weight:600}
+.fake-sidebar .item.dim{opacity:.42}
+.fake-sidebar .item.hit{background:var(--navy); color:#fff; box-shadow:0 4px 14px rgba(15,43,91,.25)}
+.fake-sidebar .item .ico{width:16px;height:16px;flex:none;opacity:.85}
+.fake-sidebar .sub{padding:2px 0 4px 30px}
+.fake-sidebar .sub .item{padding:5px 10px; font-size:12.5px; font-weight:600}
+.fake-sidebar .sub .item.tgt{background:color-mix(in srgb,var(--teal) 16%, transparent); color:var(--teal); font-weight:800}
+.fake-sidebar .caret{margin-left:auto; font-size:10px; opacity:.6}
+
+.steps{counter-reset:s; list-style:none; margin:0; padding:0}
+.steps li{counter-increment:s; position:relative; padding:0 0 14px 38px; font-size:14px; color:var(--ink-2)}
+.steps li:last-child{padding-bottom:0}
+.steps li::before{
+  content:counter(s); position:absolute; left:0; top:0;
+  width:25px;height:25px;border-radius:8px; display:grid;place-content:center;
+  background:var(--navy); color:#fff; font-size:11px; font-weight:900;
+}
+.steps li strong{color:var(--ink)}
+
+/* ── Tables ──────────────────────────────────────────────── */
+.tw{overflow-x:auto; border:1px solid var(--line); border-radius:11px; background:var(--surface)}
+table{width:100%; border-collapse:collapse; font-size:13.2px; min-width:520px}
+th{
+  text-align:left; padding:10px 13px; background:var(--surface-2); color:var(--ink-3);
+  font-size:10.5px; font-weight:900; letter-spacing:1px; text-transform:uppercase;
+  border-bottom:1px solid var(--line); white-space:nowrap;
+}
+td{padding:10px 13px; border-bottom:1px solid var(--line); color:var(--ink-2); vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+td strong{color:var(--ink)}
+td.mono, th.mono{font-family:'JetBrains Mono',monospace; font-size:12px}
+
+.pill{display:inline-block; padding:2px 8px; border-radius:6px; font-size:10.5px; font-weight:800; letter-spacing:.3px; white-space:nowrap}
+.pill.g{background:color-mix(in srgb,var(--pass) 14%,transparent); color:var(--pass)}
+.pill.r{background:color-mix(in srgb,var(--fail) 14%,transparent); color:var(--fail)}
+.pill.a{background:color-mix(in srgb,var(--block) 16%,transparent); color:var(--block)}
+.pill.b{background:color-mix(in srgb,var(--info) 14%,transparent); color:var(--info)}
+.pill.n{background:var(--line); color:var(--ink-2)}
+
+kbd{
+  display:inline-block; padding:1.5px 6px; border-radius:5px; font-size:11.5px; font-weight:600;
+  background:var(--surface-2); border:1px solid var(--line); border-bottom-width:2px; color:var(--ink);
+}
+.path{display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:12.5px; font-weight:700}
+.path span{background:var(--surface-2); border:1px solid var(--line); padding:3px 9px; border-radius:7px; color:var(--ink)}
+.path i{color:var(--ink-3); font-style:normal}
+
+/* ── Test cases ──────────────────────────────────────────── */
+.filterbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px}
+.fbtn{
+  appearance:none; cursor:pointer; font:inherit; font-size:12px; font-weight:700;
+  padding:6px 13px; border-radius:999px; border:1px solid var(--line);
+  background:var(--surface); color:var(--ink-2);
+}
+.fbtn.on{background:var(--navy); border-color:var(--navy); color:#fff}
+.fbtn:hover{border-color:var(--navy)}
+
+.case{border:1px solid var(--line); border-radius:12px; background:var(--surface); margin-bottom:10px; overflow:hidden}
+.case[data-status="pass"]{border-color:color-mix(in srgb,var(--pass) 42%,var(--line))}
+.case[data-status="fail"]{border-color:color-mix(in srgb,var(--fail) 46%,var(--line))}
+.case[data-status="block"]{border-color:color-mix(in srgb,var(--block) 46%,var(--line))}
+.case-top{display:flex; align-items:flex-start; gap:12px; padding:13px 15px}
+.case-id{
+  font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; flex:none;
+  background:var(--surface-2); border:1px solid var(--line); padding:3px 8px; border-radius:6px; color:var(--ink-2);
+}
+.case-title{flex:1; font-weight:700; font-size:14.2px; color:var(--ink); min-width:180px}
+.case-title em{display:block; font-style:normal; font-weight:500; font-size:12.5px; color:var(--ink-3); margin-top:2px}
+.marks{display:flex; gap:5px; flex:none}
+.mark{
+  appearance:none; cursor:pointer; font:inherit; font-size:11px; font-weight:800; letter-spacing:.3px;
+  width:32px; height:28px; border-radius:8px; border:1px solid var(--line);
+  background:var(--surface-2); color:var(--ink-3); transition:.12s;
+}
+.mark:hover{border-color:var(--ink-3)}
+.mark[aria-pressed="true"][data-m="pass"]{background:var(--pass); border-color:var(--pass); color:#fff}
+.mark[aria-pressed="true"][data-m="fail"]{background:var(--fail); border-color:var(--fail); color:#fff}
+.mark[aria-pressed="true"][data-m="block"]{background:var(--block); border-color:var(--block); color:#fff}
+.case-body{padding:0 15px 14px 15px; display:grid; grid-template-columns:1fr 1fr; gap:14px}
+@media (max-width:700px){ .case-body{grid-template-columns:1fr} }
+.case-body h5{
+  margin:0 0 5px; font-size:10px; font-weight:900; letter-spacing:1.2px; text-transform:uppercase; color:var(--ink-3);
+}
+.case-body ol,.case-body ul{margin:0; padding-left:17px; font-size:13.2px; color:var(--ink-2)}
+.case-body li{margin-bottom:3px}
+.case-body .exp{background:color-mix(in srgb,var(--pass) 7%,transparent); border-radius:9px; padding:10px 12px}
+.case-body .exp li::marker{color:var(--pass)}
+
+/* ── Misc ────────────────────────────────────────────────── */
+.csv{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:10px;
+  padding:12px 14px; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--ink-2);
+  white-space:pre; overflow-x:auto; line-height:1.75;
+}
+.copyrow{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:7px}
+.copyrow .lbl{font-size:11px; font-weight:900; letter-spacing:1.1px; text-transform:uppercase; color:var(--ink-3)}
+.copybtn{
+  appearance:none; cursor:pointer; font:inherit; font-size:11px; font-weight:800;
+  padding:5px 11px; border-radius:7px; border:1px solid var(--line); background:var(--surface); color:var(--ink-2);
+}
+.copybtn:hover{border-color:var(--teal); color:var(--teal)}
+footer{max-width:1400px; margin:0 auto; padding:0 24px 40px; color:var(--ink-3); font-size:12.5px}
+
+@media print{
+  .topbar,.toc,.marks,.filterbar,.tool,.copybtn{display:none !important}
+  .shell{grid-template-columns:1fr; padding:0}
+  body{background:#fff; font-size:11px}
+  .card,.case{box-shadow:none; break-inside:avoid}
+  section{break-inside:avoid-page}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brandmark">
+      <div class="dot">QA</div>
+      <div>
+        <h1>Documents &amp; PDF Pack — Test Plan</h1>
+        <p>MODULE D · LETTERHEAD FOUNDATION · 42 DOCUMENTS · 5 PACKS</p>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress"><i id="bar"></i></div>
+      <div class="progress-pct" id="pct">0%</div>
+    </div>
+
+    <div class="tally">
+      <span class="chip">Total <b id="t-all">0</b></span>
+      <span class="chip p">Pass <b id="t-pass">0</b></span>
+      <span class="chip f">Fail <b id="t-fail">0</b></span>
+      <span class="chip b">Blocked <b id="t-block">0</b></span>
+    </div>
+
+    <button class="tool" id="btn-summary">Copy summary</button>
+    <button class="tool" id="btn-reset">Reset</button>
+  </div>
+</header>
+
+<div class="shell">
+
+  <nav class="toc" id="toc">
+    <h4>Test plan</h4>
+    <a href="#start"><span class="n">0</span> Before you start</a>
+    <a href="#navigate"><span class="n">1</span> Sidebar navigation</a>
+    <a href="#ts-letterhead"><span class="n">2</span> Letterhead Foundation</a>
+    <a href="#ts-words"><span class="n">3</span> Amount in words</a>
+    <a href="#ts-hub"><span class="n">4</span> The hub</a>
+    <a href="#ts-payroll"><span class="n">5</span> Payroll &amp; Statutory</a>
+    <a href="#ts-attendance"><span class="n">6</span> Attendance &amp; Leave</a>
+    <a href="#ts-reports"><span class="n">7</span> Reports &amp; Modules</a>
+    <a href="#ts-letters"><span class="n">8</span> HR Letters</a>
+    <a href="#ts-sales"><span class="n">9</span> Sales &amp; Finance</a>
+    <a href="#ts-perm"><span class="n">10</span> Permissions</a>
+    <a href="#checklist"><span class="n">11</span> All-42 checklist</a>
+    <a href="#data"><span class="n">12</span> Test data pack</a>
+    <a href="#bugs"><span class="n">13</span> Raising a bug</a>
+  </nav>
+
+  <main>
+
+  <section id="start">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 0</div>
+        <h2>Before you start</h2>
+        <p class="lede">Module D is 42 documents across five packs, all printed on one shared letterhead. Set the
+        letterhead up first — every document inherits it, so a problem there shows up 42 times.</p>
+      </div>
+      <div class="card-body">
+        <div class="grid-2" style="margin-bottom:18px">
+          <div class="fact"><div class="k">The foundation</div><div class="v">One letterhead<small>Header, footer with page numbers, signature, seal, amount in words, watermarks</small></div></div>
+          <div class="fact"><div class="k">The packs</div><div class="v">5 + 6 + 14 + 9 + 8<small>Payroll · Attendance · Reports · HR Letters · Sales &amp; Finance = 42</small></div></div>
+        </div>
+
+        <div class="note warn" style="margin-bottom:18px">
+          <strong>Documents read live data — so seed it first.</strong> A Salary Register for a month with no payroll
+          is correctly empty, not broken. Before you start, make sure the business you are testing has: a
+          <strong>payroll run</strong>, some <strong>attendance</strong>, an <strong>approved leave request</strong>,
+          an <strong>invoice with a payment</strong>, and at least one <strong>employee with a salary structure</strong>.
+          Section 12 lists exactly what each pack needs.
+        </div>
+
+        <h3 style="font-size:15px; margin-bottom:8px">How to read the results</h3>
+        <ol class="steps">
+          <li>Every document opens as a PDF. <strong>Preview in Browser</strong> opens it in a tab; <strong>Download PDF</strong> saves it.</li>
+          <li>Check three things on each: the <strong>letterhead is right</strong>, the <strong>data is real</strong> (not placeholders), and the <strong>totals add up</strong>.</li>
+          <li>Mark each case <kbd>P</kbd>, <kbd>F</kbd> or <kbd>B</kbd>. Marks are saved in this browser.</li>
+          <li>Section 11 is a straight tick-list of all 42 — use it to confirm nothing is missing.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section id="navigate">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 1</div>
+        <h2>Finding it in the sidebar</h2>
+        <p>A new <strong>DOCUMENTS</strong> section, below Asset Management and above Reports.</p>
+      </div>
+      <div class="card-body">
+        <div class="nav-demo">
+          <div class="fake-sidebar" aria-label="Sidebar map">
+            <div class="sec">Human Resources</div>
+            <div class="item dim">Payroll <span class="caret">›</span></div>
+            <div class="item dim">Performance (KRA/KPI) <span class="caret">›</span></div>
+            <div class="item dim">Trackers <span class="caret">›</span></div>
+            <div class="sec">Asset Management</div>
+            <div class="item dim">Assets <span class="caret">›</span></div>
+            <div class="sec">Documents</div>
+            <div class="item hit">Document Pack</div>
+            <div class="item tgt">Letterhead</div>
+            <div class="sec">Reports</div>
+            <div class="item dim">Report Builder</div>
+          </div>
+
+          <div>
+            <div class="tw" style="margin-bottom:16px">
+              <table>
+                <thead><tr><th>Screen</th><th class="mono">URL</th><th>Permission</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>Document Pack</strong> — the hub</td><td class="mono">/admin/documents</td><td class="mono">documents.view</td></tr>
+                  <tr><td><strong>Letterhead</strong> — signature, seal, footer</td><td class="mono">/admin/documents/letterhead</td><td class="mono">documents.configure</td></tr>
+                  <tr><td>Generate any document</td><td class="mono">/admin/documents/{key}/render</td><td class="mono">documents_{pack}.generate</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="note">
+              <strong>The hub is one screen for all 42.</strong> Pick a document on the left, set its options on the
+              right, generate. What options appear depends on the document: a per-record one asks you to choose the
+              employee or invoice; a per-period one asks for a month; a register offers a department filter.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ts-letterhead">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 1 · 11 cases</div><h2>Letterhead Foundation</h2>
+        <p>Do this first. Everything downstream inherits it.</p></div>
+      <div class="card-body">
+        <div class="note" style="margin-bottom:16px">
+          <strong>What the letterhead is made of.</strong> The header comes from your <em>business record</em> —
+          legal name, address, phone, GSTIN, PAN. Only the <em>footer line, signatory and images</em> are set on the
+          Letterhead screen. If the header is wrong, fix the business under Management → Businesses, not here.
+        </div>
+        <div id="suite-letterhead"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ts-words">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 2 · 7 cases</div><h2>Amount in words</h2>
+        <p>Indian numbering — lakh and crore. Check these with the exact figures given.</p></div>
+      <div class="card-body">
+        <div class="note warn" style="margin-bottom:16px">
+          <strong>Why this matters.</strong> Every document here is an Indian statutory or commercial form. A salary
+          certificate reading "one million two hundred thousand" is <em>wrong</em> on a Form 16 or a bank advice.
+          It must read <strong>lakh</strong> and <strong>crore</strong>.
+        </div>
+        <div id="suite-words"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ts-hub">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 3 · 9 cases</div><h2>The hub</h2>
+        <p>Choosing a document, setting its options, and getting the file.</p></div>
+      <div class="card-body" id="suite-hub"></div>
+    </div>
+  </section>
+
+  <section id="ts-payroll">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 4 · 9 cases</div><h2>Payroll &amp; Statutory — 5 documents</h2>
+        <p>Form 16 · PF/ESI/PT Register · Bank Transfer Advice · Salary Register · Bulk Payslips</p></div>
+      <div class="card-body">
+        <div class="note" style="margin-bottom:16px">
+          <strong>Needs a payroll run.</strong> Generate payroll for a month first (HR → Payroll → Generate Payroll),
+          then use that month throughout this suite.
+        </div>
+        <div id="suite-payroll"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ts-attendance">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 5 · 9 cases</div><h2>Attendance &amp; Leave — 6 documents</h2>
+        <p>Muster Roll · Daily Attendance · Leave Card · Leave, Regularization and Comp-off slips</p></div>
+      <div class="card-body" id="suite-attendance"></div>
+    </div>
+  </section>
+
+  <section id="ts-reports">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 6 · 10 cases</div><h2>Reports &amp; Modules — 14 documents</h2>
+        <p>Five HR reports, budget, helpdesk, CRM, report builder, plus four operational forms.</p></div>
+      <div class="card-body" id="suite-reports"></div>
+    </div>
+  </section>
+
+  <section id="ts-letters">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 7 · 12 cases</div><h2>HR Letters — 9 documents</h2>
+        <p>The letters an employee actually receives. Read these as a person would.</p></div>
+      <div class="card-body">
+        <div class="note" style="margin-bottom:16px">
+          <strong>Read the wording, not just the layout.</strong> These go to real people. Check the pronouns match
+          the employee's gender, that dates read correctly, and that nothing says "—" where a name should be.
+        </div>
+        <div id="suite-letters"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ts-sales">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 8 · 11 cases</div><h2>Sales &amp; Finance — 8 documents</h2>
+        <p>Sales Order · Payment Receipt · GRN · Delivery Challan · Statements · Stock Ledger · Credit/Debit Note</p></div>
+      <div class="card-body" id="suite-sales"></div>
+    </div>
+  </section>
+
+  <section id="ts-perm">
+    <div class="card">
+      <div class="card-head"><div class="eyebrow">Suite 9 · 8 cases</div><h2>Permissions</h2>
+        <p>Six permission rows: the hub, the letterhead, and one per pack.</p></div>
+      <div class="card-body">
+        <div class="tw" style="margin-bottom:16px">
+          <table>
+            <thead><tr><th>Permission</th><th>Controls</th><th>Granted to</th></tr></thead>
+            <tbody>
+              <tr><td class="mono"><strong>documents.view</strong></td><td>Opening the hub at all</td><td>Admin · HR Manager · Accounts</td></tr>
+              <tr><td class="mono"><strong>documents.configure</strong></td><td>The Letterhead screen</td><td>Admin only</td></tr>
+              <tr><td class="mono">documents_payroll.*</td><td>Form 16, registers, bank advice, payslips</td><td>Admin · HR Manager</td></tr>
+              <tr><td class="mono">documents_attendance.*</td><td>Muster roll, leave card, slips</td><td>Admin · HR Manager</td></tr>
+              <tr><td class="mono">documents_reports.*</td><td>The reports &amp; modules pack</td><td>Admin · HR Manager · Accounts</td></tr>
+              <tr><td class="mono">documents_hr_letters.*</td><td>The nine HR letters</td><td>Admin · HR Manager</td></tr>
+              <tr><td class="mono">documents_sales.*</td><td>Sales, GRN, statements, notes</td><td>Admin · Accounts</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="suite-perm"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="checklist">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 11</div>
+        <h2>All-42 checklist</h2>
+        <p>Open each one once and confirm it produces a PDF with real data. Tick as you go.</p>
+      </div>
+      <div class="card-body" id="suite-all"></div>
+    </div>
+  </section>
+
+  <section id="data">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 12</div>
+        <h2>Test data pack</h2>
+        <p>What each pack needs before it will show anything meaningful.</p>
+      </div>
+      <div class="card-body">
+        <div class="tw" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th>Pack</th><th>Needs</th><th>Set it up in</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Payroll &amp; Statutory</strong></td><td>A generated payroll for one month; at least one employee with a PAN, UAN, ESI number and bank details; one employee <em>without</em> bank details (for case TC-PAY-05)</td><td>HR → Payroll → Generate Payroll; HR → Employees</td></tr>
+              <tr><td><strong>Attendance &amp; Leave</strong></td><td>Attendance marked for a month; one approved leave request; one approved regularization; one approved comp-off; leave balances allocated</td><td>HR → Attendance, Leaves, Corrections, Comp-Off</td></tr>
+              <tr><td><strong>Reports &amp; Modules</strong></td><td>An approved reimbursement claim; a requisition; a service ticket; an asset with a purchase cost; a saved report-builder template</td><td>Reimbursements, Requisitions, Service, Assets, Report Builder</td></tr>
+              <tr><td><strong>HR Letters</strong></td><td>An employee with a joining date, designation, department, <strong>current salary structure</strong>, photo and emergency contact; one issued warning</td><td>HR → Employees; HR → Performance → Warnings</td></tr>
+              <tr><td><strong>Sales &amp; Finance</strong></td><td>A customer with a GSTIN; a sales order with line items; an invoice with a part payment; a vendor with a purchase order; a GRN; some stock movements</td><td>Sales, Invoices, Payments, Purchase, Inventory</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="font-size:15px; margin-bottom:4px">Letterhead images</h3>
+        <p style="font-size:13.2px; color:var(--ink-2); margin:0 0 10px">Prepare these before Suite 1.</p>
+        <div class="tw" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th>File</th><th>Shape</th><th>Format</th><th>Why</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Signature</strong></td><td>Wide and short, roughly 3:1</td><td><strong>Transparent PNG</strong>, under 1 MB</td><td>A white background prints as a visible box over the letterhead</td></tr>
+              <tr><td><strong>Seal / stamp</strong></td><td>Roughly square</td><td><strong>Transparent PNG</strong>, under 1 MB</td><td>Round stamps sit to the left of the signature</td></tr>
+              <tr><td><em>A PDF file</em></td><td>—</td><td>Any</td><td>To confirm the wrong file type is refused (TC-LH-10)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="font-size:15px; margin-bottom:4px">Figures to check words against</h3>
+        <div class="tw">
+          <table>
+            <thead><tr><th class="mono">Amount</th><th>Must read exactly</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">1234567.89</td><td>Rupees Twelve Lakh Thirty Four Thousand Five Hundred Sixty Seven and Eighty Nine Paise Only</td></tr>
+              <tr><td class="mono">10000000</td><td>Rupees One Crore Only</td></tr>
+              <tr><td class="mono">101</td><td>Rupees One Hundred One Only <span class="muted">(no "and")</span></td></tr>
+              <tr><td class="mono">15</td><td>Rupees Fifteen Only <span class="muted">(not "Ten Five")</span></td></tr>
+              <tr><td class="mono">0.50</td><td>Rupees Zero and Fifty Paise Only</td></tr>
+              <tr><td class="mono">0</td><td>Rupees Zero Only</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="bugs">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 13</div>
+        <h2>Raising a bug</h2>
+        <p>Attach the PDF. It is the whole evidence for this module.</p>
+      </div>
+      <div class="card-body">
+        <div class="copyrow"><span class="lbl">Bug template</span><button class="copybtn" data-copy="bug-tpl">Copy</button></div>
+        <div class="csv" id="bug-tpl">Case ID     : TC-PAY-05
+Document    : Bank Transfer Advice
+Screen      : Documents → Document Pack
+Logged in as: Admin
+Options set : Month = August, Year = 2026, Department = All, Watermark = none
+Expected    : Employees with no IFSC listed in a red "incomplete bank details" panel
+Actual      : They were left out of the file entirely, no warning
+Severity    : High
+Evidence    : the generated PDF attached</div>
+
+        <div class="grid-3" style="margin-top:18px">
+          <div class="fact"><div class="k">High</div><div class="v">Wrong or missing data<small>A total that does not add up, wrong amount in words, a record silently omitted, one business's data on another's document</small></div></div>
+          <div class="fact"><div class="k">Medium</div><div class="v">Renders, but wrongly<small>Letterhead missing on one document, a column cut off, a watermark that does not appear</small></div></div>
+          <div class="fact"><div class="k">Low</div><div class="v">Cosmetic<small>Spacing, a heading, a wrapped line</small></div></div>
+        </div>
+
+        <div class="note" style="margin-top:18px">
+          <strong>Not a bug:</strong> a register that is empty because the underlying data does not exist for the
+          period you chose. Check Section 12 first — an empty Salary Register for a month with no payroll is correct.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<footer>
+  Documents &amp; PDF Pack — QA test plan · Module D · Letterhead Foundation and 42 documents across five packs.
+  Marks are stored in this browser only; use <strong>Copy summary</strong> to share results.
+</footer>
+
+<script>
+/* Test cases — the counters, filter and summary are all built from this. */
+const SUITES = {
+  'suite-letterhead': [
+    ['TC-LH-01','The Letterhead screen opens','',
+      ['Documents → Letterhead.'],
+      ['Three panels: header & footer, authorised signatory, signature & seal images.','A live preview on the right shows how the top and bottom of a document will read.']],
+    ['TC-LH-02','Set the signatory and footer','',
+      ['Enter a signatory name and designation, and a footer line. Save.'],
+      ['A success message says every document now prints with these settings.','The preview updates to show them.']],
+    ['TC-LH-03','Upload a signature','Use a transparent PNG.',
+      ['Upload the signature image. Save.'],
+      ['It appears in the preview above the signatory name.','Generating any HR letter shows it above the signature line.']],
+    ['TC-LH-04','Upload a seal','',
+      ['Upload the seal image. Save.'],
+      ['It appears to the left of the signature in the preview and on generated letters — it must not overlap the name.']],
+    ['TC-LH-05','The header comes from the business record','Not from this screen.',
+      ['Generate any document and read the header.'],
+      ['Legal name, address, phone and email.','A rule under it, then GSTIN, PAN and CIN.','If any of these are wrong, they are fixed under Management → Businesses.']],
+    ['TC-LH-06','The footer carries page numbering','',
+      ['Generate a long document — the Salary Register or the Muster Roll.'],
+      ['Every page shows "Page N of M" at the bottom right.','Your footer line is at the bottom left.','The header repeats on every page, not just the first.']],
+    ['TC-LH-07','Turning the letterhead off','For pre-printed stationery.',
+      ['Untick "Print the letterhead on documents". Save. Generate any document.'],
+      ['No header, no footer, no signature block — so nothing overlaps pre-printed paper.','The document body itself is unchanged.','Tick it back on and everything returns.']],
+    ['TC-LH-08','Removing an image','',
+      ['Tick Remove beside the signature. Save.'],
+      ['It disappears from the preview.','Letters now print with a blank signature line, not a broken image.']],
+    ['TC-LH-09','The hub warns when no signature is set','',
+      ['With no signature uploaded, open the hub and select any document.'],
+      ['An amber note warns that letters and vouchers will print with a blank signature line, with a link to fix it.']],
+    ['TC-LH-10','Wrong file types are refused','',
+      ['Try to upload a PDF as the signature. Then a PNG over 1 MB.'],
+      ['Each is refused with a message naming the allowed formats or the size limit.','Nothing is saved.']],
+    ['TC-LH-11','Watermarks print diagonally','',
+      ['On any document choose Watermark = DRAFT, then CANCELLED, then Duplicate.'],
+      ['Each prints large and diagonal across every page, behind the content.','The content stays readable through it.']],
+  ],
+
+  'suite-words': [
+    ['TC-WRD-01','Lakh and crore, not million','The central rule.',
+      ['Generate a document whose total is ₹12,34,567.89 — a Salary Certificate or a Payment Receipt.'],
+      ['It reads "Rupees Twelve Lakh Thirty Four Thousand Five Hundred Sixty Seven and Eighty Nine Paise Only".','It must NOT say million, billion or thousand-thousand.']],
+    ['TC-WRD-02','One crore','',
+      ['A document with a total of exactly ₹1,00,00,000.'],
+      ['"Rupees One Crore Only".']],
+    ['TC-WRD-03','No spurious "and"','',
+      ['A total of ₹101.'],
+      ['"Rupees One Hundred One Only" — not "One Hundred and One".']],
+    ['TC-WRD-04','The teens are right','',
+      ['A total of ₹15.'],
+      ['"Rupees Fifteen Only" — not "Ten Five" or "One Five".']],
+    ['TC-WRD-05','Paise','',
+      ['A total of ₹0.50.'],
+      ['"Rupees Zero and Fifty Paise Only".']],
+    ['TC-WRD-06','Zero','',
+      ['A document whose total is zero — a Reimbursement Voucher for a nil claim, or an empty statement.'],
+      ['"Rupees Zero Only" — not blank, and not an error.']],
+    ['TC-WRD-07','The words match the figures','The one that actually matters.',
+      ['On any document, compare the number printed against the words below it.'],
+      ['They agree exactly, to the paisa.','Any mismatch between figure and words is a High-severity bug — it is the line a bank or auditor reads.']],
+  ],
+
+  'suite-hub': [
+    ['TC-HUB-01','The hub lists all five packs','',
+      ['Documents → Document Pack.'],
+      ['Five pack cards: Payroll & Statutory (5), Attendance & Leave (6), Reports & Modules (14), HR Letters (9), Sales & Finance (8).','The heading says 42 documents.']],
+    ['TC-HUB-02','Each document explains itself','',
+      ['Read the list.'],
+      ['Every row has a name and a one-line description of what the document is for.','A tag shows whether it is per record, per period, or a register.']],
+    ['TC-HUB-03','Selecting a document shows the right options','',
+      ['Click a per-record document (Appointment Letter), then a per-period one (Salary Register), then a register (Stock Ledger).'],
+      ['The record one asks you to choose an employee.','The period one asks for a month and year.','The register offers a date range or a department filter — not a record picker.']],
+    ['TC-HUB-04','Form 16 and the Leave Card ask for a year','',
+      ['Select Form 16, then the Leave Card.'],
+      ['Form 16 asks for a financial year, shown as 2026-27.','The Leave Card asks for a calendar year.']],
+    ['TC-HUB-05','Preview opens in a tab','',
+      ['Press Preview in Browser.'],
+      ['The PDF opens in a new tab rather than downloading.']],
+    ['TC-HUB-06','Download saves a sensible filename','',
+      ['Press Download PDF on a per-record and a per-period document.'],
+      ['The record one is named for the document and the record, e.g. appointment-letter-emp-0001.pdf.','The period one carries the year and month.']],
+    ['TC-HUB-07','Generating without choosing a record is refused','',
+      ['Select a per-record document and press Generate without picking one.'],
+      ['The browser blocks it; forcing the request returns you with a message asking you to choose a record.']],
+    ['TC-HUB-08','A department filter narrows the output','',
+      ['On the Salary Register, choose one department and generate.'],
+      ['Only that department\'s employees appear, and the totals recalculate to match.']],
+    ['TC-HUB-09','An empty period says so','',
+      ['Generate a Salary Register for a month with no payroll.'],
+      ['The PDF opens with "No records for this selection" — not an error page, and not a blank sheet.']],
+  ],
+
+  'suite-payroll': [
+    ['TC-PAY-01','Form 16 covers the financial year','',
+      ['Select Form 16, an employee, financial year 2026-27. Generate.'],
+      ['Part A shows both PANs — the company as deductor and the employee as deductee.','A month-by-month table of gross, PT, PF and TDS.','Part B computes taxable income with the standard deduction shown.','The financial year reads 2026-27, April to March.']],
+    ['TC-PAY-02','Form 16 states its own limits','',
+      ['Read the note at the bottom of Part B.'],
+      ['It says the figures cover only what this employer paid and deducted, and that the taxable income is an estimate because employee-declared investments are not included. This is deliberate and correct.']],
+    ['TC-PAY-03','The statutory register totals','',
+      ['Generate the PF / ESI / PT Register for the payroll month.'],
+      ['One row per employee with UAN and ESI number.','The Total column equals PF + ESI + PT for that row.','The footer totals equal the sum of each column.']],
+    ['TC-PAY-04','The salary register balances','',
+      ['Generate the Salary Register.'],
+      ['Gross − Deductions = Net Pay on every row.','The footer totals match the payroll screen for the same month.']],
+    ['TC-PAY-05','Bank advice flags incomplete details','The safeguard.',
+      ['Make sure one employee with a payslip has no IFSC or account number. Generate the Bank Transfer Advice.'],
+      ['They still appear in the beneficiary list.','A red panel at the bottom names them as having incomplete bank details.','They are NOT silently dropped — a short bank file is worse than one that says who is missing.']],
+    ['TC-PAY-06','Bank advice totals in words','',
+      ['Read the total line.'],
+      ['The total to be debited matches the sum of the Amount column.','It is repeated in words in Indian format.']],
+    ['TC-PAY-07','Bulk payslips: one per page','',
+      ['Generate the Bulk Payslip download for a month with several employees.'],
+      ['Each payslip starts on a fresh page — none is split across two.','Each shows earnings and deductions side by side, the net pay, and the net in words.']],
+    ['TC-PAY-08','A payslip only lists what applies','',
+      ['Look at an employee with no ESI or bonus.'],
+      ['Zero-value components are left out rather than printed as 0.00 — the slip only lists what actually applies.']],
+    ['TC-PAY-09','Landscape where it is needed','',
+      ['Look at the Salary Register, the Statutory Register and the Bank Advice.'],
+      ['All three print landscape so no column is cut off.','Form 16 and the payslips print portrait.']],
+  ],
+
+  'suite-attendance': [
+    ['TC-ATT-01','The muster roll grids the month','',
+      ['Generate the Muster Roll for a month with attendance.'],
+      ['One column per day, running to the correct number of days for that month — 28, 30 or 31.','Weekday initials under each date.','Sundays are shaded.']],
+    ['TC-ATT-02','The muster roll codes and legend','',
+      ['Read the grid and the legend below it.'],
+      ['P present, H half day, A absent, L on leave, W week off, O holiday, C comp off, · no record.','Each is colour-coded and the legend explains them all.','The P / A / L totals at the right of each row match the cells.']],
+    ['TC-ATT-03','The daily attendance report','',
+      ['Generate for a date with attendance marked.'],
+      ['Summary tiles across the top: present, half day, absent, on leave, week off, holiday.','A row per employee with check-in, check-out, worked hours and break minutes.','Status shown as a coloured badge.']],
+    ['TC-ATT-04','The leave card balances','',
+      ['Generate the Leave Card for an employee with balances.'],
+      ['Carried forward + Allocated − Used − Pending = Available on every row.','The footer totals each column.']],
+    ['TC-ATT-05','The leave card lists the year\'s requests','',
+      ['Read the lower table.'],
+      ['Every request in that calendar year, with days, paid, unpaid, status and reason.','A combined request is flagged as Combined.']],
+    ['TC-ATT-06','The leave sanction slip shows the split','',
+      ['Generate for an approved leave request.'],
+      ['Total applied, sanctioned as paid, sanctioned as unpaid.','A closing sentence stating the decision, who made it and when.','If any days are unpaid, it says they will be deducted as loss of pay.']],
+    ['TC-ATT-07','A combined leave slip shows both types','',
+      ['Generate the sanction slip for a Combined Leave request (0.5 Casual + 0.5 Sick).'],
+      ['A break-up table lists each contributing leave type with its days, paid and unpaid.','Without it the employee cannot reconcile the slip against their leave card.']],
+    ['TC-ATT-08','The regularization slip','',
+      ['Generate for an approved correction.'],
+      ['A before-and-after table: as recorded vs as requested, for check in and check out.','"— not marked —" where nothing was recorded, rather than a blank.']],
+    ['TC-ATT-09','The comp-off slip','',
+      ['Generate for an approved comp-off.'],
+      ['The day worked and the day taken off, each with its weekday name.','A closing note that the comp-off day is paid and not deducted from any leave balance.']],
+  ],
+
+  'suite-reports': [
+    ['TC-RPT-01','The five HR reports','',
+      ['Generate Employee Master, Payroll, Leave, Attendance and Expense Claims.'],
+      ['Each opens with a summary strip and a table of real data.','Numeric columns are right-aligned so they read down the page.']],
+    ['TC-RPT-02','Budget vs actual','',
+      ['Generate the Budget vs Actual statement.'],
+      ['Allocated − Spent = Remaining on every row.','Allocated includes any mid-period top-ups, not just the base sanction.']],
+    ['TC-RPT-03','Helpdesk and CRM reports','',
+      ['Generate both.'],
+      ['Helpdesk lists tickets with category, status, priority and age in days.','CRM lists leads by stage with value and owner, and totals the pipeline value.']],
+    ['TC-RPT-04','Report Builder export','',
+      ['Save a template in Report Builder, then generate it from the hub.'],
+      ['It renders on the letterhead with the template\'s own columns.']],
+    ['TC-RPT-05','Depreciation schedule','',
+      ['Generate it.'],
+      ['Cost − Accumulated Depreciation = Book Value on each row.','Method and useful life are shown per asset.']],
+    ['TC-RPT-06','Reimbursement voucher','',
+      ['Generate for an approved claim.'],
+      ['Claimed and approved amounts side by side.','The payable amount in words.','Two signature blocks — received by, and authorised signatory.']],
+    ['TC-RPT-07','Requisition approval note','',
+      ['Generate for a requisition that has been through approvals.'],
+      ['The full approval chain: level, approver, decision, date and remarks.','Requested amount in words.']],
+    ['TC-RPT-08','Service job card','',
+      ['Generate for an open ticket.'],
+      ['Customer, site address, assigned engineer and the reported issue.','Blank fields for work carried out, parts used and time in/out — for the engineer to complete on site.','Signature lines for both engineer and customer.']],
+    ['TC-RPT-09','Asset gate pass','',
+      ['Generate for an asset.'],
+      ['Asset code, description, serial number and current location.','Blank movement fields — taken out by, purpose, destination, vehicle, returnable yes/no.','Three signature blocks: issued by, approved by, security.']],
+    ['TC-RPT-10','Every report exports landscape where needed','',
+      ['Check the wide reports.'],
+      ['Registers with many columns print landscape.','No column is cut off at the page edge.']],
+  ],
+
+  'suite-letters': [
+    ['TC-LTR-01','Appointment letter','',
+      ['Generate for an employee with a salary structure.'],
+      ['Addressed to them by first name, with designation, department and joining date.','CTC in figures and in words.','Probation end date if one is set.']],
+    ['TC-LTR-02','Confirmation letter','',
+      ['Generate for a confirmed employee.'],
+      ['States the original appointment date and the confirmation date.','Says the other terms remain unchanged.']],
+    ['TC-LTR-03','Experience certificate','',
+      ['Generate for an employee who has left.'],
+      ['Headed "TO WHOMSOEVER IT MAY CONCERN".','Employment period from joining to last working day.','Designation held at the time of leaving.']],
+    ['TC-LTR-04','Pronouns match the employee','Read it as a person would.',
+      ['Generate the Experience and Salary certificates for a female employee, then a male one.'],
+      ['She/her for one, he/his for the other — consistently through the letter.','A wrong pronoun on a letter going to a real person is a Medium bug, not cosmetic.']],
+    ['TC-LTR-05','Relieving letter','',
+      ['Generate for an exited employee.'],
+      ['Confirms relieving at close of business on the last working day.','States that dues are settled and property handed over.']],
+    ['TC-LTR-06','Salary certificate','',
+      ['Generate for an employee with a current salary structure.'],
+      ['Confirms employment, designation and date of joining.','Annual CTC in figures and words.']],
+    ['TC-LTR-07','The CTC annexure is attached','',
+      ['Read below the salary certificate letter.'],
+      ['An annexure table: each component monthly and annually.','Gross and CTC rows at the bottom.','The monthly figures × 12 equal the annual ones.']],
+    ['TC-LTR-08','Warning letter','',
+      ['Generate for an issued warning.'],
+      ['The incident, the warning level, the date and who issued it.','A closing paragraph on consequences of recurrence.']],
+    ['TC-LTR-09','Show-cause notice','',
+      ['Generate for the same warning.'],
+      ['States the allegation and requires a written explanation by a stated date — three days from issue.','Says the matter proceeds on the record if no reply is received.','Reads as a notice, not as a warning — the two are different documents.']],
+    ['TC-LTR-10','Employee ID card','',
+      ['Generate for an employee with a photo.'],
+      ['Front and back on one A4 sheet at card size, with a note to print at 100% and cut.','Front: photo, name, designation, employee ID, department, blood group, joined date.','Back: return-if-found address, emergency contact, and the conditions of use.']],
+    ['TC-LTR-11','ID card without a photo','',
+      ['Generate for an employee with no photo uploaded.'],
+      ['A "PHOTO" placeholder box, not a broken image or a blank card.']],
+    ['TC-LTR-12','Full & final settlement','',
+      ['Generate for an exiting employee.'],
+      ['Final month salary and leave encashment, with the encashment basis shown (days × per-day rate).','Total payable in words.','A leave balance table marking which types are encashable.','A declaration and two signature blocks — employee and company.']],
+  ],
+
+  'suite-sales': [
+    ['TC-SLS-01','Sales order','',
+      ['Generate for a confirmed order.'],
+      ['Sold-to and ship-to blocks, with the customer GSTIN.','Line items with quantity, rate, tax and amount.','Subtotal, discount, tax and grand total; total in words.']],
+    ['TC-SLS-02','Terms print if configured','',
+      ['With terms set on the business, generate a sales order.'],
+      ['They appear at the bottom under Terms & conditions.']],
+    ['TC-SLS-03','Payment receipt','',
+      ['Generate for a payment against an invoice.'],
+      ['Reads "Received with thanks from …" with the amount in figures and words.','Mode and reference/UTR.','Invoice total, received to date, and the balance outstanding.']],
+    ['TC-SLS-04','The receipt carries a PAID watermark by default','',
+      ['Generate without changing the watermark option.'],
+      ['PAID prints diagonally across the page — it is the default for this document.']],
+    ['TC-SLS-05','Goods receipt note','',
+      ['Generate for a GRN against a purchase order.'],
+      ['Vendor, PO number and PO date.','Ordered vs received quantity per item.','A quality-check block with tick boxes and a remarks line.']],
+    ['TC-SLS-06','Delivery challan','',
+      ['Generate for a sales order.'],
+      ['Marked "Not a tax invoice — for movement of goods".','Consignee block, and blank dispatch fields for vehicle, driver and e-way bill.','Signature blocks for dispatched by and received by.']],
+    ['TC-SLS-07','Customer statement runs a balance','',
+      ['Generate for a customer with invoices and payments, over a date range covering both.'],
+      ['Invoices and payments interleaved in date order, not listed separately.','A running balance down the right.','The closing balance equals total debits minus total credits.']],
+    ['TC-SLS-08','The statement labels the balance','',
+      ['Read the closing line.'],
+      ['It says receivable when positive, or held in advance when negative.','The closing balance is repeated in words.']],
+    ['TC-SLS-09','Vendor statement','',
+      ['Generate for a vendor with purchase orders.'],
+      ['PO date, number, status and value.','Total ordered in the period, in figures and words.']],
+    ['TC-SLS-10','Stock ledger','',
+      ['Generate for a period with stock movements.'],
+      ['Every movement with product, warehouse, type and quantity.','A running quantity that restarts per product — that is what makes it a ledger.']],
+    ['TC-SLS-11','Credit / debit note','',
+      ['Generate against an invoice with a part payment.'],
+      ['Tick boxes for credit vs debit, with blank fields for reason and amount.','The invoice position before adjustment: value, payments received, outstanding.','Outstanding repeated in words.']],
+  ],
+
+  'suite-perm': [
+    ['TC-DPM-01','The six permission rows exist','',
+      ['Management → Roles & Permissions → Create Role. Search for "documents".'],
+      ['documents, documents_payroll, documents_attendance, documents_reports, documents_hr_letters, documents_sales.']],
+    ['TC-DPM-02','A role with no document access','',
+      ['Sign in as a Sales-role user.'],
+      ['The Documents section is absent from the sidebar.','/admin/documents returns 403.']],
+    ['TC-DPM-03','Accounts sees only their packs','',
+      ['Sign in as an Accounts user and open the hub.'],
+      ['Sales & Finance and Reports & Modules are listed.','HR Letters, Payroll and Attendance are not.']],
+    ['TC-DPM-04','A pack URL cannot be used to get around it','',
+      ['As Accounts, request an Appointment Letter by URL.'],
+      ['403 Forbidden. No document is generated.']],
+    ['TC-DPM-05','HR sees the people-facing packs','',
+      ['Sign in as HR Manager and open the hub.'],
+      ['Payroll, Attendance, Reports and HR Letters are listed.','Sales & Finance is not.']],
+    ['TC-DPM-06','The letterhead is Admin-only','',
+      ['As HR Manager, open the hub, then try the Letterhead screen.'],
+      ['The hub opens; the Letterhead link is absent and its URL returns 403.','HR prints on the letterhead but does not own it.']],
+    ['TC-DPM-07','Cross-business isolation','',
+      ['As a Super Admin, note a record id belonging to another business.','Switch to this business and request a document for that id.'],
+      ['Refused — the record is not found in the current business.','No data from the other business appears.']],
+    ['TC-DPM-08','An unknown document key is a 404','',
+      ['Request /admin/documents/not_a_real_document/render.'],
+      ['404, not a 500 error page.']],
+  ],
+  'suite-all': [
+    ["TC-ALL-8E01","Form 16","Payroll & Statutory",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Annual tax statement for one employee — Part A and Part B."]],
+    ["TC-ALL-E5B7","PF / ESI / PT Register","Payroll & Statutory",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Statutory contributions per employee for a month."]],
+    ["TC-ALL-00CC","Bank Transfer Advice","Payroll & Statutory",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Salary disbursement instruction to the bank, with account and IFSC."]],
+    ["TC-ALL-CF2E","Salary Register","Payroll & Statutory",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Full earnings and deductions for every employee in a month."]],
+    ["TC-ALL-5ED3","Bulk Payslip Download","Payroll & Statutory",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Every payslip for a month, one per page, in a single file."]],
+    ["TC-ALL-0BE3","Monthly Attendance Register (Muster Roll)","Attendance & Leave",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Day-by-day attendance grid for the whole month."]],
+    ["TC-ALL-0B2A","Daily Attendance Report","Attendance & Leave",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "One day's attendance with in / out times and worked hours."]],
+    ["TC-ALL-1311","Leave Card","Attendance & Leave",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "An employee's leave balance statement and every request for the year."]],
+    ["TC-ALL-1F17","Leave Sanction Slip","Attendance & Leave",
+      ["Choose a leave request, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Approval slip for one leave request, with the paid / unpaid split."]],
+    ["TC-ALL-9387","Regularization Approval Slip","Attendance & Leave",
+      ["Choose a regularization, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Approval slip for an attendance correction."]],
+    ["TC-ALL-331E","Comp-off Approval Slip","Attendance & Leave",
+      ["Choose a comp off, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Approval slip for compensatory time off worked and claimed."]],
+    ["TC-ALL-AA61","Employee Master Report","Reports & Modules",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Every employee with department, designation and statutory numbers."]],
+    ["TC-ALL-72E1","Payroll Report","Reports & Modules",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Gross, deductions and net across a month."]],
+    ["TC-ALL-0B60","Leave Report","Reports & Modules",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Leave balances and consumption per employee."]],
+    ["TC-ALL-7D12","Attendance Report","Reports & Modules",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Present, absent, leave and late days per employee."]],
+    ["TC-ALL-B81D","Expense Claims Report","Reports & Modules",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Reimbursement claims with status and amounts."]],
+    ["TC-ALL-E2B4","Budget vs Actual Statement","Reports & Modules",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Allocated, spent and remaining per budget."]],
+    ["TC-ALL-B224","Helpdesk Report","Reports & Modules",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Internal tickets by category, status and age."]],
+    ["TC-ALL-92EE","CRM Pipeline Report","Reports & Modules",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Leads by stage with value and owner."]],
+    ["TC-ALL-9605","Report Builder Export","Reports & Modules",
+      ["Choose a report template, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Any saved custom report, rendered on the letterhead."]],
+    ["TC-ALL-DAAE","Reimbursement Voucher","Reports & Modules",
+      ["Choose a reimbursement, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Payment voucher for an approved expense claim."]],
+    ["TC-ALL-7248","Requisition Approval Note","Reports & Modules",
+      ["Choose a requisition, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Approval note for a requisition, with the approval chain."]],
+    ["TC-ALL-659D","Service Job Card","Reports & Modules",
+      ["Choose a service ticket, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Work card for a service ticket, for the engineer to carry."]],
+    ["TC-ALL-62F3","Asset Gate Pass","Reports & Modules",
+      ["Choose a asset, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Authorisation to move an asset off site, returnable or not."]],
+    ["TC-ALL-B9CE","Asset Depreciation Schedule","Reports & Modules",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Opening value, depreciation and closing value per asset."]],
+    ["TC-ALL-7F4C","Appointment Letter","HR Letters",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Formal appointment with role, date of joining and CTC."]],
+    ["TC-ALL-445E","Confirmation Letter","HR Letters",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Confirms an employee in service on completion of probation."]],
+    ["TC-ALL-1C44","Experience Letter","HR Letters",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Service certificate covering the full period of employment."]],
+    ["TC-ALL-575F","Relieving Letter","HR Letters",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Confirms relieving on the last working day, dues settled."]],
+    ["TC-ALL-4A9A","Salary Certificate","HR Letters",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Certified salary with the full CTC annexure."]],
+    ["TC-ALL-E693","Warning Letter","HR Letters",
+      ["Choose a warning, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Formal warning on record, with the incident and the expectation."]],
+    ["TC-ALL-CCDB","Show-cause Notice","HR Letters",
+      ["Choose a warning, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Notice requiring a written explanation within a stated period."]],
+    ["TC-ALL-5814","Employee ID Card","HR Letters",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Printable ID card, front and back, with emergency details."]],
+    ["TC-ALL-1A93","Full & Final Settlement","HR Letters",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Final settlement statement of dues payable and recoverable."]],
+    ["TC-ALL-0FA2","Sales Order","Sales & Finance",
+      ["Choose a sales order, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Confirmed order with line items, taxes and delivery terms."]],
+    ["TC-ALL-FDF1","Payment Receipt","Sales & Finance",
+      ["Choose a payment, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Acknowledgement of a payment received, amount in words."]],
+    ["TC-ALL-C7DC","Goods Receipt Note","Sales & Finance",
+      ["Choose a goods receipt, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Records goods received against a purchase order."]],
+    ["TC-ALL-2A1E","Delivery Challan","Sales & Finance",
+      ["Choose a sales order, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Accompanies goods in transit, with vehicle and dispatch details."]],
+    ["TC-ALL-DAF3","Customer Statement of Account","Sales & Finance",
+      ["Choose a customer, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Invoices, payments and running balance for one customer."]],
+    ["TC-ALL-6DA0","Vendor Statement","Sales & Finance",
+      ["Choose a vendor, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Purchase orders and receipts for one vendor."]],
+    ["TC-ALL-16CD","Stock Ledger","Sales & Finance",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Every stock movement with running quantity per product."]],
+    ["TC-ALL-756E","Credit / Debit Note","Sales & Finance",
+      ["Choose a invoice, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Adjustment note against an invoice, with reason and revised balance."]],
+  ],
+  'suite-all': [
+    ["TC-ALL-8E01","Form 16","Payroll & Statutory",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Annual tax statement for one employee — Part A and Part B."]],
+    ["TC-ALL-E5B7","PF / ESI / PT Register","Payroll & Statutory",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Statutory contributions per employee for a month."]],
+    ["TC-ALL-00CC","Bank Transfer Advice","Payroll & Statutory",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Salary disbursement instruction to the bank, with account and IFSC."]],
+    ["TC-ALL-CF2E","Salary Register","Payroll & Statutory",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Full earnings and deductions for every employee in a month."]],
+    ["TC-ALL-5ED3","Bulk Payslip Download","Payroll & Statutory",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Every payslip for a month, one per page, in a single file."]],
+    ["TC-ALL-0BE3","Monthly Attendance Register (Muster Roll)","Attendance & Leave",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Day-by-day attendance grid for the whole month."]],
+    ["TC-ALL-0B2A","Daily Attendance Report","Attendance & Leave",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "One day's attendance with in / out times and worked hours."]],
+    ["TC-ALL-1311","Leave Card","Attendance & Leave",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "An employee's leave balance statement and every request for the year."]],
+    ["TC-ALL-1F17","Leave Sanction Slip","Attendance & Leave",
+      ["Choose a leave request, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Approval slip for one leave request, with the paid / unpaid split."]],
+    ["TC-ALL-9387","Regularization Approval Slip","Attendance & Leave",
+      ["Choose a regularization, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Approval slip for an attendance correction."]],
+    ["TC-ALL-331E","Comp-off Approval Slip","Attendance & Leave",
+      ["Choose a comp off, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Approval slip for compensatory time off worked and claimed."]],
+    ["TC-ALL-AA61","Employee Master Report","Reports & Modules",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Every employee with department, designation and statutory numbers."]],
+    ["TC-ALL-72E1","Payroll Report","Reports & Modules",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Gross, deductions and net across a month."]],
+    ["TC-ALL-0B60","Leave Report","Reports & Modules",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Leave balances and consumption per employee."]],
+    ["TC-ALL-7D12","Attendance Report","Reports & Modules",
+      ["Set the month and year, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Present, absent, leave and late days per employee."]],
+    ["TC-ALL-B81D","Expense Claims Report","Reports & Modules",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Reimbursement claims with status and amounts."]],
+    ["TC-ALL-E2B4","Budget vs Actual Statement","Reports & Modules",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Allocated, spent and remaining per budget."]],
+    ["TC-ALL-B224","Helpdesk Report","Reports & Modules",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Internal tickets by category, status and age."]],
+    ["TC-ALL-92EE","CRM Pipeline Report","Reports & Modules",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Leads by stage with value and owner."]],
+    ["TC-ALL-9605","Report Builder Export","Reports & Modules",
+      ["Choose a report template, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Any saved custom report, rendered on the letterhead."]],
+    ["TC-ALL-DAAE","Reimbursement Voucher","Reports & Modules",
+      ["Choose a reimbursement, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Payment voucher for an approved expense claim."]],
+    ["TC-ALL-7248","Requisition Approval Note","Reports & Modules",
+      ["Choose a requisition, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Approval note for a requisition, with the approval chain."]],
+    ["TC-ALL-659D","Service Job Card","Reports & Modules",
+      ["Choose a service ticket, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Work card for a service ticket, for the engineer to carry."]],
+    ["TC-ALL-62F3","Asset Gate Pass","Reports & Modules",
+      ["Choose a asset, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Authorisation to move an asset off site, returnable or not."]],
+    ["TC-ALL-B9CE","Asset Depreciation Schedule","Reports & Modules",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Opening value, depreciation and closing value per asset."]],
+    ["TC-ALL-7F4C","Appointment Letter","HR Letters",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Formal appointment with role, date of joining and CTC."]],
+    ["TC-ALL-445E","Confirmation Letter","HR Letters",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Confirms an employee in service on completion of probation."]],
+    ["TC-ALL-1C44","Experience Letter","HR Letters",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Service certificate covering the full period of employment."]],
+    ["TC-ALL-575F","Relieving Letter","HR Letters",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Confirms relieving on the last working day, dues settled."]],
+    ["TC-ALL-4A9A","Salary Certificate","HR Letters",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Certified salary with the full CTC annexure."]],
+    ["TC-ALL-E693","Warning Letter","HR Letters",
+      ["Choose a warning, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Formal warning on record, with the incident and the expectation."]],
+    ["TC-ALL-CCDB","Show-cause Notice","HR Letters",
+      ["Choose a warning, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Notice requiring a written explanation within a stated period."]],
+    ["TC-ALL-5814","Employee ID Card","HR Letters",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Printable ID card, front and back, with emergency details."]],
+    ["TC-ALL-1A93","Full & Final Settlement","HR Letters",
+      ["Choose a employee, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Final settlement statement of dues payable and recoverable."]],
+    ["TC-ALL-0FA2","Sales Order","Sales & Finance",
+      ["Choose a sales order, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Confirmed order with line items, taxes and delivery terms."]],
+    ["TC-ALL-FDF1","Payment Receipt","Sales & Finance",
+      ["Choose a payment, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Acknowledgement of a payment received, amount in words."]],
+    ["TC-ALL-C7DC","Goods Receipt Note","Sales & Finance",
+      ["Choose a goods receipt, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Records goods received against a purchase order."]],
+    ["TC-ALL-2A1E","Delivery Challan","Sales & Finance",
+      ["Choose a sales order, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Accompanies goods in transit, with vehicle and dispatch details."]],
+    ["TC-ALL-DAF3","Customer Statement of Account","Sales & Finance",
+      ["Choose a customer, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Invoices, payments and running balance for one customer."]],
+    ["TC-ALL-6DA0","Vendor Statement","Sales & Finance",
+      ["Choose a vendor, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Purchase orders and receipts for one vendor."]],
+    ["TC-ALL-16CD","Stock Ledger","Sales & Finance",
+      ["Generate with the default filters."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Every stock movement with running quantity per product."]],
+    ["TC-ALL-756E","Credit / Debit Note","Sales & Finance",
+      ["Choose a invoice, then generate."],
+      ["A PDF opens with the letterhead at the top and page numbering at the bottom.", "Adjustment note against an invoice, with reason and revised balance."]],
+  ],
+};
+/* ── Render ─────────────────────────────────────────────── */
+const KEY = 'module-d-qa-v1';
+let marks = {};
+try { marks = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { marks = {}; }
+
+function esc(s){ return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function caseEl([id, title, hint, steps, expected]){
+  const el = document.createElement('article');
+  el.className = 'case';
+  el.dataset.status = marks[id] || 'none';
+  el.innerHTML = `
+    <div class="case-top">
+      <span class="case-id">${id}</span>
+      <div class="case-title">${esc(title)}${hint ? `<em>${esc(hint)}</em>` : ''}</div>
+      <div class="marks">
+        <button class="mark" data-m="pass"  data-id="${id}" title="Pass"    aria-pressed="false">P</button>
+        <button class="mark" data-m="fail"  data-id="${id}" title="Fail"    aria-pressed="false">F</button>
+        <button class="mark" data-m="block" data-id="${id}" title="Blocked" aria-pressed="false">B</button>
+      </div>
+    </div>
+    <div class="case-body">
+      <div>
+        <h5>Steps</h5>
+        <ol>${steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+      </div>
+      <div class="exp">
+        <h5>Expected result</h5>
+        <ul>${expected.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
+      </div>
+    </div>`;
+  return el;
+}
+
+const ALL_IDS = [];
+for (const [host, cases] of Object.entries(SUITES)) {
+  const mount = document.getElementById(host);
+  if (!mount) continue;
+  cases.forEach(c => { ALL_IDS.push(c[0]); mount.appendChild(caseEl(c)); });
+}
+
+/* Filter bar, injected above the first suite */
+const filterbar = document.createElement('div');
+filterbar.className = 'filterbar';
+filterbar.innerHTML = `
+  <span style="font-size:11px;font-weight:900;letter-spacing:1.1px;text-transform:uppercase;color:var(--ink-3)">Show</span>
+  <button class="fbtn on" data-f="all">All cases</button>
+  <button class="fbtn" data-f="none">Not run</button>
+  <button class="fbtn" data-f="fail">Failed</button>
+  <button class="fbtn" data-f="block">Blocked</button>`;
+document.getElementById('suite-letterhead').before(filterbar);
+
+let activeFilter = 'all';
+filterbar.addEventListener('click', e => {
+  const b = e.target.closest('.fbtn');
+  if (!b) return;
+  activeFilter = b.dataset.f;
+  filterbar.querySelectorAll('.fbtn').forEach(x => x.classList.toggle('on', x === b));
+  applyFilter();
+});
+
+function applyFilter(){
+  document.querySelectorAll('.case').forEach(c => {
+    c.style.display = (activeFilter === 'all' || c.dataset.status === activeFilter) ? '' : 'none';
+  });
+}
+
+/* Marking */
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.mark');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  marks[id] = (marks[id] === btn.dataset.m) ? undefined : btn.dataset.m;
+  if (!marks[id]) delete marks[id];
+  try { localStorage.setItem(KEY, JSON.stringify(marks)); } catch (e) {}
+  paint();
+  applyFilter();
+});
+
+function paint(){
+  document.querySelectorAll('.case').forEach(c => {
+    const id = c.querySelector('.case-id').textContent;
+    const m = marks[id] || 'none';
+    c.dataset.status = m;
+    c.querySelectorAll('.mark').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+  });
+
+  const counts = { pass:0, fail:0, block:0 };
+  ALL_IDS.forEach(id => { if (marks[id]) counts[marks[id]]++; });
+  const done = counts.pass + counts.fail + counts.block;
+
+  document.getElementById('t-all').textContent   = ALL_IDS.length;
+  document.getElementById('t-pass').textContent  = counts.pass;
+  document.getElementById('t-fail').textContent  = counts.fail;
+  document.getElementById('t-block').textContent = counts.block;
+
+  const pct = ALL_IDS.length ? Math.round(done / ALL_IDS.length * 100) : 0;
+  document.getElementById('bar').style.width = pct + '%';
+  document.getElementById('pct').textContent = pct + '%';
+
+  document.querySelectorAll('.toc a').forEach(a => {
+    const sec = document.querySelector(a.getAttribute('href'));
+    const cases = sec ? sec.querySelectorAll('.case') : [];
+    if (!cases.length) return;
+    let ok = 0;
+    cases.forEach(c => { if (c.dataset.status !== 'none') ok++; });
+    let mini = a.querySelector('.mini');
+    if (!mini) { mini = document.createElement('span'); mini.className = 'mini'; a.appendChild(mini); }
+    mini.textContent = `${ok}/${cases.length}`;
+  });
+}
+paint();
+applyFilter();
+
+/* Header tools */
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (!confirm('Clear every pass / fail / blocked mark on this page?')) return;
+  marks = {};
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  paint(); applyFilter();
+});
+
+document.getElementById('btn-summary').addEventListener('click', () => copy(buildSummary()));
+
+function buildSummary(){
+  const counts = { pass:0, fail:0, block:0 };
+  const failed = [], blocked = [], notRun = [];
+  ALL_IDS.forEach(id => {
+    const m = marks[id];
+    if (m) counts[m]++;
+    if (m === 'fail') failed.push(id);
+    else if (m === 'block') blocked.push(id);
+    else if (!m) notRun.push(id);
+  });
+  const done = counts.pass + counts.fail + counts.block;
+  return [
+    'Documents & PDF Pack (Module D) — QA run',
+    `Cases: ${ALL_IDS.length} · Run: ${done} · Pass: ${counts.pass} · Fail: ${counts.fail} · Blocked: ${counts.block}`,
+    failed.length  ? `Failed:  ${failed.join(', ')}`   : 'Failed:  none',
+    blocked.length ? `Blocked: ${blocked.join(', ')}`  : 'Blocked: none',
+    notRun.length  ? `Not run: ${notRun.join(', ')}`   : 'Not run: none',
+  ].join('\n');
+}
+
+function copy(text){
+  const done = btn => { const o = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => btn.textContent = o, 1400); };
+  const btn = document.getElementById('btn-summary');
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => done(btn)).catch(() => fallback(text, btn));
+  } else fallback(text, btn);
+}
+function fallback(text, btn){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); btn.textContent = 'Copied'; setTimeout(() => btn.textContent = 'Copy summary', 1400); }
+  catch (e) { alert(text); }
+  document.body.removeChild(ta);
+}
+
+/* Copy buttons on the data blocks */
+document.addEventListener('click', e => {
+  const b = e.target.closest('.copybtn');
+  if (!b) return;
+  const src = document.getElementById(b.dataset.copy);
+  if (!src) return;
+  const text = src.textContent;
+  const restore = () => { b.textContent = 'Copy'; };
+  const ok = () => { b.textContent = 'Copied'; setTimeout(restore, 1400); };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(ok).catch(() => { fallbackBlock(text, b, ok); });
+  else fallbackBlock(text, b, ok);
+});
+function fallbackBlock(text, b, ok){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); ok(); } catch (e) { alert(text); }
+  document.body.removeChild(ta);
+}
+
+/* TOC highlight */
+const secs = [...document.querySelectorAll('main section')];
+const links = new Map([...document.querySelectorAll('.toc a')].map(a => [a.getAttribute('href').slice(1), a]));
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    const a = links.get(en.target.id);
+    if (a && en.isIntersecting) {
+      document.querySelectorAll('.toc a').forEach(x => x.classList.remove('on'));
+      a.classList.add('on');
+    }
+  });
+}, { rootMargin: '-90px 0px -70% 0px' });
+secs.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

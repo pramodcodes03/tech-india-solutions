@@ -71,6 +71,9 @@ class StoreEmployeeRequest extends FormRequest
             'el_working_days_required' => ['nullable', 'integer', 'min:0', 'max:1000'],
             'cl_sl_working_days' => ['nullable', 'integer', 'min:0', 'max:1000'],
             'confirmation_date' => ['nullable', 'date', 'after_or_equal:joining_date'],
+            // Inactive date. Already accepted on update; without it here a
+            // value typed on the create form was silently dropped.
+            'last_working_date' => ['nullable', 'date', 'after_or_equal:joining_date'],
             'employment_type' => ['required', Rule::in(['full_time', 'part_time', 'contract', 'intern'])],
             'work_mode' => ['required', Rule::in(['on_site', 'remote', 'hybrid'])],
 

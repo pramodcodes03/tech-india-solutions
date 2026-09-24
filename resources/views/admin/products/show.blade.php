@@ -37,7 +37,7 @@
                     <p class="text-base dark:text-white-light">{{ $product->category->name ?? '-' }}</p>
                 </div>
                 <div>
-                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400">HSN Code</label>
+                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400">HSN / SAC Code</label>
                     <p class="text-base dark:text-white-light">{{ $product->hsn_code ?? '-' }}</p>
                 </div>
                 <div>

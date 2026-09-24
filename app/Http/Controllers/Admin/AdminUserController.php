@@ -7,9 +7,13 @@ use App\Http\Requests\Admin\ChangePasswordRequest;
 use App\Http\Requests\Admin\StoreAdminRequest;
 use App\Http\Requests\Admin\UpdateAdminRequest;
 use App\Models\Admin;
+use App\Models\Business;
+use App\Models\InternalTicket;
 use App\Support\Tenancy\CurrentBusiness;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 
 class AdminUserController extends Controller
@@ -59,7 +63,12 @@ class AdminUserController extends Controller
 
         $roles = Role::where('guard_name', 'admin')->where('name', '!=', 'Super Admin')->orderBy('name')->get();
 
-        return view('admin.admin-users.create', compact('roles'));
+        return view('admin.admin-users.create', [
+            'roles' => $roles,
+            'businesses' => $this->assignableBusinesses(),
+            'assigned' => collect(),
+            'helpdeskDepartments' => collect(),
+        ]);
     }
 
     public function store(StoreAdminRequest $request)
@@ -91,7 +100,98 @@ class AdminUserController extends Controller
             $admin->assignRole(Role::findById($request->role_id, 'admin'));
         }
 
+        $this->syncBusinesses($admin, $request);
+        $this->syncHelpdeskDepartments($admin, $request);
+
         return redirect()->route('admin.admin-users.index')->with('success', 'Admin user created successfully.');
+    }
+
+    /**
+     * Businesses that may be handed out here.
+     *
+     * Only a Super Admin sees the full list; anyone else can grant access to
+     * businesses they can reach themselves, so this screen cannot be used to
+     * widen someone else's access beyond your own.
+     *
+     * @return Collection<int, Business>
+     */
+    private function assignableBusinesses()
+    {
+        $actor = Auth::guard('admin')->user();
+
+        return $actor->isSuperAdmin()
+            ? Business::where('is_active', true)->orderBy('name')->get()
+            : $actor->accessibleBusinesses();
+    }
+
+    /**
+     * Save the extra businesses this admin may switch into.
+     *
+     * Anything the granting admin cannot reach themselves is dropped rather
+     * than saved — the form is a convenience, not the authority.
+     */
+    private function syncBusinesses(Admin $admin, Request $request): void
+    {
+        // Unticking everything posts no business_ids at all, which would look
+        // identical to "the form had no such field" — the hidden marker tells
+        // the two apart so grants can actually be cleared.
+        if (! $request->boolean('business_ids_submitted')) {
+            return;
+        }
+
+        $allowed = $this->assignableBusinesses()->pluck('id');
+
+        $ids = collect($request->input('business_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $allowed->contains($id))
+            // The home business is implicit; storing it again would show the
+            // same company twice in the switcher.
+            ->reject(fn ($id) => $id === (int) $admin->business_id)
+            ->unique()
+            ->values();
+
+        $actorId = Auth::guard('admin')->id();
+
+        $admin->businesses()->sync(
+            $ids->mapWithKeys(fn ($id) => [$id => ['granted_by' => $actorId]])->all()
+        );
+    }
+
+    /**
+     * Save which helpdesk departments this admin may report on.
+     *
+     * An empty selection clears the restriction rather than removing access —
+     * see the admin_ticket_departments migration.
+     */
+    private function syncHelpdeskDepartments(Admin $admin, Request $request): void
+    {
+        if (! $request->boolean('helpdesk_departments_submitted')) {
+            return;
+        }
+
+        $valid = array_keys(InternalTicket::DEPARTMENTS);
+
+        $departments = collect($request->input('helpdesk_departments', []))
+            ->filter(fn ($d) => in_array($d, $valid, true))
+            ->unique()
+            ->values();
+
+        DB::table('admin_ticket_departments')
+            ->where('admin_id', $admin->id)->delete();
+
+        if ($departments->isEmpty()) {
+            return;
+        }
+
+        DB::table('admin_ticket_departments')->insert(
+            $departments->map(fn ($d) => [
+                'admin_id' => $admin->id,
+                'department' => $d,
+                'granted_by' => Auth::guard('admin')->id(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ])->all()
+        );
     }
 
     public function show($id)
@@ -107,10 +207,16 @@ class AdminUserController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('users.edit'), 403);
 
-        $adminUser = Admin::with('roles')->findOrFail($id);
+        $adminUser = Admin::with('roles', 'businesses')->findOrFail($id);
         $roles = Role::where('guard_name', 'admin')->where('name', '!=', 'Super Admin')->orderBy('name')->get();
 
-        return view('admin.admin-users.edit', compact('adminUser', 'roles'));
+        return view('admin.admin-users.edit', [
+            'adminUser' => $adminUser,
+            'roles' => $roles,
+            'businesses' => $this->assignableBusinesses(),
+            'assigned' => $adminUser->businesses->pluck('id'),
+            'helpdeskDepartments' => collect($adminUser->helpdeskDepartments()),
+        ]);
     }
 
     public function update(UpdateAdminRequest $request, $id)
@@ -126,6 +232,8 @@ class AdminUserController extends Controller
 
         $admin->update($data);
         $admin->syncRoles([Role::findById($request->role_id, 'admin')]);
+        $this->syncBusinesses($admin, $request);
+        $this->syncHelpdeskDepartments($admin, $request);
 
         return redirect()->route('admin.admin-users.index')->with('success', 'Admin user updated successfully.');
     }

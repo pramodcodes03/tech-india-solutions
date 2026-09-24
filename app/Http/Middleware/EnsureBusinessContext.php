@@ -35,6 +35,18 @@ class EnsureBusinessContext
         $isSuper = $admin->hasRole('Super Admin');
 
         if ($isSuper) {
+            // Route-model binding may already have resolved a business for this
+            // request: BelongsToBusiness switches a Super Admin to the business
+            // a record lives in, and SubstituteBindings runs before this
+            // middleware. Re-deriving from the session here would overwrite
+            // that switch, leaving the bound record's relations to resolve
+            // against the wrong tenant — which renders them null.
+            if ($this->current->isSet() && $this->current->get()?->is_active) {
+                session(['business_id' => $this->current->id()]);
+
+                return $next($request);
+            }
+
             $sessionBusinessId = session('business_id');
             $business = $sessionBusinessId ? Business::find($sessionBusinessId) : null;
 
@@ -50,6 +62,37 @@ class EnsureBusinessContext
             }
 
             return redirect()->route('admin.businesses.select');
+        }
+
+        // An admin assigned extra businesses may work in any of them. The
+        // session remembers which one they picked; anything not on their list
+        // is ignored rather than honoured, so a hand-edited session cannot
+        // reach a business they were never granted.
+        if ($admin->canSwitchBusiness()) {
+            $picked = session('business_id');
+
+            if ($picked && $admin->canAccessBusiness((int) $picked)) {
+                $business = Business::find($picked);
+
+                if ($business && $business->is_active) {
+                    $this->current->setWithoutSession($business);
+
+                    return $next($request);
+                }
+            }
+
+            // No valid pick yet — fall back to their home business below, or
+            // to the first one they can reach if they have no home business.
+            if (! $admin->business_id) {
+                $first = $admin->accessibleBusinesses()->first();
+
+                if ($first) {
+                    $this->current->setWithoutSession($first);
+                    session(['business_id' => $first->id]);
+
+                    return $next($request);
+                }
+            }
         }
 
         // Regular admin: pinned to their own business.
