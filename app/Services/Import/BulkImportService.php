@@ -25,11 +25,17 @@ class BulkImportService
         EmployeeImporter $employees,
         PayrollAdjustmentImporter $payroll,
         LeaveBalanceImporter $leave,
+        BreakSheetImporter $breaks,
+        DieselEntryImporter $diesel,
+        VisitorLogImporter $visitors,
     ) {
         $this->importers = [
             $employees->key() => $employees,
             $payroll->key() => $payroll,
             $leave->key() => $leave,
+            $breaks->key() => $breaks,
+            $diesel->key() => $diesel,
+            $visitors->key() => $visitors,
         ];
     }
 

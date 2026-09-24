@@ -84,7 +84,19 @@
                                         <button class="text-danger text-xs hover:underline">Reject</button>
                                     </form>
                                 @endcan
-                            @else
+                            @endif
+                            @can('leaves.delete')
+                                {{-- Approved rows count as a paid comp day in attendance, so the
+                                     confirm spells out what deleting takes away. --}}
+                                <form method="POST" action="{{ route('admin.hr.comp-off.destroy', $c) }}" class="inline ml-2"
+                                    onsubmit="return confirm('{{ $c->status === 'approved'
+                                        ? 'Delete this APPROVED comp-off? The comp day will stop counting as a paid day in attendance. Already-generated payslips are unaffected.'
+                                        : 'Delete this comp-off request? This cannot be undone.' }}')">
+                                    @csrf @method('DELETE')
+                                    <button class="text-danger text-xs hover:underline">Delete</button>
+                                </form>
+                            @endcan
+                            @if(! $c->isPending() && ! (auth('admin')->user()?->can('leaves.delete')))
                                 <span class="text-xs text-gray-400">—</span>
                             @endif
                         </td>

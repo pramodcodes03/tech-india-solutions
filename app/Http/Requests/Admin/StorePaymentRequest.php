@@ -20,6 +20,7 @@ class StorePaymentRequest extends FormRequest
             'mode' => ['required', 'in:cash,cheque,bank_transfer,upi,card'],
             'reference_no' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:500'],
+            'attachment' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ];
     }
 
@@ -33,6 +34,8 @@ class StorePaymentRequest extends FormRequest
             'amount.min' => 'Payment amount must be at least 0.01.',
             'mode.required' => 'Please select a payment mode.',
             'mode.in' => 'Payment mode must be one of: cash, cheque, bank transfer, UPI, or card.',
+            'attachment.mimes' => 'The receipt must be a PDF, JPG or PNG file.',
+            'attachment.max' => 'The receipt may not be larger than 5 MB.',
         ];
     }
 }

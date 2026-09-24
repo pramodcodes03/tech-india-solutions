@@ -3,6 +3,31 @@
 
     @foreach($errors->all() as $e)<div class="alert alert-danger mb-3">{{ $e }}</div>@endforeach
 
+    {{-- Your shift, up front. Requests asking for times outside the assigned
+         shift are the main reason corrections get rejected, so state the
+         window here instead of letting people guess. --}}
+    <div class="max-w-2xl mb-4 p-4 rounded-xl border {{ $shift ? 'border-primary/20 bg-primary/5' : 'border-warning/30 bg-warning/5' }}">
+        <div class="text-[11px] font-semibold text-gray-500 uppercase mb-1.5">Your Shift</div>
+        @if($shift)
+            <div class="font-bold text-lg">{{ $shift->name }}</div>
+            <div class="text-sm text-gray-600 dark:text-gray-300 mt-0.5">
+                {{ \Carbon\Carbon::parse($shift->start_time)->format('g:i A') }}
+                &ndash; {{ \Carbon\Carbon::parse($shift->end_time)->format('g:i A') }}
+                @if($shift->grace_minutes > 0)
+                    <span class="text-gray-500">&middot; {{ $shift->grace_minutes }} min grace</span>
+                @endif
+            </div>
+            <div class="text-xs text-gray-500 mt-2">
+                Enter the times you actually worked <strong>within this shift</strong>. Requests outside it are usually rejected.
+            </div>
+        @else
+            <div class="font-bold text-warning">No shift assigned</div>
+            <div class="text-xs text-gray-500 mt-1">
+                Your attendance is counted on total hours worked. Please ask HR to assign your shift.
+            </div>
+        @endif
+    </div>
+
     <form method="POST" action="{{ route('employee.regularizations.store') }}" class="p-6 rounded-xl bg-white dark:bg-[#1b2e4b] shadow max-w-2xl space-y-5">
         @csrf
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

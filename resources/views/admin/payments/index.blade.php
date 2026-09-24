@@ -63,12 +63,16 @@
                                 <td class="px-4 py-2" x-text="formatDate(item.payment_date)"></td>
                                 <td class="px-4 py-2 text-right font-semibold" x-text="formatCurrency(item.amount)"></td>
                                 <td class="px-4 py-2">
-                                    <span class="badge bg-primary" x-text="formatMode(item.mode)"></span>
+                                    <span class="badge" :class="modeClass(item.mode)" x-text="formatMode(item.mode)"></span>
                                 </td>
                                 <td class="px-4 py-2" x-text="item.reference_no || '-'"></td>
                                 <td class="px-4 py-2">
                                     <div class="flex items-center justify-center gap-2">
                                         <a :href="`{{ url('admin/payments') }}/${item.id}`" class="btn btn-sm btn-outline-info p-1.5" data-tippy-content="View Details"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></a>
+                                        <a x-show="item.attachment" :href="`{{ asset('storage') }}/${item.attachment}`" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success p-1.5" data-tippy-content="View Receipt" x-cloak><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg></a>
+                                        @can('payments.edit')
+                                        <a :href="`{{ url('admin/payments') }}/${item.id}/edit`" class="btn btn-sm btn-outline-warning p-1.5" data-tippy-content="Edit"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></a>
+                                        @endcan
                                         <button type="button" class="btn btn-sm btn-outline-danger p-1.5" @click="deleteItem(item.id)" data-tippy-content="Delete"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
                                     </div>
                                 </td>
@@ -174,8 +178,25 @@
                 },
 
                 formatMode(mode) {
-                    const map = { cash: 'Cash', cheque: 'Cheque', bank_transfer: 'Bank Transfer', upi: 'UPI', card: 'Card' };
+                    const map = { cash: 'Cash', cheque: 'Cheque', bank_transfer: 'Bank Transfer', bank: 'Bank Transfer', upi: 'UPI', card: 'Card' };
                     return map[mode] || mode;
+                },
+
+                // Must stay in sync with the payment-mode Blade component
+                // (never write its tag form here — Blade parses component tags
+                // even inside script blocks and would treat it as markup):
+                // cash = red, bank = green, cheque = yellow, upi = blue, card = purple.
+                modeClass(mode) {
+                    const map = {
+                        cash: 'bg-danger',
+                        bank_transfer: 'bg-success',
+                        bank: 'bg-success',
+                        neft: 'bg-success',
+                        cheque: 'bg-warning',
+                        upi: 'bg-info',
+                        card: 'bg-secondary',
+                    };
+                    return map[mode] || 'bg-dark';
                 },
 
                 deleteItem(id) {

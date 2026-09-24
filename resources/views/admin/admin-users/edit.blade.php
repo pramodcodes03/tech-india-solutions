@@ -47,6 +47,8 @@
                         <label for="password_confirmation">Confirm Password</label>
                         <input id="password_confirmation" name="password_confirmation" type="password" class="form-input" />
                     </div>
+                    <x-admin.helpdesk-departments :selected="$helpdeskDepartments" />
+                    <x-admin.business-access :businesses="$businesses" :assigned="$assigned" :home-id="$adminUser->business_id" />
                     <div>
                         <label for="status">Status <span class="text-danger">*</span></label>
                         <select id="status" name="status" class="form-select">

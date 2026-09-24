@@ -181,6 +181,13 @@
                 <input type="date" name="probation_end_date" value="{{ old('probation_end_date', $emp?->probation_end_date?->format('Y-m-d')) }}" class="form-input mt-1" />
             </div>
             <div>
+                {{-- Same column the bulk import and the export use
+                     (employees.last_working_date) — one field, three ways in. --}}
+                <label class="text-xs font-semibold text-gray-500 uppercase">Inactive Date</label>
+                <input type="date" name="last_working_date" value="{{ old('last_working_date', $emp?->last_working_date?->format('Y-m-d')) }}" class="form-input mt-1" />
+                <div class="text-[10px] text-gray-400 mt-1">Last working day. Leave blank while the employee is still with the company — from this date on they stop counting in headcount, attendance and payroll.</div>
+            </div>
+            <div>
                 <label class="text-xs font-semibold text-gray-500 uppercase">CL &amp; SL Working-days</label>
                 <input type="number" min="0" max="1000" name="cl_sl_working_days" value="{{ old('cl_sl_working_days', $emp?->cl_sl_working_days) }}" placeholder="Inherit (dept / global)" class="form-input mt-1" />
                 <div class="text-[10px] text-gray-400 mt-1">Days since joining before Casual &amp; Sick Leave unlock for this employee. Blank = inherit from department, then global.</div>

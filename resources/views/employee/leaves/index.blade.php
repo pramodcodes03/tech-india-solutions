@@ -34,6 +34,9 @@
                             <td>
                                 <span class="inline-block w-2 h-2 rounded-full align-middle mr-1" style="background: {{ $r->leaveType->color }}"></span>
                                 {{ $r->leaveType->name }}
+                                @if($r->is_combined)
+                                    <div class="text-[10px] font-bold text-info mt-0.5">Combined · {{ $r->split_label }}</div>
+                                @endif
                             </td>
                             <td>{{ $r->from_date->format('d M Y') }} → {{ $r->to_date->format('d M Y') }}</td>
                             <td>
@@ -59,7 +62,10 @@
                             <td>{{ $r->created_at->format('d M, g:i A') }}</td>
                             <td>
                                 <a href="{{ route('employee.leaves.show', $r) }}" class="text-primary text-xs">View</a>
-                                @if(in_array($r->status, ['pending','approved']))
+                                {{-- Pending only. Once approved the days are consumed and
+                                     the balance debited, so reversing it is an HR
+                                     correction rather than a self-service action. --}}
+                                @if($r->status === 'pending')
                                     <form method="POST" action="{{ route('employee.leaves.cancel', $r) }}" class="inline" onsubmit="return confirm('Cancel this leave request?')">
                                         @csrf
                                         <button class="text-danger text-xs ml-2">Cancel</button>

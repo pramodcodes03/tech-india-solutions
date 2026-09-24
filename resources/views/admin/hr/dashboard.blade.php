@@ -221,7 +221,10 @@
                     @foreach($recentPendingLeaves as $lr)
                         <tr>
                             <td class="font-semibold">{{ $lr->employee?->full_name ?? '—' }}</td>
-                            <td>{{ $lr->leaveType?->name ?? '—' }}</td>
+                            <td>
+                                {{ $lr->leaveType?->name ?? '—' }}
+                                @if($lr->is_combined)<div class="text-[10px] font-bold text-info">Combined</div>@endif
+                            </td>
                             <td>{{ $lr->from_date?->format('d M Y') }}</td>
                             <td>{{ $lr->to_date?->format('d M Y') }}</td>
                             <td class="text-right font-semibold">{{ $lr->days }}</td>
@@ -298,19 +301,35 @@
         const hc = @json($headcountTrend);
         new ApexCharts(document.querySelector('#chart-headcount'), {
             chart: { type: 'area', height: 320, toolbar: { show: false }, animations: anim, fontFamily: 'inherit' },
-            series: [{ name: 'Headcount', data: hc.map(r => r.value) }],
+            // Total Employees is the original series, unchanged. The three
+            // breakdowns are added alongside it.
+            series: [
+                { name: 'Total Employees', data: hc.map(r => r.value) },
+                { name: 'Active Employees', data: hc.map(r => r.active) },
+                { name: 'Inactive Employees', data: hc.map(r => r.inactive) },
+                { name: 'Probation Employees', data: hc.map(r => r.probation) },
+            ],
             xaxis: { categories: hc.map(r => r.label), labels: { style: { colors: '#8a8a8a' } } },
             yaxis: { labels: { style: { colors: '#8a8a8a' } } },
-            stroke: { curve: 'smooth', width: 3 },
-            colors: [P.primary],
+            stroke: { curve: 'smooth', width: [3, 2, 2, 2] },
+            colors: [P.primary, P.success, P.danger, P.warning],
             fill: {
                 type: 'gradient',
-                gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05, stops: [0, 90, 100] }
+                gradient: {
+                    shadeIntensity: 1,
+                    // Only the total keeps the filled look; the other three stay
+                    // faint so four overlapping areas do not turn to mud.
+                    opacityFrom: [0.45, 0.10, 0.10, 0.10],
+                    opacityTo: 0.02,
+                    stops: [0, 90, 100],
+                }
             },
             dataLabels: { enabled: false },
+            legend: { show: true, position: 'top', horizontalAlign: 'left', fontFamily: 'inherit', labels: { colors: '#8a8a8a' } },
             grid: { borderColor: 'rgba(0,0,0,.06)', strokeDashArray: 3 },
             markers: { size: 4, strokeWidth: 2, strokeColors: '#fff', hover: { size: 6 } },
-            tooltip: commonTooltip
+            // Shared so hovering a month shows all four figures at once.
+            tooltip: { ...commonTooltip, shared: true, intersect: false }
         }).render();
 
         // ── 2. Attendance radial (multi-series donut) ──────────────────

@@ -81,7 +81,7 @@
                 </div>
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Created By</p>
-                    <p class="font-semibold">{{ $expense->creator?->name ?? '—' }}</p>
+                    <p class="font-semibold">{{ $expense->creator?->display_name ?? '—' }}</p>
                 </div>
             </div>
 
@@ -152,7 +152,7 @@
                             </div>
                             <div>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">Payment Method</p>
-                                <p class="font-semibold">{{ $expense->payment_method ? ucfirst($expense->payment_method) : '—' }}</p>
+                                <p class="font-semibold"><x-payment-mode :mode="$expense->payment_method" /></p>
                             </div>
                             <div>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">Reference</p>

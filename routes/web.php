@@ -30,6 +30,20 @@ use App\Http\Controllers\Admin\Hr\RecruitmentStageController as HrRecruitmentSta
 use App\Http\Controllers\Admin\Hr\RecruitmentBatchController as HrRecruitmentBatchController;
 use App\Http\Controllers\Admin\Hr\RecruitmentReportController as HrRecruitmentReportController;
 use App\Http\Controllers\Admin\Hr\ShiftController as HrShiftController;
+use App\Http\Controllers\Admin\Hr\Trackers\BreakSheetController as BreakSheetTrackerController;
+use App\Http\Controllers\Admin\Hr\Trackers\DieselController as DieselTrackerController;
+use App\Http\Controllers\Admin\Hr\Trackers\TrackerHubController;
+use App\Http\Controllers\Admin\Hr\Trackers\TrackerOptionController;
+use App\Http\Controllers\Admin\Hr\Trackers\VisitorController as VisitorTrackerController;
+use App\Http\Controllers\Admin\Hr\Performance\BandController as PerfBandController;
+use App\Http\Controllers\Admin\Hr\Performance\CycleController as PerfCycleController;
+use App\Http\Controllers\Admin\Hr\Performance\DashboardController as PerfDashboardController;
+use App\Http\Controllers\Admin\Hr\Performance\GoalAssignmentController as PerfGoalController;
+use App\Http\Controllers\Admin\Hr\Performance\KpiController as PerfKpiController;
+use App\Http\Controllers\Admin\Hr\Performance\KraController as PerfKraController;
+use App\Http\Controllers\Admin\Hr\Performance\ReportController as PerfReportController;
+use App\Http\Controllers\Admin\Hr\Performance\ReviewController as PerfReviewController;
+use App\Http\Controllers\Admin\Hr\Performance\RewardController as PerfRewardController;
 use App\Http\Controllers\Admin\Hr\WarningController as HrWarningController;
 use App\Http\Controllers\Admin\Hr\WeekOffController as HrWeekOffController;
 use App\Http\Controllers\Employee\AttendanceController as EmpAttendanceController;
@@ -40,6 +54,8 @@ use App\Http\Controllers\Employee\LeaveController as EmpLeaveController;
 use App\Http\Controllers\Employee\PayslipController as EmpPayslipController;
 use App\Http\Controllers\Employee\AppraisalController as EmpAppraisalController;
 use App\Http\Controllers\Employee\PerformanceController as EmpPerformanceController;
+use App\Http\Controllers\Employee\PerformanceGoalController as EmpPerfGoalController;
+use App\Http\Controllers\Employee\TeamPerformanceController as EmpTeamPerfController;
 use App\Http\Controllers\Employee\ProfileController as EmpProfileController;
 use App\Http\Controllers\Employee\PenaltyController as EmpPenaltyController;
 use App\Http\Controllers\Employee\WarningController as EmpWarningController;
@@ -190,13 +206,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Purchase Order Management
         Route::resource('purchase-orders', PurchaseOrderController::class)->parameters(['purchase-orders' => 'purchase_order']);
         Route::post('purchase-orders/{purchase_order}/receive', [PurchaseOrderController::class, 'receiveGoods'])->name('purchase-orders.receive');
+        Route::get('purchase-orders/{purchase_order}/pdf', [PurchaseOrderController::class, 'pdf'])->name('purchase-orders.pdf');
 
         // Invoice Management
         Route::resource('invoices', InvoiceController::class);
         Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
 
         // Payment Management
-        Route::resource('payments', PaymentController::class)->except(['edit', 'update']);
+        Route::resource('payments', PaymentController::class);
 
         // Expense Management
         Route::resource('expense-categories', ExpenseCategoryController::class)->parameters(['expense-categories' => 'expense_category']);
@@ -210,6 +227,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('expenses/{expense}/mark-paid', [ExpenseController::class, 'markPaid'])->name('expenses.mark-paid');
 
         // Standardized bulk import framework (validate → preview → confirm → log)
+        // ── Documents & PDF Pack (Module D) ─────────────────────────────
+        // All 42 documents behind one hub and one render route, driven by
+        // DocumentCatalog. Each pack is gated on its own permission.
+        Route::get('documents', [\App\Http\Controllers\Admin\DocumentController::class, 'index'])->name('documents.index');
+        Route::get('documents/letterhead', [\App\Http\Controllers\Admin\DocumentController::class, 'letterhead'])->name('documents.letterhead');
+        Route::post('documents/letterhead', [\App\Http\Controllers\Admin\DocumentController::class, 'saveLetterhead'])->name('documents.letterhead.save');
+        Route::get('documents/{key}/render', [\App\Http\Controllers\Admin\DocumentController::class, 'render'])->name('documents.render');
+
         Route::get('imports', [\App\Http\Controllers\Admin\BulkImportController::class, 'index'])->name('imports.index');
         Route::get('imports/log/{log}/errors', [\App\Http\Controllers\Admin\BulkImportController::class, 'errorReport'])->name('imports.errors');
         Route::get('imports/{key}', [\App\Http\Controllers\Admin\BulkImportController::class, 'form'])->name('imports.form');
@@ -228,6 +253,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('budgets', [\App\Http\Controllers\Admin\BudgetController::class, 'store'])->name('budgets.store');
         Route::put('budgets/{budget}', [\App\Http\Controllers\Admin\BudgetController::class, 'update'])->name('budgets.update');
         Route::delete('budgets/{budget}', [\App\Http\Controllers\Admin\BudgetController::class, 'destroy'])->name('budgets.destroy');
+        // Mid-period top-ups (extra money added to a running budget)
+        Route::post('budgets/{budget}/topup', [\App\Http\Controllers\Admin\BudgetController::class, 'topup'])->name('budgets.topup');
+        Route::delete('budgets/{budget}/topup/{topup}', [\App\Http\Controllers\Admin\BudgetController::class, 'destroyTopup'])->name('budgets.topup.destroy');
 
         // Requisitions (purchase requests with approval chain)
         // Requisition categories (manageable dropdown options)
@@ -364,6 +392,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('comp-off', [HrCompOffController::class, 'index'])->name('comp-off.index');
             Route::post('comp-off/{compOff}/approve', [HrCompOffController::class, 'approve'])->name('comp-off.approve');
             Route::post('comp-off/{compOff}/reject', [HrCompOffController::class, 'reject'])->name('comp-off.reject');
+            Route::delete('comp-off/{compOff}', [HrCompOffController::class, 'destroy'])->name('comp-off.destroy');
 
             // Leave Types
             Route::resource('leave-types', HrLeaveTypeController::class)->except(['show'])->parameters(['leave-types' => 'leaveType']);
@@ -395,12 +424,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('helpdesk/{internalTicket}/assign', [\App\Http\Controllers\Admin\Hr\InternalTicketController::class, 'assign'])->name('internal-tickets.assign');
             Route::post('helpdesk/{internalTicket}/status', [\App\Http\Controllers\Admin\Hr\InternalTicketController::class, 'status'])->name('internal-tickets.status');
             Route::post('helpdesk/{internalTicket}/comment', [\App\Http\Controllers\Admin\Hr\InternalTicketController::class, 'comment'])->name('internal-tickets.comment');
+            Route::delete('helpdesk/{internalTicket}', [\App\Http\Controllers\Admin\Hr\InternalTicketController::class, 'destroy'])->name('internal-tickets.destroy');
 
             // Attendance regularization (employee-raised corrections → HR review)
             Route::get('regularizations', [HrRegularizationController::class, 'index'])->name('regularizations.index');
             Route::get('regularizations/{regularization}', [HrRegularizationController::class, 'show'])->name('regularizations.show');
             Route::post('regularizations/{regularization}/approve', [HrRegularizationController::class, 'approve'])->name('regularizations.approve');
             Route::post('regularizations/{regularization}/reject', [HrRegularizationController::class, 'reject'])->name('regularizations.reject');
+            // Bulk delete is declared on the collection URI, so it cannot be
+            // shadowed by the {regularization} route below.
+            Route::delete('regularizations', [HrRegularizationController::class, 'bulkDestroy'])->name('regularizations.bulk-destroy');
+            Route::delete('regularizations/{regularization}', [HrRegularizationController::class, 'destroy'])->name('regularizations.destroy');
 
             // Leave settings (probation, accrual, backdated window, policy doc)
             Route::get('leave-settings', [\App\Http\Controllers\Admin\Hr\LeaveSettingsController::class, 'index'])->name('leave-settings.index');
@@ -409,6 +443,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
             // Leaves
             Route::get('leaves', [HrLeaveController::class, 'index'])->name('leaves.index');
+            // Declared before leaves/{leaveRequest} so 'export' is not
+            // swallowed by the show route's model binding.
+            Route::get('leaves/export/excel', [HrLeaveController::class, 'exportExcel'])->name('leaves.export.excel');
+            Route::get('leaves/export/pdf', [HrLeaveController::class, 'exportPdf'])->name('leaves.export.pdf');
             Route::get('leave-balances', [HrLeaveBalanceController::class, 'index'])->name('leave-balances.index');
             Route::post('leave-balances/bulk-allocate', [HrLeaveBalanceController::class, 'bulkAllocate'])->name('leave-balances.bulk-allocate');
             Route::get('leave-balances/{employee}', [HrLeaveBalanceController::class, 'edit'])->name('leave-balances.edit');
@@ -455,7 +493,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('payroll/approvals/{salaryStructure}/approve', [HrPayrollController::class, 'approveStructure'])->name('payroll.approvals.approve');
             Route::post('payroll/approvals/{salaryStructure}/reject', [HrPayrollController::class, 'rejectStructure'])->name('payroll.approvals.reject');
 
+            // Bulk delete must be declared before the `payroll/{payslip}`
+            // wildcard so POST payroll/bulk-delete is not read as a payslip id.
+            Route::post('payroll/bulk-delete', [HrPayrollController::class, 'bulkDestroy'])->name('payroll.bulk-destroy');
+
             Route::get('payroll/{payslip}', [HrPayrollController::class, 'show'])->name('payroll.show');
+            Route::delete('payroll/{payslip}', [HrPayrollController::class, 'destroy'])->name('payroll.destroy');
             Route::get('payroll/{payslip}/pdf', [HrPayrollController::class, 'pdf'])->name('payroll.pdf');
             Route::post('payroll/{payslip}/mark-paid', [HrPayrollController::class, 'markPaid'])->name('payroll.mark-paid');
             Route::get('employees/{employee}/salary', [HrPayrollController::class, 'salaryForm'])->name('salary.form');
@@ -477,12 +520,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('warnings', [HrWarningController::class, 'store'])->name('warnings.store');
             Route::get('warnings/{warning}', [HrWarningController::class, 'show'])->name('warnings.show');
             Route::post('warnings/{warning}/withdraw', [HrWarningController::class, 'withdraw'])->name('warnings.withdraw');
+            Route::delete('warnings/{warning}', [HrWarningController::class, 'destroy'])->name('warnings.destroy');
 
             // Penalties
             Route::get('penalties', [HrPenaltyController::class, 'index'])->name('penalties.index');
             Route::get('penalties/create', [HrPenaltyController::class, 'create'])->name('penalties.create');
             Route::post('penalties', [HrPenaltyController::class, 'store'])->name('penalties.store');
             Route::post('penalties/{penalty}/reduce', [HrPenaltyController::class, 'reduce'])->name('penalties.reduce');
+            Route::delete('penalties/{penalty}', [HrPenaltyController::class, 'destroy'])->name('penalties.destroy');
             Route::get('penalty-types', [HrPenaltyController::class, 'types'])->name('penalty-types.index');
             Route::post('penalty-types', [HrPenaltyController::class, 'storeType'])->name('penalty-types.store');
             Route::put('penalty-types/{type}', [HrPenaltyController::class, 'updateType'])->name('penalty-types.update');
@@ -498,6 +543,132 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('appraisals/{appraisal}', [HrAppraisalController::class, 'update'])->name('appraisals.update');
             Route::delete('appraisals/{appraisal}', [HrAppraisalController::class, 'destroy'])->name('appraisals.destroy');
             Route::get('appraisals/{appraisal}/pdf', [HrAppraisalController::class, 'pdf'])->name('appraisals.pdf');
+
+            // ── Operational Trackers ────────────────────────────────────────
+            // Break Sheet, Diesel and Daily Visitor registers. Each one is
+            // permission-gated on its own module (break_tracker.*,
+            // diesel_tracker.*, visitor_tracker.*) so a business can hand out
+            // one register without exposing the others.
+            Route::prefix('trackers')->name('trackers.')->group(function () {
+                Route::get('/', [TrackerHubController::class, 'index'])->name('index');
+
+                // Break Sheet Tracker
+                Route::get('break-sheet', [BreakSheetTrackerController::class, 'index'])->name('break.index');
+                Route::get('break-sheet/analytics', [BreakSheetTrackerController::class, 'analytics'])->name('break.analytics');
+                Route::get('break-sheet/export', [BreakSheetTrackerController::class, 'export'])->name('break.export');
+                Route::get('break-sheet/create', [BreakSheetTrackerController::class, 'create'])->name('break.create');
+                Route::post('break-sheet', [BreakSheetTrackerController::class, 'store'])->name('break.store');
+                Route::get('break-sheet/{break}/edit', [BreakSheetTrackerController::class, 'edit'])->name('break.edit');
+                Route::put('break-sheet/{break}', [BreakSheetTrackerController::class, 'update'])->name('break.update');
+                // Registered before the {break} route so DELETE break-sheet/bulk
+                // is not read as a break entry whose id is "bulk".
+                Route::delete('break-sheet/bulk', [BreakSheetTrackerController::class, 'bulkDestroy'])->name('break.bulk-destroy');
+                Route::delete('break-sheet/{break}', [BreakSheetTrackerController::class, 'destroy'])->name('break.destroy');
+
+                // Diesel Tracker — the literal routes must precede {diesel},
+                // otherwise /diesel/budgets binds "budgets" as an entry id.
+                Route::get('diesel', [DieselTrackerController::class, 'index'])->name('diesel.index');
+                Route::get('diesel/analytics', [DieselTrackerController::class, 'analytics'])->name('diesel.analytics');
+                Route::get('diesel/export', [DieselTrackerController::class, 'export'])->name('diesel.export');
+                Route::get('diesel/create', [DieselTrackerController::class, 'create'])->name('diesel.create');
+                Route::get('diesel/budgets', [DieselTrackerController::class, 'budgets'])->name('diesel.budgets');
+                Route::post('diesel/budgets', [DieselTrackerController::class, 'storeBudget'])->name('diesel.budgets.store');
+                Route::delete('diesel/budgets/{budget}', [DieselTrackerController::class, 'destroyBudget'])->name('diesel.budgets.destroy');
+                Route::post('diesel', [DieselTrackerController::class, 'store'])->name('diesel.store');
+                Route::get('diesel/{diesel}/slip', [DieselTrackerController::class, 'attachment'])->name('diesel.slip');
+                Route::get('diesel/{diesel}/edit', [DieselTrackerController::class, 'edit'])->name('diesel.edit');
+                Route::put('diesel/{diesel}', [DieselTrackerController::class, 'update'])->name('diesel.update');
+                Route::delete('diesel/bulk', [DieselTrackerController::class, 'bulkDestroy'])->name('diesel.bulk-destroy');
+                Route::delete('diesel/{diesel}', [DieselTrackerController::class, 'destroy'])->name('diesel.destroy');
+
+                // Daily Visitor Tracker
+                Route::get('visitors', [VisitorTrackerController::class, 'index'])->name('visitors.index');
+                Route::get('visitors/analytics', [VisitorTrackerController::class, 'analytics'])->name('visitors.analytics');
+                Route::get('visitors/export', [VisitorTrackerController::class, 'export'])->name('visitors.export');
+                Route::get('visitors/create', [VisitorTrackerController::class, 'create'])->name('visitors.create');
+                Route::post('visitors', [VisitorTrackerController::class, 'store'])->name('visitors.store');
+                Route::get('visitors/{visitor}/edit', [VisitorTrackerController::class, 'edit'])->name('visitors.edit');
+                Route::put('visitors/{visitor}', [VisitorTrackerController::class, 'update'])->name('visitors.update');
+                Route::delete('visitors/bulk', [VisitorTrackerController::class, 'bulkDestroy'])->name('visitors.bulk-destroy');
+                Route::delete('visitors/{visitor}', [VisitorTrackerController::class, 'destroy'])->name('visitors.destroy');
+
+                // Shared dropdown values (break types, visitor sources, purposes)
+                Route::get('settings', [TrackerOptionController::class, 'index'])->name('options.index');
+                Route::post('settings', [TrackerOptionController::class, 'store'])->name('options.store');
+                Route::put('settings/{option}', [TrackerOptionController::class, 'update'])->name('options.update');
+                Route::delete('settings/{option}', [TrackerOptionController::class, 'destroy'])->name('options.destroy');
+            });
+
+            // ── Performance Management (Module A: KRA / KPI) ─────────────────
+            // Masters → assignment → the three assessment stages → scoring,
+            // rewards and reports. Each area is gated on its own permission
+            // row so HR, a manager and an admin can be given different slices.
+            Route::prefix('performance')->name('performance.')->group(function () {
+                Route::get('/', [PerfDashboardController::class, 'index'])->name('dashboard');
+
+                // Cycles — the review periods everything hangs off.
+                Route::get('cycles', [PerfCycleController::class, 'index'])->name('cycles.index');
+                Route::get('cycles/create', [PerfCycleController::class, 'create'])->name('cycles.create');
+                Route::post('cycles', [PerfCycleController::class, 'store'])->name('cycles.store');
+                Route::get('cycles/{cycle}', [PerfCycleController::class, 'show'])->name('cycles.show');
+                Route::get('cycles/{cycle}/edit', [PerfCycleController::class, 'edit'])->name('cycles.edit');
+                Route::put('cycles/{cycle}', [PerfCycleController::class, 'update'])->name('cycles.update');
+                Route::post('cycles/{cycle}/transition', [PerfCycleController::class, 'transition'])->name('cycles.transition');
+                Route::post('cycles/{cycle}/roll-over', [PerfCycleController::class, 'rollOver'])->name('cycles.roll-over');
+                Route::delete('cycles/{cycle}', [PerfCycleController::class, 'destroy'])->name('cycles.destroy');
+
+                // KRA master.
+                Route::get('kras', [PerfKraController::class, 'index'])->name('kras.index');
+                Route::get('kras/create', [PerfKraController::class, 'create'])->name('kras.create');
+                Route::post('kras', [PerfKraController::class, 'store'])->name('kras.store');
+                Route::get('kras/{kra}', [PerfKraController::class, 'show'])->name('kras.show');
+                Route::get('kras/{kra}/edit', [PerfKraController::class, 'edit'])->name('kras.edit');
+                Route::put('kras/{kra}', [PerfKraController::class, 'update'])->name('kras.update');
+                Route::delete('kras/{kra}', [PerfKraController::class, 'destroy'])->name('kras.destroy');
+
+                // KPI master.
+                Route::get('kpis', [PerfKpiController::class, 'index'])->name('kpis.index');
+                Route::get('kpis/create', [PerfKpiController::class, 'create'])->name('kpis.create');
+                Route::post('kpis', [PerfKpiController::class, 'store'])->name('kpis.store');
+                Route::get('kpis/{kpi}/edit', [PerfKpiController::class, 'edit'])->name('kpis.edit');
+                Route::put('kpis/{kpi}', [PerfKpiController::class, 'update'])->name('kpis.update');
+                Route::delete('kpis/{kpi}', [PerfKpiController::class, 'destroy'])->name('kpis.destroy');
+
+                // Goal assignment + the bulk weightage grid. The literal paths
+                // come first so /goals/weightages is not read as a goal id.
+                Route::get('goals', [PerfGoalController::class, 'index'])->name('goals.index');
+                Route::get('goals/assign', [PerfGoalController::class, 'create'])->name('goals.create');
+                Route::post('goals/assign', [PerfGoalController::class, 'store'])->name('goals.store');
+                Route::get('goals/weightages', [PerfGoalController::class, 'weightages'])->name('goals.weightages');
+                Route::post('goals/weightages', [PerfGoalController::class, 'saveWeightages'])->name('goals.weightages.save');
+                Route::get('goals/weightages/export', [PerfGoalController::class, 'exportWeightages'])->name('goals.weightages.export');
+                Route::post('goals/weightages/import', [PerfGoalController::class, 'importWeightages'])->name('goals.weightages.import');
+                Route::delete('goals/{goal}', [PerfGoalController::class, 'destroy'])->name('goals.destroy');
+
+                // Reviews — the pending queues and the per-employee review desk.
+                Route::get('reviews', [PerfReviewController::class, 'index'])->name('reviews.index');
+                Route::get('reviews/{cycle}/{employee}', [PerfReviewController::class, 'show'])->name('reviews.show');
+                Route::post('reviews/{cycle}/{employee}/manager', [PerfReviewController::class, 'managerReview'])->name('reviews.manager');
+                Route::post('reviews/{cycle}/{employee}/hr', [PerfReviewController::class, 'hrReview'])->name('reviews.hr');
+                Route::post('reviews/{cycle}/{employee}/finalize', [PerfReviewController::class, 'finalize'])->name('reviews.finalize');
+                Route::post('reviews/{cycle}/{employee}/send-back', [PerfReviewController::class, 'sendBack'])->name('reviews.send-back');
+
+                // Bands, the bell curve, and rewards.
+                Route::get('bands', [PerfBandController::class, 'index'])->name('bands.index');
+                Route::post('bands', [PerfBandController::class, 'store'])->name('bands.store');
+                Route::put('bands/{band}', [PerfBandController::class, 'update'])->name('bands.update');
+                Route::delete('bands/{band}', [PerfBandController::class, 'destroy'])->name('bands.destroy');
+                Route::post('bell-curve/toggle', [PerfBandController::class, 'toggleBellCurve'])->name('bell-curve.toggle');
+                Route::post('bell-curve/apply', [PerfBandController::class, 'applyBellCurve'])->name('bell-curve.apply');
+                Route::post('bell-curve/clear', [PerfBandController::class, 'clearBellCurve'])->name('bell-curve.clear');
+
+                Route::get('rewards', [PerfRewardController::class, 'index'])->name('rewards.index');
+                Route::post('rewards/{score}/decide', [PerfRewardController::class, 'decide'])->name('rewards.decide');
+
+                // Reports — thirteen types behind one hub.
+                Route::get('reports', [PerfReportController::class, 'index'])->name('reports.index');
+                Route::get('reports/{report}', [PerfReportController::class, 'show'])->name('reports.show');
+            });
         });
 
         // ════════════════════════════════════════════════════════════════
@@ -625,6 +796,10 @@ Route::prefix('employee')->name('employee.')->group(function () {
         Route::post('regularizations', [\App\Http\Controllers\Employee\RegularizationController::class, 'store'])->name('regularizations.store');
         Route::post('regularizations/{regularization}/cancel', [\App\Http\Controllers\Employee\RegularizationController::class, 'cancel'])->name('regularizations.cancel');
 
+        // Break Sheet — read-only view of the breaks recorded against this
+        // employee. Entries are made by supervisors through HR → Trackers.
+        Route::get('break-sheet', [\App\Http\Controllers\Employee\BreakSheetController::class, 'index'])->name('break-sheet.index');
+
         // Leaves
         Route::get('leaves', [EmpLeaveController::class, 'index'])->name('leaves.index');
         Route::get('leaves/policy', [EmpLeaveController::class, 'policy'])->name('leaves.policy');
@@ -636,6 +811,7 @@ Route::prefix('employee')->name('employee.')->group(function () {
         // My Budget — budgets sanctioned to this employee
         Route::get('budget', [\App\Http\Controllers\Employee\BudgetController::class, 'index'])->name('budget.index');
         Route::post('budget/{budget}/utilize', [\App\Http\Controllers\Employee\BudgetExpenseController::class, 'store'])->name('budget.utilize');
+        Route::put('budget/{budget}/spend/{expense}', [\App\Http\Controllers\Employee\BudgetExpenseController::class, 'update'])->name('budget.spend.update');
 
         // Team Leaves — Department Head approvals (scoped to departments they head)
         Route::get('team-leaves', [\App\Http\Controllers\Employee\TeamLeaveController::class, 'index'])->name('team-leaves.index');
@@ -652,6 +828,10 @@ Route::prefix('employee')->name('employee.')->group(function () {
         Route::delete('comp-off/{compOff}', [\App\Http\Controllers\Employee\CompOffController::class, 'cancel'])->name('comp-off.cancel');
 
         // Payslips
+        // Admin-gated inside the controller: an employee never sees this
+        // control on their own portal. Declared before payslips/{payslip} so
+        // "bulk" is never bound as a payslip id.
+        Route::delete('payslips/bulk', [EmpPayslipController::class, 'bulkDestroy'])->name('payslips.bulk-destroy');
         Route::get('payslips', [EmpPayslipController::class, 'index'])->name('payslips.index');
         Route::get('payslips/{payslip}', [EmpPayslipController::class, 'show'])->name('payslips.show');
         Route::get('payslips/{payslip}/pdf', [EmpPayslipController::class, 'pdf'])->name('payslips.pdf');
@@ -669,6 +849,21 @@ Route::prefix('employee')->name('employee.')->group(function () {
 
         // Performance
         Route::get('performance', [EmpPerformanceController::class, 'index'])->name('performance.index');
+
+        // ── Performance goals (Module A) ─────────────────────────────────
+        // My KRAs and self-assessment, plus the manager's review desk for
+        // whoever is named as manager on an assigned goal.
+        Route::get('my-goals', [EmpPerfGoalController::class, 'index'])->name('performance-goals.index');
+        Route::get('my-goals/{cycle}/self-assessment', [EmpPerfGoalController::class, 'selfAssessment'])->name('performance-goals.self-assessment');
+        Route::post('my-goals/{cycle}/self-assessment', [EmpPerfGoalController::class, 'storeSelfAssessment'])->name('performance-goals.self-assessment.store');
+        Route::post('my-goals/{goal}/evidence', [EmpPerfGoalController::class, 'uploadEvidence'])->name('performance-goals.evidence.store');
+        Route::get('performance-evidence/{document}', [EmpPerfGoalController::class, 'downloadEvidence'])->name('performance-goals.evidence.download');
+        Route::delete('performance-evidence/{document}', [EmpPerfGoalController::class, 'deleteEvidence'])->name('performance-goals.evidence.destroy');
+
+        Route::get('team-performance', [EmpTeamPerfController::class, 'index'])->name('team-performance.index');
+        Route::get('team-performance/{cycle}/{employee}', [EmpTeamPerfController::class, 'show'])->name('team-performance.show');
+        Route::post('team-performance/{cycle}/{employee}', [EmpTeamPerfController::class, 'store'])->name('team-performance.store');
+        Route::post('team-performance/{cycle}/{employee}/send-back', [EmpTeamPerfController::class, 'sendBack'])->name('team-performance.send-back');
 
         // Appraisals (my increment history)
         Route::get('appraisals', [EmpAppraisalController::class, 'index'])->name('appraisals.index');

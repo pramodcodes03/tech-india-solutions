@@ -3,6 +3,15 @@
         <div class="flex items-center justify-between gap-4 mb-5">
             <h5 class="text-lg font-semibold dark:text-white-light">Leads Board</h5>
             <div class="flex items-center gap-3">
+                {{-- Product filter — GET reload keeps the board server-rendered --}}
+                <form method="GET" action="{{ route('admin.leads.kanban') }}">
+                    <select name="product_id" class="form-select py-2 min-w-[180px]" onchange="this.form.submit()">
+                        <option value="">-- All Products --</option>
+                        @foreach($products as $product)
+                            <option value="{{ $product->id }}" @selected($productId == $product->id)>{{ $product->name }}</option>
+                        @endforeach
+                    </select>
+                </form>
                 <a href="{{ route('admin.leads.index') }}" class="btn btn-outline-primary gap-2 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
                     Table View
@@ -57,6 +66,9 @@
                                 <a href="{{ route('admin.leads.show', $lead->id) }}" class="block" onclick="event.stopPropagation()">
                                     <h6 class="text-sm font-semibold dark:text-white-light mb-1">{{ $lead->name }}</h6>
                                 </a>
+                                @if($lead->product)
+                                    <span class="badge bg-primary/10 text-primary text-[10px] mb-1">{{ $lead->product->name }}</span>
+                                @endif
                                 @if($lead->company)
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{ $lead->company }}</p>
                                 @endif

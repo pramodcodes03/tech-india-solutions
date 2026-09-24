@@ -1,0 +1,1188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Virtual Education Expo — Platform Proposal &amp; Scope</title>
+<style>
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    box-sizing: border-box;
+  }
+  @page { size: A4; margin: 14mm 14mm; }
+  @page :first { margin: 0; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #1f2937;
+    background: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+  }
+
+  /* ── Page wrapper ────────────────────────── */
+  .page {
+    padding: 0;
+    page-break-after: always;
+    position: relative;
+    background: #ffffff !important;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  @media screen {
+    body { background: #e5e7eb; padding: 20px 0; }
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto 20px;
+      padding: 14mm 14mm;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    .cover { padding: 28mm 18mm !important; }
+  }
+
+  /* ── Cover page ──────────────────────────── */
+  .cover {
+    background: linear-gradient(135deg, #0f2b5b 0%, #12356f 55%, #071b3d 100%) !important;
+    background-color: #0f2b5b !important;
+    color: #ffffff !important;
+    padding: 28mm 18mm;
+    position: relative;
+    overflow: hidden;
+    min-height: 297mm;
+  }
+  @media print {
+    .cover {
+      width: 210mm; height: 297mm; min-height: 297mm;
+      padding: 28mm 18mm !important;
+    }
+  }
+  .cover::before {
+    content: "";
+    position: absolute;
+    top: -120px; right: -120px;
+    width: 380px; height: 380px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.07) !important;
+  }
+  .cover::after {
+    content: "";
+    position: absolute;
+    bottom: -100px; left: -80px;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: rgba(20,184,166,0.22) !important;
+  }
+  .cover-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #2dd4bf !important;
+    padding: 7px 16px;
+    border: 1.5px solid rgba(45,212,191,0.55);
+    border-radius: 999px;
+    margin-bottom: 32px;
+    background: rgba(45,212,191,0.08) !important;
+  }
+  .cover h1 {
+    font-size: 54px;
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -1.5px;
+    margin: 0 0 18px;
+    color: #ffffff !important;
+  }
+  .cover h1 .accent { color: #2dd4bf !important; }
+  .cover .subtitle {
+    font-size: 18px;
+    color: rgba(255,255,255,0.85) !important;
+    max-width: 500px;
+    line-height: 1.55;
+  }
+  .cover .subtitle strong { color: #fff !important; }
+  .cover-meta {
+    margin-top: 34mm;
+    border-top: 1px solid rgba(255,255,255,0.22);
+    padding-top: 22px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px 30px;
+    position: relative;
+  }
+  .cover-meta .item .label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.62) !important;
+  }
+  .cover-meta .item .value {
+    font-size: 17px;
+    font-weight: 700;
+    color: #ffffff !important;
+    margin-top: 5px;
+  }
+  .cover-footer {
+    position: absolute;
+    bottom: 22mm; left: 18mm; right: 18mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: rgba(255,255,255,0.6) !important;
+    letter-spacing: 1px;
+  }
+  .cover-footer .pill {
+    display: inline-block;
+    padding: 5px 12px;
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 999px;
+    color: rgba(255,255,255,0.78) !important;
+    background: rgba(255,255,255,0.05) !important;
+  }
+
+  /* ── Content page ────────────────────────── */
+  .content-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 26px;
+  }
+  .content-head .brand {
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #0f2b5b !important;
+    font-weight: 800;
+  }
+  .content-head .page-no {
+    font-size: 12px;
+    color: #9ca3af;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+  }
+
+  .section-label {
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #0f2b5b !important;
+    background: rgba(15,43,91,0.08) !important;
+    padding: 6px 13px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+  }
+  h2.section-title {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.6px;
+    color: #111827;
+    margin: 0 0 6px;
+    line-height: 1.15;
+  }
+  .section-rule {
+    width: 56px;
+    height: 5px;
+    background: linear-gradient(90deg, #0f2b5b, #2dd4bf) !important;
+    background-color: #0f2b5b !important;
+    border-radius: 3px;
+    margin-top: 10px;
+    margin-bottom: 24px;
+  }
+
+  p.lead {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #4b5563;
+    margin: 0 0 16px;
+  }
+
+  /* ── Info grid ───────────────────────────── */
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin: 0 0 28px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .info-card, .chips, .close-strip { page-break-inside: avoid; break-inside: avoid; }
+  h2.section-title, .section-label { page-break-after: avoid; break-after: avoid; }
+  .info-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px 18px;
+    background: #fafafa !important;
+  }
+  .info-card .label {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #6b7280;
+  }
+  .info-card .value {
+    margin-top: 5px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+  }
+  .info-card.brand-card {
+    background: linear-gradient(135deg, rgba(15,43,91,0.08), rgba(45,212,191,0.10)) !important;
+    background-color: rgba(15,43,91,0.06) !important;
+    border-color: rgba(15,43,91,0.18);
+  }
+
+  /* ── Group / module blocks ───────────────── */
+  .group { margin-bottom: 22px; page-break-inside: avoid; }
+  .group h3 {
+    margin: 0 0 12px;
+    font-size: 17px;
+    font-weight: 800;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .group h3 .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 7px;
+    border-radius: 9px;
+    background: #0f2b5b !important;
+    color: #ffffff !important;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .group h3 .num.teal { background: #0d9488 !important; }
+  ul.bullets { margin: 6px 0 0 0; padding: 0; list-style: none; }
+  ul.bullets li {
+    position: relative;
+    padding-left: 20px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #374151;
+    margin-bottom: 7px;
+  }
+  ul.bullets li::before {
+    content: "";
+    position: absolute;
+    left: 4px; top: 9px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #2dd4bf !important;
+  }
+
+  /* ── Platform tag on bullets ─────────────── */
+  .tag {
+    display: inline-block;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 1.5px 7px;
+    border-radius: 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .tag.web  { background: rgba(15,43,91,0.12) !important;  color: #0f2b5b !important; }
+  .tag.app  { background: rgba(13,148,136,0.14) !important; color: #0d7a70 !important; }
+  .tag.both { background: rgba(217,119,6,0.14) !important;  color: #b45309 !important; }
+
+  /* ── Chips ───────────────────────────────── */
+  .chips { display: flex; flex-wrap: wrap; gap: 9px; }
+  .chips span {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 14px;
+    background: rgba(15,43,91,0.08) !important;
+    color: #0f2b5b !important;
+    border: 1px solid rgba(15,43,91,0.18);
+    border-radius: 999px;
+  }
+
+  /* ── Two column ──────────────────────────── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 6px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* ── Persona / actor cards ───────────────── */
+  .actor-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 20px;
+    background: #fafafa !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .actor-card .role {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #0d7a70 !important;
+    margin-bottom: 6px;
+  }
+  .actor-card .name { font-size: 20px; font-weight: 800; color: #111827; }
+  .actor-card .desc { font-size: 13px; color: #4b5563; margin-top: 6px; line-height: 1.55; }
+
+  /* ── Legend ──────────────────────────────── */
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin: 4px 0 22px;
+    padding: 12px 16px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    background: #f8fafc !important;
+    font-size: 12.5px;
+    color: #475569;
+  }
+  .legend b { color: #111827; }
+
+  /* ── Phase table ─────────────────────────── */
+  .phase {
+    border: 1px solid #e5e7eb;
+    border-left: 5px solid #0f2b5b;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    background: #fafafa !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .phase .p-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .phase .p-title { font-size: 15px; font-weight: 800; color: #111827; }
+  .phase .p-time { font-size: 12px; font-weight: 700; color: #0d7a70; letter-spacing: 0.5px; }
+  .phase .p-desc { font-size: 13px; color: #4b5563; margin-top: 6px; line-height: 1.55; }
+
+  /* ── Feature card with "why it matters" ──── */
+  .feature {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    background: #fafafa !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .feature .f-title {
+    font-size: 15.5px;
+    font-weight: 800;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .feature .f-title .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 6px;
+    border-radius: 8px;
+    background: #0f2b5b !important;
+    color: #ffffff !important;
+    font-size: 12.5px;
+    font-weight: 800;
+  }
+  .feature .f-what {
+    font-size: 13.5px;
+    color: #374151;
+    line-height: 1.6;
+    margin: 0 0 9px;
+  }
+  .feature .f-why {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #0f2b5b;
+    background: rgba(45,212,191,0.10) !important;
+    border-left: 4px solid #2dd4bf !important;
+    border-radius: 8px;
+    padding: 10px 13px;
+  }
+  .feature .f-why b {
+    color: #0d7a70 !important;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    font-size: 11px;
+    display: inline-block;
+    margin-right: 4px;
+  }
+
+  /* ── Closing strip ───────────────────────── */
+  .close-strip {
+    margin-top: 30px;
+    padding: 16px 20px;
+    background: linear-gradient(90deg, #0f2b5b, #071b3d) !important;
+    background-color: #0f2b5b !important;
+    color: #fff !important;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .close-strip strong { color: #2dd4bf !important; }
+
+  /* ── Sign-off ────────────────────────────── */
+  .sign-off-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 24px;
+    background: #fafafa !important;
+    margin-bottom: 14px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .sign-off-card .role {
+    font-size: 11px; font-weight: 800; letter-spacing: 2.5px;
+    text-transform: uppercase; color: #0f2b5b !important; margin-bottom: 8px;
+  }
+  .sign-off-card .name { font-size: 22px; font-weight: 800; color: #111827; }
+  .sign-off-card .org { font-size: 14px; color: #4b5563; margin-top: 3px; }
+  .sign-line { margin-top: 32px; border-bottom: 1.5px dashed #9ca3af; height: 40px; }
+  .sign-foot { font-size: 11px; color: #6b7280; margin-top: 8px; letter-spacing: 1px; font-weight: 600; }
+
+  @media print {
+    html, body { background: #ffffff !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ───────── COVER PAGE ───────── -->
+<section class="page cover">
+  <span class="cover-badge">Platform Proposal &amp; Scope</span>
+  <h1>Virtual Education<br/><span class="accent">Expo Platform</span></h1>
+  <p class="subtitle">A web &amp; mobile platform where students discover colleges, attend virtual events, connect with admission teams, receive career counseling, and make informed education decisions — <strong>from anywhere</strong>. Colleges get a digital booth, lead system, webinar tools and analytics.</p>
+
+  <div class="cover-meta">
+    <div class="item">
+      <div class="label">Prepared For</div>
+      <div class="value">Aniket Kulkarni</div>
+    </div>
+    <div class="item">
+      <div class="label">Prepared By</div>
+      <div class="value">GBS</div>
+    </div>
+    <div class="item">
+      <div class="label">Product Type</div>
+      <div class="value">Web Platform + Mobile Apps</div>
+    </div>
+    <div class="item">
+      <div class="label">User Roles</div>
+      <div class="value">Super Admin · College · Student</div>
+    </div>
+    <div class="item">
+      <div class="label">Platforms</div>
+      <div class="value">Website · Android · iOS</div>
+    </div>
+    <div class="item">
+      <div class="label">Document Version</div>
+      <div class="value">v1.0 — Scope &amp; Modules</div>
+    </div>
+  </div>
+
+  <div class="cover-footer">
+    <span class="pill">CONFIDENTIAL</span>
+    <span>Prepared: July 2026</span>
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 2 — OVERVIEW ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Virtual Education Expo</div>
+    <div class="page-no">Page 02</div>
+  </div>
+
+  <span class="section-label">01 · Overview</span>
+  <h2 class="section-title">Product Vision</h2>
+  <div class="section-rule"></div>
+
+  <p class="lead">
+    The Virtual Education Expo Platform is a complete digital ecosystem that recreates the physical
+    education-expo experience online. Students explore colleges, courses and career opportunities
+    virtually, interact with institutions, attend live webinars, and receive personalized counseling
+    — without travelling to a physical venue. Colleges receive their own digital booth and single-page
+    micro-website, a full lead-management system, webinar tools and engagement analytics.
+  </p>
+  <p class="lead">
+    The system is delivered as one connected platform across three surfaces: a <strong>public marketing
+    website</strong>, a <strong>role-based web application</strong> (Super Admin, College &amp; Student
+    portals), and <strong>native mobile applications</strong> for Students and Colleges on Android &amp; iOS.
+  </p>
+
+  <div class="info-grid">
+    <div class="info-card brand-card">
+      <div class="label">Core Value</div>
+      <div class="value">Discover · Engage · Counsel · Convert</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Primary Users</div>
+      <div class="value">Students &amp; Colleges</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Business Model</div>
+      <div class="value">Booth / Expo participation + Leads</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Delivery</div>
+      <div class="value">Website + Admin + College Panel + Apps</div>
+    </div>
+  </div>
+
+  <span class="section-label">02 · Actors</span>
+  <h2 class="section-title">Who Uses the Platform</h2>
+  <div class="section-rule"></div>
+
+  <div class="two-col">
+    <div class="actor-card">
+      <div class="role">Login 1</div>
+      <div class="name">Super Admin (Client)</div>
+      <div class="desc">You / the client. Runs the whole platform — main website, expo events, all colleges &amp; students, counselors, content, webinars, leads and global analytics.</div>
+    </div>
+    <div class="actor-card">
+      <div class="role">Login 2</div>
+      <div class="name">College</div>
+      <div class="desc">Each participating institution. Manages its own digital booth, single-page college website, media, brochures, webinars, and its own student leads &amp; analytics.</div>
+    </div>
+  </div>
+  <div class="two-col" style="margin-top:16px;">
+    <div class="actor-card">
+      <div class="role">Login 3</div>
+      <div class="name">Student</div>
+      <div class="desc">Prospective students. Explore colleges, attend the virtual expo &amp; webinars, book counseling, save favourites, get AI recommendations, and download resources.</div>
+    </div>
+    <div class="actor-card">
+      <div class="role">Optional Login</div>
+      <div class="name">Counselor</div>
+      <div class="desc">Career counselors managed by Super Admin. Handle assigned counseling bookings, video/audio sessions and student guidance.</div>
+    </div>
+  </div>
+
+  <span class="section-label">03 · How to Read This Document</span>
+  <h2 class="section-title">Platform Legend</h2>
+  <div class="section-rule"></div>
+  <div class="legend">
+    <span><span class="tag web">WEB</span> &nbsp;<b>Website / Web App only</b></span>
+    <span><span class="tag app">APP</span> &nbsp;<b>Mobile App only</b></span>
+    <span><span class="tag both">WEB + APP</span> &nbsp;<b>Available on both surfaces</b></span>
+  </div>
+  <p class="lead" style="margin-top:4px;">
+    Every feature below is tagged to show where it lives. Student &amp; College features are delivered on both
+    web and mobile; the Super Admin panel is a web application; the public marketing site is web only.
+  </p>
+</section>
+
+
+<!-- ───────── PAGE 3 — STUDENT PORTAL ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Virtual Education Expo</div>
+    <div class="page-no">Page 03</div>
+  </div>
+
+  <span class="section-label">Module A · Student</span>
+  <h2 class="section-title">Student Portal &amp; App</h2>
+  <div class="section-rule"></div>
+  <p class="lead">Everything a student needs to discover, engage and decide — delivered as a web portal and a native mobile app.</p>
+
+  <div class="group">
+    <h3><span class="num teal">1</span> Registration &amp; Profile</h3>
+    <ul class="bullets">
+      <li>Email / Mobile OTP registration &amp; secure login <span class="tag both">WEB + APP</span></li>
+      <li>Student profile creation with photo &amp; contact details <span class="tag both">WEB + APP</span></li>
+      <li>Academic details (10th / 12th / diploma / degree, marks, board) <span class="tag both">WEB + APP</span></li>
+      <li>Interest-based course &amp; stream preferences <span class="tag both">WEB + APP</span></li>
+      <li>Social / Google login option <span class="tag both">WEB + APP</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">2</span> Explore Colleges</h3>
+    <ul class="bullets">
+      <li>Search &amp; filter colleges by course, location, fees, stream, degree type <span class="tag both">WEB + APP</span></li>
+      <li>College profile pages with full details, images &amp; ratings <span class="tag both">WEB + APP</span></li>
+      <li>Brochure &amp; prospectus download / in-app viewer <span class="tag both">WEB + APP</span></li>
+      <li>Compare colleges side by side <span class="tag both">WEB + APP</span></li>
+      <li>Map view of college locations <span class="tag both">WEB + APP</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">3</span> Virtual Expo Hall</h3>
+    <ul class="bullets">
+      <li>Browse all participating colleges in the expo <span class="tag both">WEB + APP</span></li>
+      <li>Visit virtual booths (banner, videos, brochures, gallery) <span class="tag both">WEB + APP</span></li>
+      <li>Watch college videos &amp; presentations <span class="tag both">WEB + APP</span></li>
+      <li>Live chat / interaction with college representatives <span class="tag both">WEB + APP</span></li>
+      <li>Push notification when a booth goes live <span class="tag app">APP</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">4</span> Career Guidance</h3>
+    <ul class="bullets">
+      <li>Career assessment forms &amp; aptitude quiz <span class="tag both">WEB + APP</span></li>
+      <li>Course, college &amp; career-path recommendations <span class="tag both">WEB + APP</span></li>
+      <li>Higher-studies &amp; abroad guidance content <span class="tag both">WEB + APP</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">5</span> Counseling Booking</h3>
+    <ul class="bullets">
+      <li>Schedule one-to-one counseling sessions by slot <span class="tag both">WEB + APP</span></li>
+      <li>Video / audio consultation (in-app call or meeting link) <span class="tag both">WEB + APP</span></li>
+      <li>Reschedule / cancel with reminders <span class="tag both">WEB + APP</span></li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 4 — STUDENT PORTAL (cont.) ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Virtual Education Expo</div>
+    <div class="page-no">Page 04</div>
+  </div>
+
+  <span class="section-label">Module A · Student (cont.)</span>
+  <h2 class="section-title">Student — Events, Leads &amp; Extras</h2>
+  <div class="section-rule"></div>
+
+  <div class="group">
+    <h3><span class="num teal">6</span> Events &amp; Webinars</h3>
+    <ul class="bullets">
+      <li>Register for live webinars &amp; expert sessions <span class="tag both">WEB + APP</span></li>
+      <li>Attend live college presentations &amp; Q&amp;A <span class="tag both">WEB + APP</span></li>
+      <li>Personal event calendar with reminders <span class="tag both">WEB + APP</span></li>
+      <li>Watch recorded sessions on demand <span class="tag both">WEB + APP</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">7</span> Lead &amp; Interest Management</h3>
+    <ul class="bullets">
+      <li>Student inquiry / "request info" forms to colleges <span class="tag both">WEB + APP</span></li>
+      <li>Save favourite colleges &amp; wishlist <span class="tag both">WEB + APP</span></li>
+      <li>Track interested / applied colleges in one dashboard <span class="tag both">WEB + APP</span></li>
+      <li>Inquiry status &amp; college responses inbox <span class="tag both">WEB + APP</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">8</span> Notifications</h3>
+    <ul class="bullets">
+      <li>Upcoming webinar &amp; counseling reminders <span class="tag both">WEB + APP</span></li>
+      <li>New college participation &amp; expo alerts <span class="tag both">WEB + APP</span></li>
+      <li>Push notifications (real-time) <span class="tag app">APP</span></li>
+      <li>Email / SMS notifications <span class="tag web">WEB</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">9</span> Smart Features &amp; Journey</h3>
+    <ul class="bullets">
+      <li>AI-based recommendations — colleges, courses &amp; career paths <span class="tag both">WEB + APP</span></li>
+      <li>Student Journey stage selector — 10th Pass, 12th Pass, Diploma, UG, PG, Working Professional <span class="tag both">WEB + APP</span></li>
+      <li>Stage-relevant opportunities shown automatically <span class="tag both">WEB + APP</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num teal">10</span> Resources &amp; Extras</h3>
+    <ul class="bullets">
+      <li>Resource Center — e-books, brochures, career guides <span class="tag both">WEB + APP</span></li>
+      <li>Scholarship section — opportunities &amp; eligibility criteria <span class="tag both">WEB + APP</span></li>
+      <li>Feedback &amp; college rating submission <span class="tag both">WEB + APP</span></li>
+      <li>Certificate of Participation &amp; webinar-attendance certificate (download) <span class="tag both">WEB + APP</span></li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 5 — COLLEGE PORTAL ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Virtual Education Expo</div>
+    <div class="page-no">Page 05</div>
+  </div>
+
+  <span class="section-label">Module B · College</span>
+  <h2 class="section-title">College Portal &amp; Micro-Website</h2>
+  <div class="section-rule"></div>
+  <p class="lead">
+    Each college gets its own login, a self-managed digital booth, and a dedicated single-page website
+    inside the main platform — which the college builds and updates itself with its specialities,
+    highlights and media.
+  </p>
+
+  <div class="group">
+    <h3><span class="num">1</span> Registration &amp; Onboarding</h3>
+    <ul class="bullets">
+      <li>College self-registration / admin-approved onboarding <span class="tag both">WEB + APP</span></li>
+      <li>Profile management — name, address, accreditation, contacts <span class="tag both">WEB + APP</span></li>
+      <li>Multiple staff logins under one college account <span class="tag web">WEB</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">2</span> Single-Page College Website</h3>
+    <ul class="bullets">
+      <li>Dedicated college page inside the main site (own URL / slug) <span class="tag web">WEB</span></li>
+      <li>Self-built content blocks — About, Courses, Specialities, Highlights, Placements <span class="tag both">WEB + APP</span></li>
+      <li>Add unlimited sections as the college wants (drag-to-arrange) <span class="tag web">WEB</span></li>
+      <li>Showcase specialisations, USPs, achievements &amp; recruiters <span class="tag both">WEB + APP</span></li>
+      <li>SEO-friendly, mobile-responsive college page <span class="tag web">WEB</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">3</span> Booth Management</h3>
+    <ul class="bullets">
+      <li>Upload logo, banner, videos, brochures &amp; gallery <span class="tag both">WEB + APP</span></li>
+      <li>Course listing with intake, fees &amp; eligibility <span class="tag both">WEB + APP</span></li>
+      <li>Live-chat / representative availability toggle <span class="tag both">WEB + APP</span></li>
+      <li>Booth preview before publishing <span class="tag both">WEB + APP</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">4</span> Lead Dashboard</h3>
+    <ul class="bullets">
+      <li>View all student inquiries in real time <span class="tag both">WEB + APP</span></li>
+      <li>Filter leads by course, location &amp; date <span class="tag both">WEB + APP</span></li>
+      <li>Download / export leads (Excel / CSV) <span class="tag web">WEB</span></li>
+      <li>Assign leads to staff &amp; update status <span class="tag both">WEB + APP</span></li>
+      <li>New-lead push notification <span class="tag app">APP</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">5</span> Events &amp; Analytics</h3>
+    <ul class="bullets">
+      <li>Schedule &amp; conduct webinars / live sessions, share presentations <span class="tag both">WEB + APP</span></li>
+      <li>Analytics — booth visits, student engagement, lead reports <span class="tag both">WEB + APP</span></li>
+      <li>Downloadable performance reports <span class="tag web">WEB</span></li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 6 — SUPER ADMIN ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Virtual Education Expo</div>
+    <div class="page-no">Page 06</div>
+  </div>
+
+  <span class="section-label">Module C · Super Admin</span>
+  <h2 class="section-title">Super Admin Panel (Client)</h2>
+  <div class="section-rule"></div>
+  <p class="lead">
+    The central control panel — a secure web application through which the client runs the entire platform:
+    every user, expo event, college, webinar, lead and content block, plus the public marketing website.
+  </p>
+
+  <div class="group">
+    <h3><span class="num">1</span> User Management</h3>
+    <ul class="bullets">
+      <li>Manage Students — view, search, block / activate <span class="tag web">WEB</span></li>
+      <li>Manage Colleges — approve, edit, suspend, verify <span class="tag web">WEB</span></li>
+      <li>Manage Counselors — add, assign, monitor <span class="tag web">WEB</span></li>
+      <li>Role &amp; permission control <span class="tag web">WEB</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">2</span> Expo Management</h3>
+    <ul class="bullets">
+      <li>Create expo events with dates &amp; themes <span class="tag web">WEB</span></li>
+      <li>Manage college &amp; student registrations per expo <span class="tag web">WEB</span></li>
+      <li>Configure expo schedules, halls &amp; booth slots <span class="tag web">WEB</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">3</span> Content Management</h3>
+    <ul class="bullets">
+      <li>Banners, sliders &amp; announcements <span class="tag web">WEB</span></li>
+      <li>Featured colleges &amp; promoted booths <span class="tag web">WEB</span></li>
+      <li>Resource Center, scholarships &amp; career-guide content <span class="tag web">WEB</span></li>
+      <li>Manage the public marketing website pages <span class="tag web">WEB</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">4</span> Lead Monitoring</h3>
+    <ul class="bullets">
+      <li>Track all student ↔ college interactions <span class="tag web">WEB</span></li>
+      <li>Lead assignment &amp; routing rules <span class="tag web">WEB</span></li>
+      <li>Global lead reports &amp; export <span class="tag web">WEB</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">5</span> Webinar Management &amp; Analytics</h3>
+    <ul class="bullets">
+      <li>Create webinars, manage speakers, attendance reports <span class="tag web">WEB</span></li>
+      <li>Analytics dashboard — total students, colleges, leads, conversion tracking <span class="tag web">WEB</span></li>
+      <li>Certificate generation control (participation / attendance) <span class="tag web">WEB</span></li>
+      <li>Feedback &amp; ratings moderation <span class="tag web">WEB</span></li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 7 — SPONSORSHIP & ADVERTISEMENT ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Virtual Education Expo</div>
+    <div class="page-no">Page 07</div>
+  </div>
+
+  <span class="section-label">Module D · Monetisation</span>
+  <h2 class="section-title">Sponsorship &amp; Advertisement</h2>
+  <div class="section-rule"></div>
+  <p class="lead">
+    When a sponsor is onboarded, the platform turns their booking into ads that appear across the website
+    and apps. Everything is managed by the Super Admin — the sponsor uploads creatives, the admin approves,
+    and ads run in fixed slots for a chosen duration. Performance (views &amp; clicks) is tracked automatically.
+  </p>
+
+  <div class="group">
+    <h3><span class="num">1</span> Ad Slots &amp; Placements</h3>
+    <ul class="bullets">
+      <li>Homepage top banner &amp; hero-strip sponsored slot <span class="tag both">WEB + APP</span></li>
+      <li>Sidebar / in-between-content banners on listing pages <span class="tag web">WEB</span></li>
+      <li>Virtual Expo Hall &amp; booth-page sponsor banners <span class="tag both">WEB + APP</span></li>
+      <li>Full-screen splash / interstitial ad on app open <span class="tag app">APP</span></li>
+      <li>Webinar pre-roll &amp; "sponsored by" branding <span class="tag both">WEB + APP</span></li>
+      <li>Sponsored / featured college &amp; "promoted" tag in search <span class="tag both">WEB + APP</span></li>
+      <li>Popup / notification-style promotional ad <span class="tag both">WEB + APP</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">2</span> Sponsor / Ad Management (Super Admin)</h3>
+    <ul class="bullets">
+      <li>Add sponsors — company, contact, package &amp; billing details <span class="tag web">WEB</span></li>
+      <li>Create ad campaigns — upload banner image/video, title, click-through link <span class="tag web">WEB</span></li>
+      <li>Assign ad to specific slot(s) &amp; set position priority <span class="tag web">WEB</span></li>
+      <li>Schedule start &amp; end dates — ads auto-activate &amp; auto-expire <span class="tag web">WEB</span></li>
+      <li>Approve / reject sponsor-uploaded creatives before they go live <span class="tag web">WEB</span></li>
+      <li>Enable / pause / delete any ad instantly <span class="tag web">WEB</span></li>
+      <li>Target by audience — journey stage, stream or location (optional) <span class="tag web">WEB</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">3</span> Ad Delivery &amp; Rotation</h3>
+    <ul class="bullets">
+      <li>Multiple ads per slot rotate automatically (round-robin / weighted) <span class="tag both">WEB + APP</span></li>
+      <li>Only active, in-date, approved ads are served <span class="tag both">WEB + APP</span></li>
+      <li>Frequency capping so a user isn't shown the same ad repeatedly <span class="tag both">WEB + APP</span></li>
+      <li>Fallback content shown when no sponsor ad is booked for a slot <span class="tag both">WEB + APP</span></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <h3><span class="num">4</span> Ad Analytics &amp; Reporting</h3>
+    <ul class="bullets">
+      <li>Impressions (views) &amp; clicks tracked per ad &amp; per slot <span class="tag web">WEB</span></li>
+      <li>Click-through rate (CTR) &amp; date-range performance <span class="tag web">WEB</span></li>
+      <li>Per-sponsor campaign report (downloadable) to share with the sponsor <span class="tag web">WEB</span></li>
+      <li>Revenue overview — active sponsors, earnings &amp; expiring campaigns <span class="tag web">WEB</span></li>
+    </ul>
+  </div>
+
+  <div class="close-strip">
+    <strong>In short:</strong> a sponsor is added in the admin panel, their banner is uploaded and assigned
+    to a slot for a set duration, it appears across the website &amp; apps in rotation, and views/clicks are
+    reported back — giving you a clean, repeatable advertising revenue stream.
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 8 — MARKET DIFFERENTIATORS (PART 1) ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Virtual Education Expo</div>
+    <div class="page-no">Page 08</div>
+  </div>
+
+  <span class="section-label">Module E · India-First</span>
+  <h2 class="section-title">Market Differentiators</h2>
+  <div class="section-rule"></div>
+  <p class="lead">
+    These five features are what make this platform genuinely built for the Indian market — not a generic
+    expo tool. Each one is explained below with a plain <b style="color:#0d7a70;">"Why it matters"</b> note
+    so it is clear what real impact it brings to the product and to admissions.
+  </p>
+
+  <div class="feature">
+    <div class="f-title"><span class="num">1</span> Exam &amp; Cutoff Integration <span class="tag both">WEB + APP</span></div>
+    <p class="f-what">
+      The student enters their exam rank / score / percentile (JEE, NEET, MHT-CET, CUET and state CETs)
+      and the platform instantly shows the colleges they can <em>realistically</em> get into — based on
+      previous-year cutoffs mapped to each college and course.
+    </p>
+    <p class="f-why">
+      <b>Why it matters</b> This is the single most-searched thing by Indian students —
+      "which college can I get with my rank?" Answering it inside the platform turns casual browsers into
+      serious, high-intent leads, keeps students on our platform instead of Google, and gives colleges
+      better-matched enquiries. It is the biggest engagement &amp; stickiness driver we can build.
+    </p>
+  </div>
+
+  <div class="feature">
+    <div class="f-title"><span class="num">2</span> Fees, EMI &amp; Education Loan Section <span class="tag both">WEB + APP</span></div>
+    <p class="f-what">
+      A dedicated money section on every college / course — total fees, an EMI calculator, loan-eligibility
+      check, and links to partner banks / NBFCs. Students see the real cost and how to fund it before they
+      enquire.
+    </p>
+    <p class="f-why">
+      <b>Why it matters</b> In India, cost decides admissions as much as the course does. Showing fees +
+      easy financing removes the #1 drop-off reason ("too expensive") and pushes more students to apply.
+      It also opens a <strong>second revenue stream</strong> for us — commission from loan / bank partners
+      on every referral — beyond sponsor ads.
+    </p>
+  </div>
+
+  <div class="feature">
+    <div class="f-title"><span class="num">3</span> WhatsApp Integration <span class="tag both">WEB + APP</span></div>
+    <p class="f-what">
+      OTP login, booking &amp; webinar reminders, application updates for students, and instant new-lead
+      alerts for colleges — all delivered on WhatsApp via the WhatsApp Business API, not just email.
+    </p>
+    <p class="f-why">
+      <b>Why it matters</b> WhatsApp is <em>the</em> communication channel in India — open &amp; read rates
+      are far higher than email (which many users never check). Reminders on WhatsApp mean more students
+      actually attend webinars &amp; counseling, and colleges act on leads faster. Directly lifts
+      engagement and conversion — the core numbers the client cares about.
+    </p>
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 9 — MARKET DIFFERENTIATORS (PART 2) ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Virtual Education Expo</div>
+    <div class="page-no">Page 09</div>
+  </div>
+
+  <span class="section-label">Module E · India-First (cont.)</span>
+  <h2 class="section-title">Market Differentiators</h2>
+  <div class="section-rule"></div>
+
+  <div class="feature">
+    <div class="f-title"><span class="num">4</span> AI Chatbot Counselor (24/7) <span class="tag both">WEB + APP</span></div>
+    <p class="f-what">
+      An always-on AI assistant that answers admission questions instantly — courses, eligibility, fees,
+      dates, "which college for my rank?" — in English and regional languages (Hindi, Marathi, etc.),
+      and hands over to a human counselor when needed.
+    </p>
+    <p class="f-why">
+      <b>Why it matters</b> Students research at night and in local languages, when no human is available.
+      A 24/7 chatbot captures those visitors, answers instantly, and never lets a lead go cold. It also
+      cuts the support load massively — one bot handles thousands of queries that would otherwise need
+      staff — so the platform scales without scaling cost.
+    </p>
+  </div>
+
+  <div class="feature">
+    <div class="f-title"><span class="num">5</span> Alumni Connect / Mentorship <span class="tag both">WEB + APP</span></div>
+    <p class="f-what">
+      Prospective students can chat with or book a call with a verified current student or alumnus of a
+      college before deciding — real, honest answers about campus life, placements and teaching.
+    </p>
+    <p class="f-why">
+      <b>Why it matters</b> Indian families trust <em>real people</em> over brochures. Talking to someone
+      who actually studies there is the final push that converts a shortlist into an admission — and it is
+      a trust feature no ordinary listing site offers. It makes our platform feel authentic and
+      community-driven, which builds word-of-mouth and repeat use.
+    </p>
+  </div>
+
+  <div class="close-strip">
+    <strong>The big picture:</strong> together these five features move the product from a simple online
+    expo to an <strong>India-first admission companion</strong> — students find the <em>right-fit</em>
+    college for their rank &amp; budget, get answered instantly in their own language, and hear from real
+    students, while we unlock extra revenue (loan partners) and far stronger engagement. This is what makes
+    it competitive as a best-in-market product in India.
+  </div>
+</section>
+
+
+<!-- ───────── PAGE 10 — PLATFORM MATRIX & STACK ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Virtual Education Expo</div>
+    <div class="page-no">Page 10</div>
+  </div>
+
+  <span class="section-label">04 · Delivery Matrix</span>
+  <h2 class="section-title">Web vs. Mobile App</h2>
+  <div class="section-rule"></div>
+  <p class="lead">A clear summary of what is delivered on each surface, per role.</p>
+
+  <div class="two-col">
+    <div class="actor-card">
+      <div class="role">Website / Web App</div>
+      <div class="name">Web</div>
+      <div class="desc">
+        • Public marketing site<br/>
+        • Super Admin panel (full control)<br/>
+        • College portal + single-page college website<br/>
+        • Student portal (full)<br/>
+        • Reports &amp; bulk export, content management
+      </div>
+    </div>
+    <div class="actor-card">
+      <div class="role">Android &amp; iOS</div>
+      <div class="name">Mobile App</div>
+      <div class="desc">
+        • Student app — explore, expo, webinars, counseling, AI, resources<br/>
+        • College app — booth, leads, webinars, analytics<br/>
+        • Push notifications &amp; in-app chat<br/>
+        • (Super Admin remains web-based)
+      </div>
+    </div>
+  </div>
+
+  <span class="section-label" style="margin-top:26px;">05 · Suggested Stack</span>
+  <h2 class="section-title">Technology</h2>
+  <div class="section-rule"></div>
+  <div class="chips">
+    <span>Next.js (Web)</span>
+    <span>React</span>
+    <span>TypeScript</span>
+    <span>Tailwind CSS</span>
+    <span>React Native / Flutter (Apps)</span>
+    <span>Laravel API (PHP)</span>
+    <span>MySQL</span>
+    <span>WebRTC / Video SDK (Counseling)</span>
+    <span>Webinar / Live Streaming</span>
+    <span>Firebase Push Notifications</span>
+    <span>SMTP + SMS Gateway</span>
+    <span>WhatsApp Business API</span>
+    <span>AI Recommendation Engine</span>
+    <span>AI Chatbot (multi-language)</span>
+    <span>Exam Cutoff Data Engine</span>
+    <span>Loan / EMI Partner API</span>
+    <span>Cloud Storage (Media / PDFs)</span>
+  </div>
+
+  <span class="section-label" style="margin-top:26px;">06 · Cross-cutting</span>
+  <h2 class="section-title">Platform-wide Capabilities</h2>
+  <div class="section-rule"></div>
+  <ul class="bullets">
+    <li>Role-based authentication &amp; secure sessions across all three logins</li>
+    <li>Real-time chat &amp; notifications (students ↔ colleges ↔ counselors)</li>
+    <li>Media pipeline for logos, banners, videos, brochures &amp; galleries</li>
+    <li>Certificate generation engine (participation &amp; attendance)</li>
+    <li>Responsive, mobile-first design across web &amp; native apps</li>
+    <li>Analytics &amp; reporting at student, college and platform level</li>
+  </ul>
+</section>
+
+
+<!-- ───────── PAGE 11 — PHASES & SIGN-OFF ───────── -->
+<section class="page">
+  <div class="content-head">
+    <div class="brand">Virtual Education Expo</div>
+    <div class="page-no">Page 11</div>
+  </div>
+
+  <span class="section-label">07 · Delivery Plan</span>
+  <h2 class="section-title">Suggested Phases</h2>
+  <div class="section-rule"></div>
+
+  <div class="phase">
+    <div class="p-head"><span class="p-title">Phase 1 — Foundation &amp; Website</span><span class="p-time">Web</span></div>
+    <div class="p-desc">Public marketing site, Super Admin panel core, user &amp; college management, expo setup, authentication for all three roles.</div>
+  </div>
+  <div class="phase">
+    <div class="p-head"><span class="p-title">Phase 2 — College Portal &amp; Booths</span><span class="p-time">Web</span></div>
+    <div class="p-desc">College login, single-page college website builder, booth management, media uploads, lead dashboard &amp; virtual expo hall.</div>
+  </div>
+  <div class="phase">
+    <div class="p-head"><span class="p-title">Phase 3 — Student Portal</span><span class="p-time">Web</span></div>
+    <div class="p-desc">Student registration, explore &amp; compare, favourites, inquiries, career guidance, AI recommendations, journey stages, resources &amp; scholarships.</div>
+  </div>
+  <div class="phase">
+    <div class="p-head"><span class="p-title">Phase 4 — Webinars &amp; Counseling</span><span class="p-time">Web</span></div>
+    <div class="p-desc">Live webinars, expert sessions, Q&amp;A, counseling booking with video/audio, attendance &amp; participation certificates.</div>
+  </div>
+  <div class="phase">
+    <div class="p-head"><span class="p-title">Phase 5 — Mobile Apps</span><span class="p-time">Android · iOS</span></div>
+    <div class="p-desc">Student app &amp; College app with push notifications, in-app chat, expo hall, webinars and lead management on mobile.</div>
+  </div>
+  <div class="phase">
+    <div class="p-head"><span class="p-title">Phase 6 — Sponsorship &amp; Advertisement</span><span class="p-time">Web + App</span></div>
+    <div class="p-desc">Sponsor management, ad slots &amp; placements across web/apps, scheduling, rotation, approval workflow and ad performance analytics — the advertising revenue stream.</div>
+  </div>
+  <div class="phase">
+    <div class="p-head"><span class="p-title">Phase 7 — India-First Differentiators</span><span class="p-time">Web + App</span></div>
+    <div class="p-desc">Exam &amp; cutoff integration, fees/EMI/loan section, WhatsApp integration, 24/7 AI chatbot counselor (multi-language) and alumni-connect mentorship.</div>
+  </div>
+  <div class="phase">
+    <div class="p-head"><span class="p-title">Phase 8 — Analytics, AI &amp; Launch</span><span class="p-time">Web + App</span></div>
+    <div class="p-desc">Full analytics dashboards, conversion tracking, AI tuning, feedback &amp; ratings, final QA, deployment &amp; handover.</div>
+  </div>
+
+  <div class="close-strip">
+    <strong>Client Statement:</strong> "We are building a Virtual Education Expo platform where students
+    discover colleges, attend virtual events, connect with admission teams, receive career counseling and
+    make informed education decisions from anywhere — while colleges get a digital booth, lead-management
+    system, webinar tools and analytics to improve engagement and admissions."
+  </div>
+
+  <div style="page-break-inside: avoid; break-inside: avoid;">
+  <h2 class="section-title" style="margin-top:34px; font-size:24px;">Approval</h2>
+  <div class="section-rule" style="margin-bottom:14px;"></div>
+
+  <div class="two-col">
+    <div class="sign-off-card">
+      <div class="role">Client</div>
+      <div class="name">Aniket Kulkarni</div>
+      <div class="org">Virtual Education Expo — Owner</div>
+      <div class="sign-line"></div>
+      <div class="sign-foot">AUTHORISED SIGNATURE &amp; DATE</div>
+    </div>
+    <div class="sign-off-card">
+      <div class="role">Vendor</div>
+      <div class="name">GBS</div>
+      <div class="org">Design &amp; Development</div>
+      <div class="sign-line"></div>
+      <div class="sign-foot">AUTHORISED SIGNATURE &amp; DATE</div>
+    </div>
+  </div>
+  </div>
+</section>
+
+</body>
+</html>

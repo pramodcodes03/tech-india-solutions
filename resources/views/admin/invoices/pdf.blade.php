@@ -211,8 +211,9 @@
     <thead>
         <tr>
             <th class="tc" style="width: 26px;">#</th>
-            <th>Item</th>
-            <th style="width: 56px;">HSN</th>
+            <th>Product Name</th>
+            <th>Description</th>
+            <th style="width: 66px;">HSN/SAC</th>
             <th class="tc" style="width: 40px;">Qty</th>
             <th class="tr" style="width: 78px;">Rate</th>
             <th class="tr" style="width: 44px;">Tax%</th>
@@ -228,7 +229,8 @@
             @endphp
             <tr>
                 <td class="tc">{{ $i + 1 }}</td>
-                <td>{{ $item->description }}</td>
+                <td><strong>{{ $item->product->name ?? '-' }}</strong></td>
+                <td style="color: #4a5568;">{{ $item->description }}</td>
                 <td>{{ $item->hsn_code ?? '-' }}</td>
                 <td class="tc">{{ rtrim(rtrim(number_format($item->quantity, 2, '.', ''), '0'), '.') }}</td>
                 <td class="tr">{{ $currencySymbol }}{{ number_format($item->rate, 2) }}</td>

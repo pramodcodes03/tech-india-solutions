@@ -8,9 +8,9 @@
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search employee..." class="form-input" />
         <select name="level" class="form-select">
             <option value="">All Levels</option>
-            <option value="1" @selected(request('level') == 1)>Level 1 (HR)</option>
-            <option value="2" @selected(request('level') == 2)>Level 2 (Manager)</option>
-            <option value="3" @selected(request('level') == 3)>Level 3 (Termination)</option>
+            @foreach(\App\Models\Warning::LEVELS as $value => $label)
+                <option value="{{ $value }}" @selected(request('level') == $value)>{{ $label }}</option>
+            @endforeach
         </select>
         <select name="status" class="form-select">
             <option value="">All Status</option>
@@ -20,17 +20,21 @@
     </form>
 
     <div class="panel p-0 overflow-x-auto">
-        <table class="table-striped"><thead><tr><th>Code</th><th>Employee</th><th>Level</th><th>Title</th><th>Issued On</th><th>Status</th><th></th></tr></thead>
+        <table class="table-striped"><thead><tr><th>#</th><th>Code</th><th>Employee</th><th>Level</th><th>Title</th><th>Issued On</th><th>Status</th><th></th></tr></thead>
             <tbody>
                 @forelse($warnings as $w)
                     <tr>
+                        {{-- Serial continues across pages (page 2 starts at 21, not 1). --}}
+                        <td class="text-gray-400 text-xs">{{ $warnings->firstItem() + $loop->index }}</td>
                         <td class="font-mono text-xs">{{ $w->warning_code }}</td>
                         <td><a href="{{ route('admin.hr.employees.show', $w->employee) }}" class="text-primary font-semibold">{{ $w->employee->full_name }}</a></td>
                         <td><span @class(['px-2 py-0.5 rounded text-xs font-bold uppercase',
                             'bg-info/10 text-info' => $w->level == 1,
-                            'bg-warning/10 text-warning' => $w->level == 2,
-                            'bg-danger/10 text-danger' => $w->level == 3,
-                        ])>Level {{ $w->level }}</span></td>
+                            'bg-primary/10 text-primary' => $w->level == 2,
+                            'bg-warning/10 text-warning' => $w->level == 3,
+                            'bg-danger/10 text-danger' => $w->level == 4,
+                            'bg-dark text-white' => $w->level == 5,
+                        ])>{{ $w->level_label }}</span></td>
                         <td>{{ $w->title }}</td>
                         <td>{{ $w->issued_on->format('d M Y') }}</td>
                         <td><span @class(['px-2 py-0.5 rounded text-xs font-semibold',
@@ -38,10 +42,18 @@
                             'bg-success/10 text-success' => $w->status === 'acknowledged',
                             'bg-gray-200 text-gray-600' => $w->status === 'withdrawn',
                         ])>{{ ucfirst($w->status) }}</span></td>
-                        <td class="text-right"><a href="{{ route('admin.hr.warnings.show', $w) }}" class="text-primary text-xs">View</a></td>
+                        <td class="text-right whitespace-nowrap">
+                            <a href="{{ route('admin.hr.warnings.show', $w) }}" class="text-primary text-xs">View</a>
+                            @can('warnings.delete')
+                                <form method="POST" action="{{ route('admin.hr.warnings.destroy', $w) }}" class="inline ml-2" onsubmit="return confirm('Delete this warning? This cannot be undone.')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="text-danger text-xs">Delete</button>
+                                </form>
+                            @endcan
+                        </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="text-center text-gray-500 py-6">No warnings issued.</td></tr>
+                    <tr><td colspan="8" class="text-center text-gray-500 py-6">No warnings issued.</td></tr>
                 @endforelse
             </tbody>
         </table>

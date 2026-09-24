@@ -26,12 +26,12 @@ class EmployeeImporter implements RowImporter
 
     public function templateHeaders(): array
     {
-        return ['Employee Code', 'Legacy Employee ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Department', 'Designation', 'Joining Date', 'Employment Type'];
+        return ['Employee Code', 'Legacy Employee ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Department', 'Designation', 'Joining Date', 'Inactive Date', 'Employment Type'];
     }
 
     public function sampleRow(): array
     {
-        return ['EMP001', 'OLD-1023', 'Asha', 'Verma', 'asha@example.com', '9876543210', 'Engineering', 'Software Engineer', '2026-06-01', 'full_time'];
+        return ['EMP001', 'OLD-1023', 'Asha', 'Verma', 'asha@example.com', '9876543210', 'Engineering', 'Software Engineer', '2026-06-01', '', 'full_time'];
     }
 
     /** Map free-text employment type to the employees enum, default full_time. */
@@ -117,6 +117,9 @@ class EmployeeImporter implements RowImporter
             'department_id' => $deptId,
             'designation_id' => $desigId,
             'joining_date' => ! empty($row['joining date']) ? date('Y-m-d', strtotime($row['joining date'])) : null,
+            // Same column the manual form and the export use. Blank means the
+            // employee is still with the company.
+            'last_working_date' => ! empty($row['inactive date']) ? date('Y-m-d', strtotime($row['inactive date'])) : null,
             'employment_type' => $this->normalizeEmploymentType($row['employment type'] ?? null),
         ];
 
@@ -134,7 +137,13 @@ class EmployeeImporter implements RowImporter
             $attrs['employee_code'] = $code;
         }
         $attrs['business_id'] = $businessId;
-        $attrs['status'] = 'active';
+        // An import that supplies a past inactive date is telling us the person
+        // has already left; defaulting them to active would contradict the very
+        // column that was filled in.
+        $attrs['status'] = ! empty($attrs['last_working_date'])
+            && strtotime($attrs['last_working_date']) <= strtotime('today')
+                ? 'inactive'
+                : 'active';
         app(EmployeeService::class)->create($attrs);
     }
 

@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\Storage;
 
 class ReimbursementController extends Controller
 {
-    public function __construct(private ReimbursementService $service)
-    {
-    }
+    public function __construct(private ReimbursementService $service) {}
 
     public function index(Request $request)
     {
@@ -67,6 +65,13 @@ class ReimbursementController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('reimbursements.view'), 403);
         abort_unless($reimbursement->bill_path && Storage::disk('public')->exists($reimbursement->bill_path), 404);
 
-        return Storage::disk('public')->download($reimbursement->bill_path, $reimbursement->claim_code);
+        // Keep the original extension — downloading as bare "RMB-00001" gave the
+        // OS no way to open the file. And serve it inline so the "View Bill"
+        // button actually previews the image/PDF in a new tab instead of
+        // forcing a download.
+        $extension = pathinfo($reimbursement->bill_path, PATHINFO_EXTENSION);
+        $filename = $reimbursement->claim_code.($extension ? '.'.$extension : '');
+
+        return Storage::disk('public')->response($reimbursement->bill_path, $filename);
     }
 }

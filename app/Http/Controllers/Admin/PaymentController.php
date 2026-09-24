@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StorePaymentRequest;
+use App\Http\Requests\Admin\UpdatePaymentRequest;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Notifications\NotificationDispatcher;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -74,12 +76,12 @@ class PaymentController extends Controller
             ->orderByDesc('invoice_date')
             ->get()
             ->map(fn ($inv) => [
-                'id'             => $inv->id,
+                'id' => $inv->id,
                 'invoice_number' => $inv->invoice_number,
-                'customer_name'  => $inv->customer?->name ?? '-',
-                'grand_total'    => (float) $inv->grand_total,
-                'amount_paid'    => (float) $inv->amount_paid,
-                'balance'        => (float) $inv->balance_due,
+                'customer_name' => $inv->customer?->name ?? '-',
+                'grand_total' => (float) $inv->grand_total,
+                'amount_paid' => (float) $inv->amount_paid,
+                'balance' => (float) $inv->balance_due,
             ])
             ->values();
 
@@ -95,9 +97,13 @@ class PaymentController extends Controller
         $invoice = Invoice::findOrFail($data['invoice_id']);
         $data['customer_id'] = $invoice->customer_id;
 
+        if ($request->hasFile('attachment')) {
+            $data['attachment'] = $request->file('attachment')->store('payments/receipts', 'public');
+        }
+
         $payment = $this->paymentService->create($data);
 
-        \App\Notifications\NotificationDispatcher::fire('payment.received', $payment->loadMissing('customer'), [
+        NotificationDispatcher::fire('payment.received', $payment->loadMissing('customer'), [
             'invoice_number' => $invoice->invoice_number,
         ]);
 
@@ -111,6 +117,61 @@ class PaymentController extends Controller
         $payment = Payment::with(['invoice.customer', 'customer', 'creator'])->findOrFail($id);
 
         return view('admin.payments.show', compact('payment'));
+    }
+
+    public function edit($id)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('payments.edit'), 403);
+
+        $payment = Payment::with(['invoice.customer', 'customer'])->findOrFail($id);
+
+        // Open invoices PLUS this payment's own invoice — the latter is often
+        // fully paid (by this very payment) and would otherwise be missing
+        // from the picker, making the form unsubmittable.
+        $invoices = Invoice::where(fn ($q) => $q->whereIn('status', ['unpaid', 'partial'])
+            ->orWhere('id', $payment->invoice_id))
+            ->with('customer:id,name')
+            ->orderByDesc('invoice_date')
+            ->get()
+            ->map(fn ($inv) => [
+                'id' => $inv->id,
+                'invoice_number' => $inv->invoice_number,
+                'customer_name' => $inv->customer?->name ?? '-',
+                'grand_total' => (float) $inv->grand_total,
+                'amount_paid' => (float) $inv->amount_paid,
+                'balance' => (float) $inv->balance_due,
+                // Headroom available to THIS payment: the invoice balance plus
+                // whatever this payment already contributes to it.
+                'editable_balance' => (float) $inv->balance_due
+                    + ($inv->id === $payment->invoice_id ? (float) $payment->amount : 0),
+            ])
+            ->values();
+
+        return view('admin.payments.edit', compact('payment', 'invoices'));
+    }
+
+    public function update(UpdatePaymentRequest $request, $id)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('payments.edit'), 403);
+
+        $payment = Payment::findOrFail($id);
+        $data = $request->validated();
+
+        $invoice = Invoice::findOrFail($data['invoice_id']);
+        $data['customer_id'] = $invoice->customer_id;
+
+        // Replace, remove, or keep the existing receipt.
+        if ($request->hasFile('attachment')) {
+            $data['attachment'] = $request->file('attachment')->store('payments/receipts', 'public');
+        } elseif ($request->boolean('remove_attachment')) {
+            $data['attachment'] = null;
+        }
+        unset($data['remove_attachment']);
+
+        $this->paymentService->update($payment, $data);
+
+        return redirect()->route('admin.payments.show', $payment->id)
+            ->with('success', 'Payment updated. Invoice totals have been recalculated.');
     }
 
     public function destroy(Request $request, $id)

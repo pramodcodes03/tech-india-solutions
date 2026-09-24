@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
 use App\Models\Warehouse;
+use App\Support\Tenancy\CurrentBusiness;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -22,7 +23,7 @@ class SalesOrderService
     public function generateNumber(): string
     {
         $year = date('Y');
-        $base = app(\App\Support\Tenancy\CurrentBusiness::class)->get()?->sales_order_prefix ?? 'SO-';
+        $base = app(CurrentBusiness::class)->get()?->sales_order_prefix ?? 'SO-';
         $prefix = $base.$year.'-';
         $last = SalesOrder::withTrashed()
             ->where('order_number', 'like', $prefix.'%')
@@ -216,6 +217,14 @@ class SalesOrderService
 
             $afterDisc = ($qty * $rate) * (1 - $discPct / 100);
             $items[$i]['line_total'] = round($afterDisc * (1 + $taxPct / 100), 2);
+
+            // Write the coerced numerics back: the item columns are NOT NULL
+            // (default 0), and a blank form field arrives as an explicit null
+            // that passes the 'nullable' rule but violates the constraint.
+            $items[$i]['quantity'] = $qty;
+            $items[$i]['rate'] = $rate;
+            $items[$i]['discount_percent'] = $discPct;
+            $items[$i]['tax_percent'] = $taxPct;
         }
 
         return $items;

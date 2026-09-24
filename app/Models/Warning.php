@@ -12,6 +12,27 @@ class Warning extends Model
 {
     use BelongsToBusiness, LogsActivity;
 
+    /**
+     * Escalation ladder — single source of truth for every dropdown, badge,
+     * mail and report. Keys are stored in warnings.level; the 2026-08 shift
+     * migration renumbered the original 1/2/3 to 2/3/4 to make room for PIP
+     * (mildest, first) and ZTP (most severe, last).
+     */
+    public const LEVELS = [
+        1 => 'PIP — Performance Improvement Plan',
+        2 => 'Level 1 — HR Warning',
+        3 => 'Level 2 — Manager Warning',
+        4 => 'Level 3 — Director / Final Warning',
+        5 => 'Level 4 — ZTP · Zero Tolerance Policy / Termination',
+    ];
+
+    /**
+     * ZTP is the only rung with an employment-status consequence: the employee
+     * is terminated outright. Every other rung — PIP through Director / Final
+     * Warning — records the warning and nothing else.
+     */
+    public const TERMINATION_LEVELS = [5];
+
     protected $fillable = [
         'business_id',
         'warning_code', 'employee_id', 'level',
@@ -46,11 +67,6 @@ class Warning extends Model
 
     public function getLevelLabelAttribute(): string
     {
-        return match ((int) $this->level) {
-            1 => 'HR Warning (Level 1)',
-            2 => 'Manager Warning (Level 2)',
-            3 => 'Director Warning — Termination (Level 3)',
-            default => "Level {$this->level}",
-        };
+        return self::LEVELS[(int) $this->level] ?? "Level {$this->level}";
     }
 }

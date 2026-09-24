@@ -39,6 +39,16 @@ class HrSettings
         'full_day_hours' => 9.0,
         'half_day_hours' => 4.5,
         'el_carry_forward_cap' => 30,
+        // Leave Balance Gate. When enabled, an employee cannot submit a paid
+        // leave request for more days than they actually have left — the system
+        // stops it at submission instead of letting HR split it paid/unpaid.
+        'leave_balance_gate_enabled' => 1,
+        // The exception to that gate: with no paid balance left, may the employee
+        // still apply for genuine Leave Without Pay (a medical emergency, say)?
+        // On = LWP stays open, only paid types are blocked.
+        // Off = the block is absolute; an out-of-balance employee cannot apply
+        //       for anything, LWP included.
+        'leave_lwp_exception_enabled' => 1,
         'leave_accrual_frequency' => 'monthly', // monthly | half_yearly | annual
         'leave_accrual_day' => 11, // day of the month leave is credited (1-28)
         'leave_cycle' => 'calendar', // calendar (Jan-Dec)
@@ -62,6 +72,21 @@ class HrSettings
     public static function float(string $key, ?float $default = null): float
     {
         return (float) self::get($key, $default);
+    }
+
+    /**
+     * Boolean accessor for on/off settings.
+     *
+     * Values arrive from the settings form as "1"/"0" strings, so a plain cast
+     * is not enough — "0" is truthy as a non-empty string in some contexts and
+     * an unchecked checkbox posts nothing at all.
+     */
+    public static function bool(string $key, ?bool $default = null): bool
+    {
+        return filter_var(
+            self::get($key, $default === null ? null : (int) $default),
+            FILTER_VALIDATE_BOOL,
+        );
     }
 
     public static function set(string $key, mixed $value, string $group = 'hr'): void
@@ -96,6 +121,14 @@ class HrSettings
     public static function floatForBusiness(string $key, ?int $businessId, ?float $default = null): float
     {
         return (float) self::getForBusiness($key, $businessId, $default);
+    }
+
+    public static function boolForBusiness(string $key, ?int $businessId, ?bool $default = null): bool
+    {
+        return filter_var(
+            self::getForBusiness($key, $businessId, $default === null ? null : (int) $default),
+            FILTER_VALIDATE_BOOL,
+        );
     }
 
     /**

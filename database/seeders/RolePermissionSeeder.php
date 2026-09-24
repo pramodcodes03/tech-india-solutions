@@ -37,7 +37,10 @@ class RolePermissionSeeder extends Seeder
             'analytics_executive' => ['view'],   // /admin/dashboards/executive
             'analytics_hr'        => ['view'],   // /admin/hr/dashboard
             'analytics_asset'     => ['view'],   // /admin/assets/dashboard
-            'businesses' => ['view', 'create', 'edit', 'delete'],
+            // 'switch' is separate from 'view': moving between the businesses
+            // you have been assigned is not the same right as editing the
+            // company record itself.
+            'businesses' => ['view', 'create', 'edit', 'delete', 'switch'],
             'users' => ['view', 'create', 'edit', 'delete'],
             'roles' => ['view', 'create', 'edit', 'delete'],
             'customers' => ['view', 'create', 'edit', 'delete'],
@@ -53,7 +56,7 @@ class RolePermissionSeeder extends Seeder
             'purchase_orders' => ['view', 'create', 'edit', 'delete'],
             'goods_receipts' => ['view', 'create'],
             'invoices' => ['view', 'create', 'edit', 'delete', 'export_pdf'],
-            'payments' => ['view', 'create', 'delete'],
+            'payments' => ['view', 'create', 'edit', 'delete'],
             'service_tickets' => ['view', 'create', 'edit', 'delete'],
             'reports' => ['view', 'export'],
             'settings' => ['view', 'edit'],
@@ -72,19 +75,55 @@ class RolePermissionSeeder extends Seeder
             'shifts' => ['view', 'create', 'edit', 'delete'],
             'holidays' => ['view', 'create', 'edit', 'delete'],
             'attendance' => ['view', 'create', 'edit', 'import'],
-            'leaves' => ['view', 'create', 'approve', 'reject'],
+            'leaves' => ['view', 'create', 'approve', 'reject', 'delete'],
             'leave_types' => ['view', 'create', 'edit', 'delete'],
             'leave_settings' => ['view', 'edit', 'manage'],
-            'payroll' => ['view', 'generate', 'approve', 'edit'],
+            // delete       → remove a generated (unpaid) payslip, bulk or single
+            // delete_paid  → the override that also removes an already-Paid one
+            'payroll' => ['view', 'generate', 'approve', 'edit', 'delete', 'delete_paid'],
             'salary_structures' => ['view', 'create', 'edit'],
             'warnings' => ['view', 'create', 'edit', 'delete'],
             'penalties' => ['view', 'create', 'edit', 'delete', 'reduce'],
             'feedback' => ['view'],
             'appraisals' => ['view', 'create', 'edit', 'finalize', 'acknowledge'],
             'recruitment' => ['view', 'create', 'edit', 'delete', 'manage_stages'],
-            'attendance_corrections' => ['view', 'manage'],
+            'attendance_corrections' => ['view', 'manage', 'delete'],
             'employee_documents' => ['view', 'upload', 'verify', 'delete'],
-            'internal_tickets' => ['view', 'manage', 'configure'],
+            'helpdesk' => ['view', 'manage', 'configure', 'delete'],
+            // Operational trackers — one module row each so a business can hand
+            // out a single register (e.g. the front desk gets Visitors only).
+            'break_tracker' => ['view', 'create', 'edit', 'delete', 'import', 'export'],
+            'diesel_tracker' => ['view', 'create', 'edit', 'delete', 'import', 'export', 'manage_budget'],
+            'visitor_tracker' => ['view', 'create', 'edit', 'delete', 'import', 'export'],
+            'tracker_settings' => ['view', 'manage'],
+
+            // ── Performance Management (Module A: KRA / KPI) ──────────────
+            // One row per area so the proposal's four-role matrix can be built
+            // from the Roles screen: Admin and HR get everything, a manager
+            // role gets performance_reviews.manager_review on its own.
+            'performance' => ['view', 'configure'],
+            'performance_kra' => ['view', 'create', 'edit', 'delete'],
+            'performance_kpi' => ['view', 'create', 'edit', 'delete'],
+            'performance_goals' => ['view', 'assign', 'bulk_assign', 'import', 'delete'],
+            'performance_reviews' => ['view', 'manager_review', 'hr_review', 'finalize', 'send_back'],
+            'performance_rewards' => ['view', 'manage'],
+            'performance_reports' => ['view', 'export'],
+            'analytics_performance' => ['view'],
+
+            // ── Documents & PDF Pack (Module D) ──────────────────────────
+            // One row per pack, so Accounts can print the Sales & Finance pack
+            // without also getting HR letters or the payroll registers.
+            'documents' => ['view', 'configure'],
+            'documents_payroll' => ['view', 'generate'],
+            'documents_attendance' => ['view', 'generate'],
+            'documents_reports' => ['view', 'generate'],
+            'documents_hr_letters' => ['view', 'generate'],
+            'documents_sales' => ['view', 'generate'],
+            'documents_statutory' => ['view', 'generate'],
+            // Its own module so a department lead can be given ticket
+            // numbers without the rest of the reports pack.
+            'helpdesk_reports' => ['view', 'generate', 'export', 'configure'],
+            'statutory_registers' => ['view', 'create', 'edit', 'delete', 'configure'],
             'bulk_imports' => ['run'],
             'salary_templates' => ['view', 'manage'],
             'payroll_adjustments' => ['view', 'manage'],
@@ -120,8 +159,12 @@ class RolePermissionSeeder extends Seeder
         // and businesses.* which are Super-Admin-only.
         $adminRole = Role::firstOrCreate(['name' => 'Admin', 'guard_name' => $guard]);
         $adminPermissions = array_filter($allPermissions, function ($perm) {
+            // businesses.switch is the exception to the businesses.* rule:
+            // moving between assigned businesses is not a Super-Admin-only act,
+            // and without it an admin granted extra businesses still cannot
+            // reach them.
             return ! in_array($perm, ['users.delete', 'roles.delete'])
-                && ! str_starts_with($perm, 'businesses.');
+                && ($perm === 'businesses.switch' || ! str_starts_with($perm, 'businesses.'));
         });
         $adminRole->syncPermissions($adminPermissions);
 
@@ -172,6 +215,12 @@ class RolePermissionSeeder extends Seeder
             $this->allActionsFor('requisitions', $modules),
             ['customers.view'],
             $this->allActionsFor('reports', $modules),
+            ['documents.view'],
+            $this->allActionsFor('documents_sales', $modules),
+            $this->allActionsFor('documents_reports', $modules),
+            $this->allActionsFor('documents_statutory', $modules),
+            ['statutory_registers.view'],
+            ['businesses.switch'],
             ['settings.view']
         );
         $accountsRole->syncPermissions($accountsPermissions);
@@ -205,7 +254,9 @@ class RolePermissionSeeder extends Seeder
             ['leaves.view', 'leaves.create'],
             $this->allActionsFor('leave_types', $modules),
             $this->allActionsFor('leave_settings', $modules),
-            $this->allActionsFor('payroll', $modules),
+            // Deliberately not allActionsFor('payroll'): HR may clear a bad run,
+            // but removing a payslip already marked Paid stays with Admin.
+            ['payroll.view', 'payroll.generate', 'payroll.approve', 'payroll.edit', 'payroll.delete'],
             $this->allActionsFor('salary_structures', $modules),
             $this->allActionsFor('warnings', $modules),
             $this->allActionsFor('penalties', $modules),
@@ -214,7 +265,27 @@ class RolePermissionSeeder extends Seeder
             $this->allActionsFor('recruitment', $modules),
             $this->allActionsFor('attendance_corrections', $modules),
             $this->allActionsFor('employee_documents', $modules),
-            $this->allActionsFor('internal_tickets', $modules),
+            $this->allActionsFor('helpdesk', $modules),
+            $this->allActionsFor('break_tracker', $modules),
+            $this->allActionsFor('diesel_tracker', $modules),
+            $this->allActionsFor('visitor_tracker', $modules),
+            $this->allActionsFor('tracker_settings', $modules),
+            $this->allActionsFor('performance', $modules),
+            $this->allActionsFor('performance_kra', $modules),
+            $this->allActionsFor('performance_kpi', $modules),
+            $this->allActionsFor('performance_goals', $modules),
+            $this->allActionsFor('performance_reviews', $modules),
+            $this->allActionsFor('performance_rewards', $modules),
+            $this->allActionsFor('performance_reports', $modules),
+            $this->allActionsFor('analytics_performance', $modules),
+            ['documents.view'],
+            $this->allActionsFor('documents_payroll', $modules),
+            $this->allActionsFor('documents_attendance', $modules),
+            $this->allActionsFor('documents_reports', $modules),
+            $this->allActionsFor('documents_hr_letters', $modules),
+            $this->allActionsFor('documents_statutory', $modules),
+            $this->allActionsFor('statutory_registers', $modules),
+            ['helpdesk_reports.view', 'helpdesk_reports.generate', 'helpdesk_reports.export'],
             $this->allActionsFor('salary_templates', $modules),
             $this->allActionsFor('payroll_adjustments', $modules),
             $this->allActionsFor('statutory', $modules),

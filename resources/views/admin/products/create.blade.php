@@ -31,7 +31,7 @@
                         <x-admin.searchable-select name="category_id" :options="$categories" placeholder="-- Select Category --" required />
                     </div>
                     <div>
-                        <label for="hsn_code">HSN Code</label>
+                        <label for="hsn_code">HSN / SAC Code</label>
                         <input id="hsn_code" name="hsn_code" type="text" class="form-input" value="{{ old('hsn_code') }}" />
                     </div>
                     <div>

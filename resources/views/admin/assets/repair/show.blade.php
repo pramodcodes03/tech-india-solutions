@@ -91,7 +91,7 @@
                         </div>
                         <div>
                             <dt class="text-gray-500 text-xs uppercase font-semibold">Actioned By</dt>
-                            <dd class="mt-0.5">{{ $repair->approver?->name ?? '—' }}</dd>
+                            <dd class="mt-0.5">{{ $repair->approver?->display_name ?? '—' }}</dd>
                         </div>
                         <div>
                             <dt class="text-gray-500 text-xs uppercase font-semibold">Actioned At</dt>

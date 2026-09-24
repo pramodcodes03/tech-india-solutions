@@ -13,9 +13,7 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
  */
 class LeadsExport implements FromCollection, WithHeadings
 {
-    public function __construct(private array $filters = [])
-    {
-    }
+    public function __construct(private array $filters = []) {}
 
     public function collection()
     {
@@ -35,6 +33,7 @@ class LeadsExport implements FromCollection, WithHeadings
             }))
             ->when($this->filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
             ->when($this->filters['source'] ?? null, fn ($q, $v) => $q->where('source', $v))
+            ->when($this->filters['product_id'] ?? null, fn ($q, $v) => $q->where('product_id', $v))
             ->when($this->filters['assigned_to'] ?? null, fn ($q, $v) => $q->where('assigned_to', $v))
             ->when($this->filters['city'] ?? null, fn ($q, $v) => $q->where('city', $v))
             ->when($this->filters['from_date'] ?? null, fn ($q, $v) => $q->whereRaw('DATE(COALESCE(lead_date, created_at)) >= ?', [$v]))

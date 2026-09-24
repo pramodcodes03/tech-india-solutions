@@ -77,7 +77,7 @@
                                 <td class="px-4 py-2">{{ $row->customer_name }}</td>
                                 <td class="px-4 py-2">{{ $row->invoice_number ?? '-' }}</td>
                                 <td class="px-4 py-2 text-right font-semibold">{{ number_format($row->amount, 2) }}</td>
-                                <td class="px-4 py-2">{{ ucfirst(str_replace('_', ' ', $row->mode)) }}</td>
+                                <td class="px-4 py-2"><x-payment-mode :mode="$row->mode" /></td>
                                 <td class="px-4 py-2">{{ $row->reference_number ?? '-' }}</td>
                             </tr>
                         @empty

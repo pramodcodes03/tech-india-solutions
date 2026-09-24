@@ -15,9 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class InternalTicketController extends Controller
 {
-    public function __construct(private InternalTicketService $service)
-    {
-    }
+    public function __construct(private InternalTicketService $service) {}
 
     public function index(Request $request)
     {
@@ -138,5 +136,16 @@ class InternalTicketController extends Controller
         $this->service->comment($internalTicket, $request->body, 'admin', $request->boolean('is_internal_note'));
 
         return back()->with('success', 'Comment added.');
+    }
+
+    public function destroy(InternalTicket $internalTicket)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('helpdesk.delete'), 403);
+
+        $ticketNumber = $internalTicket->ticket_number;
+        $internalTicket->delete(); // comments cascade at the DB level
+
+        return redirect()->route('admin.hr.internal-tickets.index')
+            ->with('success', "Ticket {$ticketNumber} deleted.");
     }
 }

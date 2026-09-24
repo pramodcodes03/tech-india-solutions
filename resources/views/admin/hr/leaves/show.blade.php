@@ -10,7 +10,18 @@
             <div class="grid grid-cols-2 gap-3">
                 <div><div class="text-xs text-gray-500">Employee</div><div class="font-semibold">{{ $request->employee->full_name }} <span class="text-xs text-gray-500">({{ $request->employee->employee_code }})</span></div></div>
                 <div><div class="text-xs text-gray-500">Department</div><div>{{ $request->employee->department?->name ?? '—' }}</div></div>
-                <div><div class="text-xs text-gray-500">Leave Type</div><div class="font-semibold">{{ $request->leaveType->name }}</div></div>
+                <div>
+                    <div class="text-xs text-gray-500">Leave Type</div>
+                    <div class="font-semibold">
+                        {{ $request->leaveType->name }}
+                        @if($request->is_combined)<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-info/10 text-info">COMBINED</span>@endif
+                    </div>
+                    @if($request->is_combined)
+                        {{-- Approving splits the paid days across these types in
+                             proportion to what each one funds. --}}
+                        <div class="text-[11px] text-gray-500 mt-1">{{ $request->split_label }}</div>
+                    @endif
+                </div>
                 <div><div class="text-xs text-gray-500">Status</div><div><span @class(['px-2 py-0.5 rounded text-xs font-semibold',
                     'bg-warning/10 text-warning' => $request->status === 'pending',
                     'bg-success/10 text-success' => $request->status === 'approved',
@@ -19,25 +30,65 @@
                 ])>{{ ucfirst($request->status) }}</span></div></div>
                 <div><div class="text-xs text-gray-500">From</div><div class="font-semibold">{{ $request->from_date->format('d M Y (l)') }}</div></div>
                 <div><div class="text-xs text-gray-500">To</div><div class="font-semibold">{{ $request->to_date->format('d M Y (l)') }}</div></div>
-                <div><div class="text-xs text-gray-500">Days</div><div class="font-semibold">{{ number_format($request->days, 1) }}</div></div>
+                <div>
+                    <div class="text-xs text-gray-500">Days</div>
+                    <div class="font-semibold">{{ number_format($request->days, 1) }}
+                        @if(count($dayBreakdown['dates']) > 1)
+                            <span class="text-xs font-normal text-gray-400">of {{ count($dayBreakdown['dates']) }} calendar days</span>
+                        @endif
+                    </div>
+                </div>
                 <div><div class="text-xs text-gray-500">Portion</div><div>{{ ucfirst(str_replace('_',' ',$request->day_portion)) }}</div></div>
                 @if($request->status === 'approved')
-                    <div><div class="text-xs text-gray-500">Paid (from {{ $request->leaveType->code }})</div><div class="font-semibold text-success">{{ number_format($request->paid_days, 1) }}</div></div>
+                    <div><div class="text-xs text-gray-500">Paid @if(! $request->is_combined)(from {{ $request->leaveType->code }})@endif</div><div class="font-semibold text-success">{{ number_format($request->paid_days, 1) }}</div></div>
                     <div><div class="text-xs text-gray-500">Unpaid (LOP)</div><div class="font-semibold text-warning">{{ number_format($request->unpaid_days, 1) }}</div></div>
                 @endif
             </div>
+
+            {{-- Why the day count is what it is. A range that consumed fewer
+                 days than it spans is normally a week-off or holiday in the
+                 middle, and there was previously no way to see that. --}}
+            @if(count($dayBreakdown['dates']) > 1 || $dayBreakdown['drifted'])
+                <div class="mt-4 p-3 rounded-lg border border-gray-200 dark:border-[#253b5c]">
+                    <div class="text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-2">How these days were counted</div>
+                    <div class="flex flex-wrap gap-1.5">
+                        @foreach($dayBreakdown['dates'] as $day)
+                            <span class="px-2 py-1 rounded text-[11px] font-semibold
+                                {{ $day['counted'] ? 'bg-primary/10 text-primary' : 'bg-gray-100 dark:bg-dark/40 text-gray-400 line-through' }}"
+                                @if($day['reason']) title="{{ $day['reason'] }} — not counted as leave" @endif>
+                                {{ $day['date']->format('D d M') }}@if($day['reason']) · {{ $day['reason'] }}@endif
+                            </span>
+                        @endforeach
+                    </div>
+
+                    @if($dayBreakdown['drifted'])
+                        <div class="mt-2.5 text-[11px] text-warning">
+                            <b>Note:</b> this request was filed as
+                            <b>{{ number_format($dayBreakdown['stored'], 1) }}</b> day(s), but the same dates work out
+                            to <b>{{ number_format($dayBreakdown['recomputed'], 1) }}</b> today. The week-off pattern or
+                            holiday calendar has been changed since it was submitted. The figure on the request is the
+                            one that was correct when it was made, and is what the balance was deducted by.
+                        </div>
+                    @endif
+                </div>
+            @endif
             @php
-                $year = $request->from_date->year;
-                $bal = \App\Models\LeaveBalance::where('employee_id', $request->employee_id)
-                    ->where('leave_type_id', $request->leave_type_id)
-                    ->where('year', $year)->first();
-                $available = $bal ? ($bal->allocated + $bal->carried_forward - $bal->used - $bal->pending) : 0;
+                // $balance / $available come from the controller. $available already
+                // excludes this request's own pending hold, so a 0.5-day request
+                // against a 0.5-day balance shows 0.5 available, not 0.
+                $bal = $balance;
+                // The balance row's `pending` includes this request's own hold;
+                // show the tile net of it so the four figures add up on screen.
+                $ownHold = ($request->status === 'pending' && $bal)
+                    ? min((float) $request->days, (float) $bal->pending)
+                    : 0;
+                $pendingOthers = max(0, (float) ($bal?->pending ?? 0) - $ownHold);
             @endphp
             @if($request->leaveType->is_paid)
             <div class="grid grid-cols-4 gap-2 p-3 rounded bg-gray-50 dark:bg-dark-light/20 text-sm">
                 <div><div class="text-[11px] text-gray-500 uppercase">Allocated</div><div class="font-bold">{{ number_format($bal?->allocated ?? 0, 1) }}</div></div>
                 <div><div class="text-[11px] text-gray-500 uppercase">Used</div><div class="font-bold">{{ number_format($bal?->used ?? 0, 1) }}</div></div>
-                <div><div class="text-[11px] text-gray-500 uppercase">Pending</div><div class="font-bold">{{ number_format($bal?->pending ?? 0, 1) }}</div></div>
+                <div><div class="text-[11px] text-gray-500 uppercase">Pending (other reqs)</div><div class="font-bold">{{ number_format($pendingOthers, 1) }}</div></div>
                 <div><div class="text-[11px] text-gray-500 uppercase">Available</div><div class="font-extrabold text-primary">{{ number_format($available, 1) }}</div></div>
             </div>
             @endif
@@ -75,10 +126,10 @@
                                 <span>Total requested</span><strong x-text="total.toFixed(1) + ' day(s)'"></strong>
                             </div>
                             <div class="flex justify-between mb-1">
-                                <span>Available in {{ $request->leaveType->code }}</span><strong x-text="available.toFixed(1)"></strong>
+                                <span>Available in {{ $request->is_combined ? 'the combined types' : $request->leaveType->code }}</span><strong x-text="available.toFixed(1)"></strong>
                             </div>
                         </div>
-                        <label class="text-xs font-semibold text-gray-500 uppercase">Paid days (from {{ $request->leaveType->code }})</label>
+                        <label class="text-xs font-semibold text-gray-500 uppercase">Paid days @if(! $request->is_combined)(from {{ $request->leaveType->code }})@endif</label>
                         <input type="number" step="0.5" min="0" :max="total" name="paid_days" x-model.number="paid" class="form-input mt-1" />
                         <div class="mt-2 p-2 rounded bg-warning/10 text-warning text-xs" x-show="unpaid > 0">
                             <strong x-text="unpaid"></strong> day(s) will be approved as <strong>Unpaid (LOP)</strong>. This will be deducted from the next payslip.

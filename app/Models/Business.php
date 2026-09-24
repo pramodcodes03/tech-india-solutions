@@ -16,9 +16,16 @@ class Business extends Model
     protected $fillable = [
         'slug', 'name', 'legal_name',
         'gst', 'pan', 'cin',
+        // Establishment identity (Module E) — heads every statutory register.
+        'establishment_code', 'lin', 'employer_name', 'employer_designation',
+        'employer_address', 'nature_of_work', 'place_of_work',
+        'statutory_state', 'wage_period',
         'address', 'city', 'state', 'pincode', 'country',
         'phone', 'email', 'website',
         'logo',
+        // Letterhead Foundation (Module D) — shared by all 42 documents.
+        'signature_path', 'seal_path', 'signatory_name', 'signatory_role',
+        'letterhead_footer', 'letterhead_enabled',
         'currency_code', 'currency_symbol',
         'invoice_prefix', 'quotation_prefix', 'sales_order_prefix',
         'po_prefix', 'grn_prefix', 'proforma_prefix', 'employee_code_prefix',
@@ -30,6 +37,7 @@ class Business extends Model
     {
         return [
             'is_active' => 'boolean',
+            'letterhead_enabled' => 'boolean',
         ];
     }
 

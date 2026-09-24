@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\Tenancy\BelongsToBusiness;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -21,13 +22,14 @@ class Employee extends Authenticatable
     protected $fillable = [
         'business_id',
         'employee_code', 'legacy_employee_id', 'card_no', 'email', 'personal_email', 'password', 'last_login_at',
-        'first_name', 'last_name', 'phone', 'alt_phone', 'whatsapp_number',
+        'first_name', 'last_name', 'father_name', 'husband_name',
+        'phone', 'alt_phone', 'whatsapp_number',
         'date_of_birth', 'gender', 'marital_status', 'blood_group', 'profile_photo',
         'current_address', 'permanent_address', 'city', 'state', 'pincode', 'country',
         'department_id', 'designation_id', 'shift_id', 'reporting_manager_id',
         'joining_date', 'probation_end_date', 'el_working_days_required', 'cl_sl_working_days', 'confirmation_date',
         'resignation_date', 'last_working_date',
-        'employment_type', 'work_mode',
+        'employment_type', 'work_mode', 'skill_category',
         'pan_number', 'aadhar_number', 'pf_number', 'uan_number', 'esi_number',
         'bank_name', 'bank_account_number', 'bank_ifsc', 'bank_branch',
         'emergency_contact_name', 'emergency_contact_relation', 'emergency_contact_phone',
@@ -88,6 +90,66 @@ class Employee extends Authenticatable
     public function getFullNameAttribute(): string
     {
         return trim($this->first_name.' '.$this->last_name);
+    }
+
+    // ── Statutory registers (Module E) ───────────────────────────────────
+
+    /**
+     * The "Father's / Husband's name" every Punjab labour register prints.
+     *
+     * A married woman's register entry conventionally carries the husband's
+     * name, so that is preferred where recorded; otherwise the father's.
+     */
+    public function getGuardianNameAttribute(): ?string
+    {
+        return $this->husband_name ?: $this->father_name;
+    }
+
+    /** Age in completed years at a date, for Form C and the child-labour check. */
+    public function ageAt(?Carbon $on = null): ?int
+    {
+        return $this->date_of_birth?->diffInYears($on ?: now());
+    }
+
+    /** 'M' / 'F' / 'O' — the single-letter Sex column on Forms I, II and IV. */
+    public function getSexInitialAttribute(): string
+    {
+        return match ($this->gender) {
+            'male' => 'M',
+            'female' => 'F',
+            'other' => 'O',
+            default => '-',
+        };
+    }
+
+    public function skillCategoryLabel(): string
+    {
+        return MinimumWageRate::CATEGORIES[$this->skill_category] ?? '-';
+    }
+
+    public function fines(): HasMany
+    {
+        return $this->hasMany(EmployeeFine::class);
+    }
+
+    public function damageLosses(): HasMany
+    {
+        return $this->hasMany(EmployeeDamageLoss::class);
+    }
+
+    public function advances(): HasMany
+    {
+        return $this->hasMany(EmployeeAdvance::class);
+    }
+
+    public function wageDeductions(): HasMany
+    {
+        return $this->hasMany(EmployeeWageDeduction::class);
+    }
+
+    public function overtimes(): HasMany
+    {
+        return $this->hasMany(EmployeeOvertime::class);
     }
 
     // Relationships
@@ -174,6 +236,36 @@ class Employee extends Authenticatable
     public function appraisals(): HasMany
     {
         return $this->hasMany(Appraisal::class);
+    }
+
+    // ── Performance (Module A) ───────────────────────────────────────────
+
+    /** KRAs assigned to this employee, across every cycle. */
+    public function employeeKras(): HasMany
+    {
+        return $this->hasMany(EmployeeKra::class);
+    }
+
+    /** Finalised performance scores, newest cycle first. */
+    public function performanceScores(): HasMany
+    {
+        return $this->hasMany(PerformanceScore::class);
+    }
+
+    public function performanceSelfReviews(): HasMany
+    {
+        return $this->hasMany(PerformanceSelfReview::class);
+    }
+
+    public function performanceManagerReviews(): HasMany
+    {
+        return $this->hasMany(PerformanceManagerReview::class);
+    }
+
+    /** Goals this employee reviews as the assigned manager. */
+    public function managedKras(): HasMany
+    {
+        return $this->hasMany(EmployeeKra::class, 'manager_id');
     }
 
     public function creator(): BelongsTo

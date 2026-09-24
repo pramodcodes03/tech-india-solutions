@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\Employee;
 use App\Models\Holiday;
-use App\Models\LeaveRequest;
+use App\Models\Penalty;
 use App\Services\AttendanceService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -41,14 +42,14 @@ class DashboardController extends Controller
             ->orderByDesc('issued_on')
             ->limit(3)
             ->get();
-        $latestPenalties = \App\Models\Penalty::with(['penaltyType', 'issuer'])
+        $latestPenalties = Penalty::with(['penaltyType', 'issuer'])
             ->where('employee_id', $employee->id)
             ->where('incident_date', '>=', $recentWindow)
             ->orderByDesc('incident_date')
             ->limit(3)
             ->get();
         $hasDisciplinary = $latestWarnings->isNotEmpty() || $latestPenalties->isNotEmpty();
-        $birthdaysThisMonth = \App\Models\Employee::whereMonth('date_of_birth', now()->month)
+        $birthdaysThisMonth = Employee::whereMonth('date_of_birth', now()->month)
             ->where('status', 'active')
             ->orderByRaw('DAY(date_of_birth)')
             ->limit(8)
@@ -65,35 +66,37 @@ class DashboardController extends Controller
                 ->groupBy('status')
                 ->pluck('cnt', 'status')->toArray();
             $attendanceTrend[] = [
-                'label'    => $m->format('M Y'),
-                'present'  => (int) ($rows['present'] ?? 0),
+                'label' => $m->format('M Y'),
+                'present' => (int) ($rows['present'] ?? 0),
                 'half_day' => (int) ($rows['half_day'] ?? 0),
-                'absent'   => (int) ($rows['absent'] ?? 0),
+                'absent' => (int) ($rows['absent'] ?? 0),
                 'on_leave' => (int) ($rows['on_leave'] ?? 0),
             ];
         }
 
         // ── Chart 2: Current month donut ───────────────────────────────
         $currentMonthDonut = [
-            'present'  => (int) ($summary['present'] ?? 0),
+            'present' => (int) ($summary['present'] ?? 0),
             'half_day' => (int) ($summary['half_day'] ?? 0),
             'on_leave' => (int) ($summary['on_leave'] ?? 0),
-            'absent'   => (int) ($summary['absent'] ?? 0),
+            'absent' => (int) ($summary['absent'] ?? 0),
         ];
 
         // ── Chart 3: Leave usage (radialBar) ───────────────────────────
         $leaveUsage = [];
         foreach ($employee->leaveBalances->where('year', $year) as $b) {
             $total = (float) ($b->allocated + $b->carried_forward);
-            if ($total <= 0) continue;
+            if ($total <= 0) {
+                continue;
+            }
             $usedPct = (int) round((((float) $b->used + (float) $b->pending) / $total) * 100);
             $leaveUsage[] = [
-                'name'     => $b->leaveType->name,
-                'color'    => $b->leaveType->color ?? '#3b82f6',
+                'name' => $b->leaveType->name,
+                'color' => $b->leaveType->color ?? '#3b82f6',
                 'used_pct' => min(100, $usedPct),
-                'used'     => (float) $b->used,
-                'pending'  => (float) $b->pending,
-                'allocated'=> $total,
+                'used' => (float) $b->used,
+                'pending' => (float) $b->pending,
+                'allocated' => $total,
             ];
         }
 
@@ -110,13 +113,19 @@ class DashboardController extends Controller
             $hours = $time->hour + ($time->minute / 60);
             $checkInTrend[] = [
                 'label' => Carbon::parse($r->date)->format('d M'),
-                'time'  => round($hours, 2),
+                'time' => round($hours, 2),
                 'display' => $time->format('g:i A'),
             ];
         }
 
+        // Break totals for the dashboard card. Same source as the break sheet
+        // screen, so the two cannot disagree.
+        $breakSummary = BreakSheetController::summaryFor(
+            $employee->id, $month, $year,
+        );
+
         return view('employee.dashboard', compact(
-            'employee', 'summary', 'todayRecord', 'upcomingHolidays',
+            'employee', 'summary', 'todayRecord', 'upcomingHolidays', 'breakSummary',
             'pendingLeaves', 'recentPayslips', 'openWarnings', 'birthdaysThisMonth',
             'month', 'year',
             'attendanceTrend', 'currentMonthDonut', 'leaveUsage', 'checkInTrend',

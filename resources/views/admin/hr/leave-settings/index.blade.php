@@ -62,6 +62,74 @@
                 <p class="text-[11px] text-gray-400 mt-1">At least this many hours (but under Full Day) = <b>Half Day</b>. Below it = <b>Absent</b>.</p>
             </div>
         </div>
+        {{-- ── Leave Balance Gate ──────────────────────────────────────
+             Two linked switches, so they live together rather than being lost
+             among the numeric thresholds above. The second only has an effect
+             while the first is on, which is why it dims when the gate is off. --}}
+        <div class="rounded-xl border border-gray-200 dark:border-[#253b5c] p-5"
+             x-data="{ gate: {{ filter_var($settings['leave_balance_gate_enabled'], FILTER_VALIDATE_BOOL) ? 'true' : 'false' }} }">
+            <div class="text-xs font-semibold text-gray-500 uppercase mb-1">Leave Balance Gate</div>
+            <p class="text-[12px] text-gray-400 mb-4 max-w-3xl">
+                Controls what an employee is allowed to <b>submit</b>. It does not change HR's approval screen —
+                HR can still split an approved request into paid and unpaid days.
+            </p>
+
+            <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="leave_balance_gate_enabled" value="1" x-model="gate"
+                       class="form-checkbox mt-0.5 shrink-0" />
+                <span>
+                    <span class="font-semibold text-sm">Block leave requests that exceed the available balance</span>
+                    <span class="block text-[12px] text-gray-400 mt-0.5">
+                        On — an employee applying for more days than they hold is stopped at submission, and told what
+                        they have left. Off — the earlier behaviour: over-balance requests go through and HR decides
+                        the paid / unpaid split at approval.
+                    </span>
+                </span>
+            </label>
+
+            <label class="flex items-start gap-3 cursor-pointer mt-4 pt-4 border-t border-gray-100 dark:border-[#1b2e4b]"
+                   :class="gate ? '' : 'opacity-50'">
+                <input type="checkbox" name="leave_lwp_exception_enabled" value="1"
+                       @checked(filter_var($settings['leave_lwp_exception_enabled'], FILTER_VALIDATE_BOOL))
+                       class="form-checkbox mt-0.5 shrink-0" />
+                <span>
+                    <span class="font-semibold text-sm">Allow Leave Without Pay as an exception</span>
+                    <span class="block text-[12px] text-gray-400 mt-0.5">
+                        On (recommended) — the gate blocks paid leave types only. An employee whose balance is
+                        exhausted can still apply under an unpaid / LWP type, so a genuine emergency is not locked out.
+                        Off — the block is absolute: with no paid balance left the employee cannot apply for anything,
+                        LWP included, and must go through HR.
+                    </span>
+                    <span class="block text-[12px] text-gray-400 mt-1.5" x-show="!gate" x-cloak>
+                        <b>Note:</b> this setting has no effect while the gate above is off.
+                    </span>
+                </span>
+            </label>
+        </div>
+
+        {{-- Combination Leave. Separate from the balance gate above: this one
+             decides whether an employee may fund a single day from more than
+             one bucket at all, regardless of what their balances look like. --}}
+        <div class="rounded-lg border border-gray-200 dark:border-[#253b5c] p-4">
+            <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="leave_combination_enabled" value="1"
+                       @checked(filter_var($settings['leave_combination_enabled'] ?? true, FILTER_VALIDATE_BOOL))
+                       class="form-checkbox mt-0.5 shrink-0" />
+                <span>
+                    <span class="font-semibold text-sm">Allow Combination Leave</span>
+                    <span class="block text-[12px] text-gray-400 mt-0.5">
+                        On (default) — an employee may fund one full day from two or more leave types, for example
+                        0.5 Casual + 0.5 Sick. Off — every request must come from a single leave type, and the
+                        combine option disappears from the employee's apply form.
+                    </span>
+                    <span class="block text-[12px] text-gray-400 mt-1.5">
+                        Combination only ever applies to a <b>full day</b>. It is never offered on a half-day
+                        request, since half a day cannot be split further.
+                    </span>
+                </span>
+            </label>
+        </div>
+
         <div>
             <label class="text-xs font-semibold text-gray-500 uppercase">Company Leave Policy (shown to employees)</label>
             <textarea name="leave_policy_document" rows="8" class="form-textarea mt-1" placeholder="Describe the company leave policy…">{{ $settings['leave_policy_document'] }}</textarea>

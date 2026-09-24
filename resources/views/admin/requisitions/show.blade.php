@@ -26,7 +26,7 @@
                         @php $ac = ['pending'=>'warning','approved'=>'success','rejected'=>'danger'][$a->status]; @endphp
                         <li class="flex items-center justify-between text-sm {{ $a->level === $req->current_level && $req->status==='pending' ? 'font-semibold' : '' }}">
                             <span>Level {{ $a->level }} — {{ $a->approver_role }}</span>
-                            <span class="badge bg-{{ $ac }}/10 text-{{ $ac }}">{{ ucfirst($a->status) }} {{ $a->approver ? '· '.$a->approver->name : '' }}</span>
+                            <span class="badge bg-{{ $ac }}/10 text-{{ $ac }}">{{ ucfirst($a->status) }} {{ $a->approver ? '· '.$a->approver->display_name : '' }}</span>
                         </li>
                         @if($a->remarks)<li class="text-xs text-gray-500 ml-2">↳ {{ $a->remarks }}</li>@endif
                     @endforeach

@@ -285,7 +285,7 @@
                 @endcan
 
                 {{-- ========== SALES ========== --}}
-                @canany(['quotations.view', 'proforma_invoices.view', 'sales_orders.view', 'invoices.view', 'payments.view', 'expenses.view'])
+                @canany(['quotations.view', 'proforma_invoices.view', 'sales_orders.view', 'invoices.view', 'payments.view', 'expenses.view', 'expense_categories.view', 'reimbursements.view', 'budgets.view', 'requisitions.view', 'requisition_categories.view'])
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Sales</span>
                 </h2>
@@ -424,8 +424,11 @@
                 </li>
                 @endcan
 
-                {{-- Expenses --}}
-                @can('expenses.view')
+                {{-- Expenses / Routine Payment Tracker. @canany, not
+                     @can('expenses.view'): the group holds independent modules
+                     (budgets, reimbursements, requisitions) — a user granted
+                     only budgets.view must still see the menu. --}}
+                @canany(['expenses.view', 'expenses.create', 'expense_categories.view', 'reimbursements.view', 'budgets.view', 'requisitions.view', 'requisition_categories.view'])
                 <li class="menu nav-item">
                     <button type="button" class="nav-link group w-full"
                         :class="{ 'active': activeDropdown === 'expenses' }"
@@ -452,7 +455,7 @@
                         @can('requisition_categories.view')<li><a href="{{ route('admin.requisition-categories.index') }}">Requisition Categories</a></li>@endcan
                     </ul>
                 </li>
-                @endcan
+                @endcanany
 
                 {{-- ========== INVENTORY ========== --}}
                 @canany(['products.view', 'warehouses.view', 'inventory.view'])
@@ -600,7 +603,7 @@
                 @endcan
 
                 {{-- ========== HR ========== --}}
-                @canany(['employees.view','departments.view','designations.view','attendance.view','leaves.view','payroll.view','warnings.view','penalties.view','feedback.view','appraisals.view','holidays.view','leave_types.view','leave_settings.view','shifts.view','recruitment.view','recruitment.create','recruitment.edit','recruitment.delete','recruitment.manage_stages','helpdesk.view','helpdesk.manage','helpdesk.configure'])
+                @canany(['employees.view','departments.view','designations.view','attendance.view','leaves.view','payroll.view','warnings.view','penalties.view','feedback.view','appraisals.view','holidays.view','leave_types.view','leave_settings.view','shifts.view','recruitment.view','recruitment.create','recruitment.edit','recruitment.delete','recruitment.manage_stages','helpdesk.view','helpdesk.manage','helpdesk.configure','break_tracker.view','diesel_tracker.view','visitor_tracker.view','tracker_settings.view','performance.view','performance_kra.view','performance_goals.view','performance_reviews.view','analytics_performance.view'])
                 <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
                     <span>Human Resources</span>
                 </h2>
@@ -884,6 +887,69 @@
                     </ul>
                 </li>
                 @endcanany
+
+                {{-- Performance Management (Module A: KRA / KPI) --}}
+                @canany(['performance.view','performance_kra.view','performance_kpi.view','performance_goals.view','performance_reviews.view','performance_rewards.view','performance_reports.view','analytics_performance.view'])
+                <li class="menu nav-item">
+                    <button type="button" class="nav-link group w-full"
+                        :class="{ 'active': activeDropdown === 'hr-kra' }"
+                        @click="activeDropdown = activeDropdown === 'hr-kra' ? null : 'hr-kra'">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+                                <circle opacity="0.5" cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.5"/>
+                                <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Performance (KRA/KPI)</span>
+                        </div>
+                        <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'hr-kra' }">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                    </button>
+                    <ul x-collapse x-show="activeDropdown === 'hr-kra'" class="sub-menu text-gray-500">
+                        @can('analytics_performance.view')<li><a href="{{ route('admin.hr.performance.dashboard') }}">Dashboard</a></li>@endcan
+                        @can('performance.view')<li><a href="{{ route('admin.hr.performance.cycles.index') }}">Performance Cycles</a></li>@endcan
+                        @can('performance_kra.view')<li><a href="{{ route('admin.hr.performance.kras.index') }}">KRA Master</a></li>@endcan
+                        @can('performance_kpi.view')<li><a href="{{ route('admin.hr.performance.kpis.index') }}">KPI Master</a></li>@endcan
+                        @can('performance_goals.view')<li><a href="{{ route('admin.hr.performance.goals.index') }}">Goal Assignment</a></li>@endcan
+                        @can('performance_goals.view')<li><a href="{{ route('admin.hr.performance.goals.weightages') }}">Weightages</a></li>@endcan
+                        @can('performance_reviews.view')<li><a href="{{ route('admin.hr.performance.reviews.index') }}">Review Desk</a></li>@endcan
+                        @can('performance.view')<li><a href="{{ route('admin.hr.performance.bands.index') }}">Bands &amp; Bell Curve</a></li>@endcan
+                        @can('performance_rewards.view')<li><a href="{{ route('admin.hr.performance.rewards.index') }}">Rewards</a></li>@endcan
+                        @can('performance_reports.view')<li><a href="{{ route('admin.hr.performance.reports.index') }}">Reports</a></li>@endcan
+                    </ul>
+                </li>
+                @endcanany
+
+                {{-- Operational Trackers (Break Sheet / Diesel / Daily Visitor) --}}
+                @canany(['break_tracker.view','diesel_tracker.view','visitor_tracker.view','tracker_settings.view'])
+                <li class="menu nav-item">
+                    <button type="button" class="nav-link group w-full"
+                        :class="{ 'active': activeDropdown === 'hr-trackers' }"
+                        @click="activeDropdown = activeDropdown === 'hr-trackers' ? null : 'hr-trackers'">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                                <path opacity="0.5" d="M3 9h18" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M7 13h4M7 17h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                <circle cx="16" cy="13" r="1.25" fill="currentColor"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Trackers</span>
+                        </div>
+                        <div class="rtl:rotate-180" :class="{ '!rotate-90': activeDropdown === 'hr-trackers' }">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                    </button>
+                    <ul x-collapse x-show="activeDropdown === 'hr-trackers'" class="sub-menu text-gray-500">
+                        <li><a href="{{ route('admin.hr.trackers.index') }}">All Trackers</a></li>
+                        @can('break_tracker.view')<li><a href="{{ route('admin.hr.trackers.break.index') }}">Break Sheet</a></li>@endcan
+                        @can('diesel_tracker.view')<li><a href="{{ route('admin.hr.trackers.diesel.index') }}">Diesel</a></li>@endcan
+                        @can('diesel_tracker.manage_budget')<li><a href="{{ route('admin.hr.trackers.diesel.budgets') }}">Diesel Budget</a></li>@endcan
+                        @can('visitor_tracker.view')<li><a href="{{ route('admin.hr.trackers.visitors.index') }}">Daily Visitor</a></li>@endcan
+                        @can('tracker_settings.view')<li><a href="{{ route('admin.hr.trackers.options.index') }}">Tracker Settings</a></li>@endcan
+                    </ul>
+                </li>
+                @endcanany
                 @endcanany
 
                 {{-- ========== ASSETS ========== --}}
@@ -1017,6 +1083,46 @@
                     </ul>
                 </li>
                 @endcan
+
+                {{-- ========== DOCUMENTS ========== --}}
+                {{-- Module D: the 42-document pack, all on the shared letterhead. --}}
+                {{-- helpdesk_reports.view is in this list because the Helpdesk
+                     Report is reachable on that permission alone — a helpdesk
+                     lead gets ticket numbers without payroll or CRM documents,
+                     and without it the whole section (and so their only way in)
+                     stayed hidden. --}}
+                @canany(['documents.view','documents_payroll.view','documents_attendance.view','documents_reports.view','documents_hr_letters.view','documents_sales.view','documents_statutory.view','helpdesk_reports.view'])
+                <h2 class="py-3 px-7 flex items-center uppercase font-extrabold bg-white-light/30 dark:bg-dark dark:bg-opacity-[0.08] -mx-4 mb-1">
+                    <span>Documents</span>
+                </h2>
+
+                <li class="menu nav-item">
+                    <a href="{{ route('admin.documents.index') }}" class="nav-link group w-full">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                                <path opacity="0.5" d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Document Pack</span>
+                        </div>
+                    </a>
+                </li>
+
+                @can('documents.configure')
+                <li class="menu nav-item">
+                    <a href="{{ route('admin.documents.letterhead') }}" class="nav-link group w-full">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                                <path opacity="0.5" d="M3 9h18" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M7 13h6M7 17h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                            <span class="ltr:pl-3 rtl:pr-3 text-black dark:text-[#506690] dark:group-hover:text-white-dark">Letterhead</span>
+                        </div>
+                    </a>
+                </li>
+                @endcan
+                @endcanany
 
                 {{-- ========== REPORTS ========== --}}
                 @php $reportPerms = ['reports.view','report_sales.view','report_inventory.view','report_customers.view','report_purchases.view','report_payments.view','report_hr.view','report_builder.view']; @endphp

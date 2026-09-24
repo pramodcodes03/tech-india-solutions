@@ -13,6 +13,17 @@
                 </form>
                 @endcan
             @endif
+            @can('payroll.delete')
+                @php $paidNeedsOverride = $payslip->status === 'paid'; @endphp
+                @if(! $paidNeedsOverride || auth('admin')->user()->can('payroll.delete_paid'))
+                    <form method="POST" action="{{ route('admin.hr.payroll.destroy', $payslip) }}" class="inline"
+                          onsubmit="return confirm('Delete payslip {{ $payslip->payslip_code }} for {{ $payslip->employee->full_name }}?\n\nThis cannot be undone. Any penalty or adjustment it consumed is released back for the next run.')">
+                        @csrf @method('DELETE')
+                        @if($paidNeedsOverride)<input type="hidden" name="override_paid" value="1" />@endif
+                        <button class="btn btn-outline-danger">{{ $paidNeedsOverride ? 'Delete (Paid — override)' : 'Delete Payslip' }}</button>
+                    </form>
+                @endif
+            @endcan
             <a href="{{ route('admin.hr.payroll.index') }}" class="btn btn-outline-secondary">← Back</a>
         </div>
     </div>

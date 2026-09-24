@@ -1,4 +1,10 @@
-@php $p = $payslip; $emp = $p->employee; @endphp
+@php
+    $p = $payslip;
+    $emp = $p->employee;
+    // The company header was hard-coded; on a multi-business install that
+    // printed the wrong name. Take it from the payslip's own business.
+    $biz = $emp->business ?? null;
+@endphp
 <div class="panel p-6 max-w-4xl mx-auto">
     <div class="flex items-start justify-between border-b-2 border-gray-200 dark:border-gray-700 pb-4 mb-5">
         <div>
@@ -6,7 +12,7 @@
             <div class="text-sm text-gray-500">{{ $p->period_label }} · {{ $p->payslip_code }}</div>
         </div>
         <div class="text-right">
-            <div class="font-bold">Tech India Solutions</div>
+            <div class="font-bold">{{ $biz?->name ?? 'Company' }}</div>
             <div class="text-xs text-gray-500">Payroll Division</div>
             <span @class([
                 'inline-block mt-1 px-2 py-0.5 rounded text-xs font-semibold',
@@ -27,8 +33,18 @@
         <div><span class="text-gray-500">PAN:</span> {{ $emp->pan_number ?? '—' }}</div>
         <div><span class="text-gray-500">UAN:</span> {{ $emp->uan_number ?? '—' }}</div>
         <div><span class="text-gray-500">Bank A/C:</span> {{ $emp->bank_account_number ? '****'.substr($emp->bank_account_number, -4) : '—' }}</div>
-        <div><span class="text-gray-500">Working Days:</span> {{ $p->working_days }}</div>
-        <div><span class="text-gray-500">Paid Days:</span> {{ number_format($p->paid_days, 1) }} ({{ number_format($p->lop_days, 1) }} LOP)</div>
+        {{-- Day breakdown. calendar_days is null on payslips generated before
+             the breakdown was recorded — fall back to working_days alone. --}}
+        <div><span class="text-gray-500">Calendar Days:</span> {{ $p->calendar_days ?? $p->working_days }}</div>
+        <div><span class="text-gray-500">Working Days:</span> {{ $p->working_days }}@if($p->calendar_days)
+            <span class="text-gray-500">(Week-offs {{ number_format($p->week_off_days ?? 0, 0) }}@if(($p->holiday_days ?? 0) > 0), Holidays {{ number_format($p->holiday_days, 0) }}@endif)</span>
+        @endif</div>
+        <div><span class="text-gray-500">Paid Days:</span> {{ number_format($p->paid_days, 1) }}</div>
+        @if($p->lop_days > 0)
+            <div><span class="text-gray-500">Loss of Pay:</span>
+                <strong class="text-danger">{{ number_format($p->lop_days, 1) }} day(s) · ₹{{ number_format($p->lop_deduction, 2) }}</strong>
+            </div>
+        @endif
     </div>
 
     <div class="grid grid-cols-2 gap-5 mb-4">
@@ -47,17 +63,26 @@
                     <tr class="border-b border-gray-200 dark:border-gray-700"><td class="py-2 text-gray-600 dark:text-gray-400">{{ $l }}</td><td class="py-2 text-right">₹{{ number_format($v, 2) }}</td></tr>
                 @endforeach
                 <tr class="bg-success/5"><td class="py-2 font-bold">Gross Earnings</td><td class="py-2 text-right font-bold">₹{{ number_format($p->gross_earnings, 2) }}</td></tr>
+                @if($p->lop_days > 0)
+                    <tr><td colspan="2" class="pt-2 text-[11px] text-danger leading-snug">
+                        Earnings are for {{ number_format($p->paid_days, 1) }} paid day(s).
+                        {{ number_format($p->lop_days, 1) }} LOP day(s) — ₹{{ number_format($p->lop_deduction, 2) }} — already deducted above.
+                    </td></tr>
+                @endif
             </table>
         </div>
         <div>
             <div class="font-bold bg-danger/10 text-danger px-3 py-2 rounded-t">Deductions</div>
             <table class="w-full text-sm">
+                {{-- LOP is NOT listed here: the earnings above are already
+                     pro-rated for paid days, so charging it again would
+                     double-deduct. It's shown against Loss of Pay in the header
+                     and under Earnings, so Gross − Total Deductions = Net. --}}
                 @foreach([
                     ['PF (Employee)', $p->pf],
                     ['ESI', $p->esi],
                     ['LWF / Professional Tax', $p->professional_tax],
                     ['TDS', $p->tds],
-                    ['LOP Deduction', $p->lop_deduction],
                     ['Penalty Deduction', $p->penalty_deduction],
                     ['Other Deductions', $p->other_deductions],
                 ] as [$l, $v])

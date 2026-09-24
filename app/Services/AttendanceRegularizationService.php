@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\AdminNotification;
 use App\Models\Attendance;
 use App\Models\AttendanceRegularization;
 use App\Notifications\NotificationDispatcher;
 use App\Support\HrSettings;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -14,8 +17,7 @@ class AttendanceRegularizationService
     public function __construct(
         private AttendanceService $attendance,
         private InternalTicketService $tickets,
-    ) {
-    }
+    ) {}
 
     /**
      * Employee raises a correction request. Stamps the SLA due time from the
@@ -66,11 +68,11 @@ class AttendanceRegularizationService
         if (empty($value)) {
             return null;
         }
-        if ($value instanceof \Carbon\CarbonInterface) {
+        if ($value instanceof CarbonInterface) {
             return $value->format('H:i:s');
         }
 
-        return \Carbon\Carbon::createFromFormat(
+        return Carbon::createFromFormat(
             strlen((string) $value) === 5 ? 'H:i' : 'H:i:s',
             (string) $value
         )->format('H:i:s');
@@ -80,15 +82,19 @@ class AttendanceRegularizationService
      * HR approves and (optionally) writes the corrected punches into attendance.
      */
     /**
-     * @param string|null $status Resulting attendance status to force
-     *   (present|half_day|on_leave|absent). When null, the status is
-     *   DERIVED from the corrected punch times — so a short day (worked hours
-     *   below the full-day threshold) correctly becomes a half-day instead of
-     *   always being marked present.
+     * @param  string|null  $status  Resulting attendance status to force
+     *                               (present|half_day|on_leave|absent). When null, the status is
+     *                               DERIVED from the corrected punch times — so a short day (worked hours
+     *                               below the full-day threshold) correctly becomes a half-day instead of
+     *                               always being marked present.
      */
-    public function approve(AttendanceRegularization $reg, ?string $remarks = null, ?string $status = null): AttendanceRegularization
-    {
-        return DB::transaction(function () use ($reg, $remarks, $status) {
+    public function approve(
+        AttendanceRegularization $reg,
+        ?string $remarks = null,
+        ?string $status = null,
+        ?string $halfDayPortion = null,
+    ): AttendanceRegularization {
+        return DB::transaction(function () use ($reg, $remarks, $status, $halfDayPortion) {
             // Apply the correction to the attendance record.
             // expected_in / expected_out and the attendance time columns are
             // plain TIME strings (no Carbon cast) — normalise to H:i:s strings.
@@ -112,6 +118,14 @@ class AttendanceRegularizationService
                 $payload['status'] = $status;
             }
 
+            // Which half was worked. Stored on any half-day resolution so the
+            // calendar can say "9:00 AM – 1:00 PM · first half worked" rather
+            // than just "Half Day". Cleared on a full-day resolution so a stale
+            // value cannot linger.
+            $payload['half_day_portion'] = in_array($status, ['half_day', 'half_day_week_off'], true)
+                ? $halfDayPortion
+                : null;
+
             $this->attendance->upsert($payload);
 
             $reg->update([
@@ -122,7 +136,7 @@ class AttendanceRegularizationService
                 'applied' => true,
             ]);
 
-            \App\Models\AdminNotification::markRelatedAsRead($reg, ['attendance.regularization_requested']);
+            AdminNotification::markRelatedAsRead($reg, ['attendance.regularization_requested']);
             NotificationDispatcher::fire('attendance.regularization_approved', $reg);
 
             return $reg;
@@ -138,7 +152,7 @@ class AttendanceRegularizationService
             'review_remarks' => $remarks,
         ]);
 
-        \App\Models\AdminNotification::markRelatedAsRead($reg, ['attendance.regularization_requested']);
+        AdminNotification::markRelatedAsRead($reg, ['attendance.regularization_requested']);
         NotificationDispatcher::fire('attendance.regularization_rejected', $reg);
 
         return $reg;

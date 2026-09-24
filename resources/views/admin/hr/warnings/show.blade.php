@@ -2,21 +2,31 @@
     <x-admin.breadcrumb :items="[['label' => 'HR'], ['label' => 'Warnings', 'url' => route('admin.hr.warnings.index')], ['label' => $warning->warning_code]]" />
     <div class="flex items-center justify-between mb-4">
         <h1 class="text-2xl font-extrabold">{{ $warning->warning_code }}</h1>
-        @if($warning->status === 'active')
-            @can('warnings.edit')
-                <form method="POST" action="{{ route('admin.hr.warnings.withdraw', $warning) }}" onsubmit="return confirm('Withdraw this warning?')">
-                    @csrf
-                    <button class="btn btn-outline-warning">Withdraw</button>
+        <div class="flex items-center gap-2">
+            @if($warning->status === 'active')
+                @can('warnings.edit')
+                    <form method="POST" action="{{ route('admin.hr.warnings.withdraw', $warning) }}" onsubmit="return confirm('Withdraw this warning?')">
+                        @csrf
+                        <button class="btn btn-outline-warning">Withdraw</button>
+                    </form>
+                @endcan
+            @endif
+            @can('warnings.delete')
+                <form method="POST" action="{{ route('admin.hr.warnings.destroy', $warning) }}" onsubmit="return confirm('Delete this warning? This cannot be undone.')">
+                    @csrf @method('DELETE')
+                    <button class="btn btn-outline-danger">Delete</button>
                 </form>
             @endcan
-        @endif
+        </div>
     </div>
     <div class="panel p-6 max-w-3xl space-y-4">
         <div class="flex items-center gap-3">
             <span @class(['px-3 py-1 rounded text-sm font-bold uppercase',
                 'bg-info/10 text-info' => $warning->level == 1,
-                'bg-warning/10 text-warning' => $warning->level == 2,
-                'bg-danger/10 text-danger' => $warning->level == 3,
+                'bg-primary/10 text-primary' => $warning->level == 2,
+                'bg-warning/10 text-warning' => $warning->level == 3,
+                'bg-danger/10 text-danger' => $warning->level == 4,
+                'bg-dark text-white' => $warning->level == 5,
             ])>{{ $warning->level_label }}</span>
             <span @class(['px-2 py-0.5 rounded text-xs font-semibold',
                 'bg-warning/10 text-warning' => $warning->status === 'active',
@@ -29,7 +39,7 @@
 
         <div class="grid grid-cols-2 gap-3 text-sm">
             <div><div class="text-xs text-gray-500">Employee</div><div class="font-semibold">{{ $warning->employee->full_name }} ({{ $warning->employee->employee_code }})</div></div>
-            <div><div class="text-xs text-gray-500">Issued by</div><div class="font-semibold">{{ $warning->issuer?->name ?? '—' }}</div></div>
+            <div><div class="text-xs text-gray-500">Issued by</div><div class="font-semibold">{{ $warning->issuer?->display_name ?? '—' }}</div></div>
             <div><div class="text-xs text-gray-500">Issued on</div><div>{{ $warning->issued_on->format('d M Y') }}</div></div>
             @if($warning->acknowledged_at)
             <div><div class="text-xs text-gray-500">Acknowledged</div><div>{{ $warning->acknowledged_at->format('d M Y, g:i A') }}</div></div>

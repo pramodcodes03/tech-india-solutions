@@ -25,17 +25,18 @@ class Lead extends Model
      */
     public const SOURCES = [
         // ── Marketplace / B2B portals ─────────────────────────────────────
-        'indiamart'          => 'IndiaMART',
-        'industrybuying'     => 'IndustryBuying',
-        'exportersindia'     => 'ExportersIndia',
+        'indiamart' => 'IndiaMART',
+        'industrybuying' => 'IndustryBuying',
+        'exportersindia' => 'ExportersIndia',
+        'tradeindia' => 'Trade India',
         'google_my_business' => 'Google My Business (GMB)',
         // ── Paid advertising ──────────────────────────────────────────────
-        'google_ads'    => 'Google Ads',
-        'meta_ads'      => 'Meta Ads',
+        'google_ads' => 'Google Ads',
+        'meta_ads' => 'Meta Ads',
         'instagram_ads' => 'Instagram Ads',
-        'youtube_ads'   => 'YouTube Ads',
+        'youtube_ads' => 'YouTube Ads',
         // ── Direct inbound ────────────────────────────────────────────────
-        'whatsapp'     => 'WhatsApp',
+        'whatsapp' => 'WhatsApp',
         'contact_form' => 'Contact Form',
         // ── Events ────────────────────────────────────────────────────────
         'seminar' => 'Seminar',
@@ -45,13 +46,13 @@ class Lead extends Model
         // ── Government / institutional ────────────────────────────────────
         'gem_portal' => 'Government Portal (GeM)',
         // ── Generic catch-alls (kept for leads that don't fit above) ──────
-        'website'   => 'Website',
-        'referral'  => 'Referral',
-        'walk_in'   => 'Walk-in',
+        'website' => 'Website',
+        'referral' => 'Referral',
+        'walk_in' => 'Walk-in',
         'cold_call' => 'Cold Call',
-        'email'     => 'Email',
-        'partner'   => 'Partner',
-        'other'     => 'Other',
+        'email' => 'Email',
+        'partner' => 'Partner',
+        'other' => 'Other',
     ];
 
     /**
@@ -61,24 +62,24 @@ class Lead extends Model
      * renaming or reordering a stage) means editing only this one place.
      */
     public const STATUSES = [
-        'new'        => 'New',
-        'attempted'  => 'Attempted',
-        'contacted'  => 'Contacted',
-        'qualified'  => 'Qualified',
+        'new' => 'New',
+        'attempted' => 'Attempted',
+        'contacted' => 'Contacted',
+        'qualified' => 'Qualified',
         'evaluation' => 'Evaluation',
-        'won'        => 'Won',
-        'lost'       => 'Lost',
+        'won' => 'Won',
+        'lost' => 'Lost',
     ];
 
     /** Tailwind theme colour for each status badge / Kanban column border. */
     public const STATUS_COLORS = [
-        'new'        => 'info',
-        'attempted'  => 'dark',
-        'contacted'  => 'warning',
-        'qualified'  => 'primary',
+        'new' => 'info',
+        'attempted' => 'dark',
+        'contacted' => 'warning',
+        'qualified' => 'primary',
         'evaluation' => 'secondary',
-        'won'        => 'success',
-        'lost'       => 'danger',
+        'won' => 'success',
+        'lost' => 'danger',
     ];
 
     /** Open / active pipeline stages — everything except Won & Lost. */

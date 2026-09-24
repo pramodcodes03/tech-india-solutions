@@ -1,5 +1,5 @@
 <x-layout.admin title="Leads">
-    @php $leadColspan = (auth('admin')->user()?->canany(['leads.edit','leads.delete'])) ? 16 : 15; @endphp
+    @php $leadColspan = (auth('admin')->user()?->canany(['leads.edit','leads.delete'])) ? 17 : 16; @endphp
     <div x-data="leadList">
         <x-admin.breadcrumb :items="[['label' => 'Leads']]" />
 
@@ -37,7 +37,7 @@
 
         {{-- Filters row --}}
         <div class="panel px-4 py-3 mb-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3 items-end">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8 gap-3 items-end">
                 <div class="relative xl:col-span-1">
                     <input type="text" placeholder="Search name/company/code/mobile..."
                         class="form-input py-2 w-full ltr:pr-11 rtl:pl-11 peer"
@@ -58,6 +58,12 @@
                     <option value="">-- All Sources --</option>
                     @foreach($sources as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+                <select class="form-select py-2 w-full" x-model="filterProduct" @change="fetchData(1)">
+                    <option value="">-- All Products --</option>
+                    @foreach($products as $product)
+                        <option value="{{ $product->id }}">{{ $product->name }}</option>
                     @endforeach
                 </select>
                 <select class="form-select py-2 w-full" x-model="filterAssignedTo" @change="fetchData(1)">
@@ -82,7 +88,7 @@
                     <input type="date" class="form-input py-2 w-full" x-model="filterToDate" @change="fetchData(1)" />
                 </div>
             </div>
-            <div class="mt-3" x-show="searchText || filterStatus || filterSource || filterAssignedTo || filterCity || filterFromDate || filterToDate" x-cloak>
+            <div class="mt-3" x-show="searchText || filterStatus || filterSource || filterProduct || filterAssignedTo || filterCity || filterFromDate || filterToDate" x-cloak>
                 <button type="button" class="btn btn-outline-danger btn-sm" @click="clearFilters()">Clear Filters</button>
             </div>
         </div>
@@ -112,6 +118,7 @@
                             <th class="px-4 py-2">#</th>
                             <th class="px-4 py-2">Code</th>
                             <th class="px-4 py-2">Name</th>
+                            <th class="px-4 py-2">Product</th>
                             <th class="px-4 py-2">Mobile</th>
                             <th class="px-4 py-2">Company</th>
                             <th class="px-4 py-2">City / State</th>
@@ -135,6 +142,7 @@
                                 <td class="px-4 py-2" x-text="(pagination.current_page - 1) * pagination.per_page + index + 1"></td>
                                 <td class="px-4 py-2" x-text="item.code ? item.code.replace('LEAD-', '') : '-'"></td>
                                 <td class="px-4 py-2" x-text="item.name"></td>
+                                <td class="px-4 py-2" x-text="item.product_name || '-'"></td>
                                 <td class="px-4 py-2 whitespace-nowrap">
                                     <template x-if="item.phone">
                                         <a :href="`tel:${item.phone}`" class="text-primary hover:underline" x-text="item.phone"></a>
@@ -308,6 +316,7 @@
                 searchText: '',
                 filterStatus: '',
                 filterSource: '',
+                filterProduct: '',
                 filterAssignedTo: '',
                 filterCity: '',
                 filterFromDate: '',
@@ -385,6 +394,7 @@
                     if (this.searchText) url += `&search=${encodeURIComponent(this.searchText)}`;
                     if (this.filterStatus) url += `&status=${this.filterStatus}`;
                     if (this.filterSource) url += `&source=${encodeURIComponent(this.filterSource)}`;
+                    if (this.filterProduct) url += `&product_id=${this.filterProduct}`;
                     if (this.filterAssignedTo) url += `&assigned_to=${this.filterAssignedTo}`;
                     if (this.filterCity) url += `&city=${encodeURIComponent(this.filterCity)}`;
                     if (this.filterFromDate) url += `&from_date=${this.filterFromDate}`;
@@ -405,6 +415,7 @@
                     if (this.searchText) url += `&search=${encodeURIComponent(this.searchText)}`;
                     if (this.filterStatus) url += `&status=${this.filterStatus}`;
                     if (this.filterSource) url += `&source=${encodeURIComponent(this.filterSource)}`;
+                    if (this.filterProduct) url += `&product_id=${this.filterProduct}`;
                     if (this.filterAssignedTo) url += `&assigned_to=${this.filterAssignedTo}`;
                     if (this.filterCity) url += `&city=${encodeURIComponent(this.filterCity)}`;
                     if (this.filterFromDate) url += `&from_date=${this.filterFromDate}`;
@@ -425,6 +436,7 @@
                     this.searchText = '';
                     this.filterStatus = '';
                     this.filterSource = '';
+                    this.filterProduct = '';
                     this.filterAssignedTo = '';
                     this.filterCity = '';
                     this.filterFromDate = '';

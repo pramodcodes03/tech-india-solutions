@@ -85,6 +85,15 @@
                 </li>
 
                 <li class="menu nav-item">
+                    <a href="{{ route('employee.break-sheet.index') }}" class="nav-link group {{ request()->routeIs('employee.break-sheet.*') ? 'active' : '' }}">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 8h12v6a4 4 0 01-4 4H8a4 4 0 01-4-4V8z" stroke="currentColor" stroke-width="1.5"/><path opacity="0.5" d="M16 9h2a2 2 0 110 4h-2M4 21h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                            <span class="ltr:pl-3 text-black dark:text-[#506690]">My Break Sheet</span>
+                        </div>
+                    </a>
+                </li>
+
+                <li class="menu nav-item">
                     <a href="{{ route('employee.documents.index') }}" class="nav-link group {{ request()->routeIs('employee.documents.*') ? 'active' : '' }}">
                         <div class="flex items-center">
                             <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5"/><path opacity="0.5" d="M14 3v5h5" stroke="currentColor" stroke-width="1.5"/></svg>
@@ -195,6 +204,46 @@
                         </div>
                     </a>
                 </li>
+
+                {{-- My KRA / KPI goals for the current cycle. --}}
+                <li class="menu nav-item">
+                    <a href="{{ route('employee.performance-goals.index') }}" class="nav-link group {{ request()->routeIs('employee.performance-goals.*') ? 'active' : '' }}">
+                        <div class="flex items-center">
+                            <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+                                <circle opacity="0.5" cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.5"/>
+                                <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                            </svg>
+                            <span class="ltr:pl-3 text-black dark:text-[#506690]">My Goals</span>
+                        </div>
+                    </a>
+                </li>
+
+                {{-- Manager's review desk — only for whoever is named as a
+                     reviewer on an assigned goal. --}}
+                @php
+                    $reviewerCount = $emp
+                        ? \App\Models\EmployeeKra::where('manager_id', $emp->id)->where('status', 'self_submitted')->distinct('employee_id')->count('employee_id')
+                        : 0;
+                    $isReviewer = $emp && \App\Models\EmployeeKra::where('manager_id', $emp->id)->exists();
+                @endphp
+                @if($isReviewer)
+                    <li class="menu nav-item">
+                        <a href="{{ route('employee.team-performance.index') }}" class="nav-link group {{ request()->routeIs('employee.team-performance.*') ? 'active' : '' }}">
+                            <div class="flex items-center">
+                                <svg class="group-hover:!text-primary shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="9" cy="8" r="3.25" stroke="currentColor" stroke-width="1.5"/>
+                                    <path opacity="0.5" d="M3 19c0-2.8 2.7-5 6-5s6 2.2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                    <path d="M16 13l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span class="ltr:pl-3 text-black dark:text-[#506690]">Team Performance</span>
+                                @if($reviewerCount > 0)
+                                    <span class="ml-auto mr-1 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-warning text-white">{{ $reviewerCount > 99 ? '99+' : $reviewerCount }}</span>
+                                @endif
+                            </div>
+                        </a>
+                    </li>
+                @endif
 
                 @php
                     $pendingAppraisal = $emp ? \App\Models\Appraisal::where('employee_id', $emp->id)->where('status', 'pending_self')->count() : 0;

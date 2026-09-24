@@ -145,8 +145,9 @@
         <thead>
             <tr>
                 <th class="c" style="width:26px;">#</th>
+                <th style="text-align:left;">Product Name</th>
                 <th style="text-align:left;">Description</th>
-                <th style="width:60px; text-align:left;">HSN</th>
+                <th style="width:66px; text-align:left;">HSN/SAC</th>
                 <th class="r" style="width:44px;">Qty</th>
                 <th class="c" style="width:36px;">Unit</th>
                 <th class="r" style="width:72px;">Rate (&#8377;)</th>
@@ -164,7 +165,8 @@
             @endphp
             <tr>
                 <td class="c" style="color:#a0aec0;">{{ $idx + 1 }}</td>
-                <td><span class="item-name">{{ $item->description ?: ($item->product->name ?? '-') }}</span></td>
+                <td><span class="item-name">{{ $item->product->name ?? '-' }}</span></td>
+                <td style="color:#4a5568;">{{ $item->description }}</td>
                 <td style="color:#718096;">{{ $item->hsn_code ?: '-' }}</td>
                 <td class="r">{{ rtrim(rtrim(number_format(floatval($item->quantity), 2), '0'), '.') }}</td>
                 <td class="c" style="color:#718096;">{{ ucfirst($item->unit ?? '') }}</td>

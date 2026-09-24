@@ -4,12 +4,12 @@
     <div class="space-y-3">
         @forelse($warnings as $w)
             <div class="p-5 rounded-xl bg-white dark:bg-[#1b2e4b] shadow border-l-4
-                {{ $w->level == 3 ? 'border-danger' : ($w->level == 2 ? 'border-warning' : 'border-info') }}">
+                {{ $w->level >= 4 ? 'border-danger' : ($w->level == 3 ? 'border-warning' : 'border-info') }}">
                 <div class="flex items-start justify-between mb-2">
                     <div>
                         <div class="inline-flex items-center gap-2 mb-1">
                             <span class="px-2 py-0.5 rounded text-xs font-bold uppercase
-                                {{ $w->level == 3 ? 'bg-danger/10 text-danger' : ($w->level == 2 ? 'bg-warning/10 text-warning' : 'bg-info/10 text-info') }}">
+                                {{ $w->level == 5 ? 'bg-dark text-white' : ($w->level == 4 ? 'bg-danger/10 text-danger' : ($w->level == 3 ? 'bg-warning/10 text-warning' : ($w->level == 2 ? 'bg-primary/10 text-primary' : 'bg-info/10 text-info'))) }}">
                                 {{ $w->level_label }}
                             </span>
                             <span @class([
@@ -21,7 +21,7 @@
                             ])>{{ ucfirst($w->status) }}</span>
                         </div>
                         <h3 class="font-bold text-lg">{{ $w->title }}</h3>
-                        <div class="text-xs text-gray-500">Issued {{ $w->issued_on->format('d M Y') }} by {{ $w->issuer?->name ?? 'HR' }}</div>
+                        <div class="text-xs text-gray-500">Issued {{ $w->issued_on->format('d M Y') }} by {{ $w->issuer?->display_name ?? 'HR' }}</div>
                     </div>
                     <div class="text-xs text-gray-400">{{ $w->warning_code }}</div>
                 </div>

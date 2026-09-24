@@ -2,7 +2,9 @@
     <x-admin.breadcrumb :items="[['label' => 'HR'], ['label' => 'Warnings', 'url' => route('admin.hr.warnings.index')], ['label' => 'New']]" />
     <h1 class="text-2xl font-extrabold mb-4">Issue Warning</h1>
 
-    <form method="POST" action="{{ route('admin.hr.warnings.store') }}" class="panel p-6 max-w-3xl space-y-4">
+    <form method="POST" action="{{ route('admin.hr.warnings.store') }}" class="panel p-6 max-w-3xl space-y-4"
+        x-data="{ level: '{{ array_key_first(\App\Models\Warning::LEVELS) }}' }"
+        @submit="if (level == '{{ \App\Models\Warning::TERMINATION_LEVELS[0] }}' && ! confirm('ZTP will TERMINATE this employee immediately. Continue?')) $event.preventDefault()">
         @csrf
         <div class="grid grid-cols-2 gap-4">
             <div>
@@ -16,10 +18,10 @@
             </div>
             <div>
                 <label class="text-xs font-semibold text-gray-500 uppercase">Warning Level *</label>
-                <select name="level" required class="form-select mt-1">
-                    <option value="1">Level 1 — HR Warning</option>
-                    <option value="2">Level 2 — Manager Warning</option>
-                    <option value="3">Level 3 — Director / Termination-track</option>
+                <select name="level" required class="form-select mt-1" x-model="level">
+                    @foreach(\App\Models\Warning::LEVELS as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
                 </select>
             </div>
             <div class="col-span-2">
@@ -40,8 +42,12 @@
             </div>
         </div>
 
-        <div class="text-sm bg-warning/10 text-warning border border-warning/30 p-3 rounded">
-            <strong>Note:</strong> Issuing a Level-3 warning will automatically move the employee's status to <code>on_notice</code>.
+        {{-- Consequence note. Only ZTP changes the employee's status. --}}
+        <div class="text-sm bg-danger/10 text-danger border border-danger/30 p-3 rounded"
+            x-show="level == '{{ \App\Models\Warning::TERMINATION_LEVELS[0] }}'" x-cloak>
+            <strong>Warning:</strong> Issuing a <strong>ZTP — Zero Tolerance Policy</strong> will set the employee's status to
+            <code>terminated</code> and record the issue date as their last working date. They will be excluded from payroll,
+            attendance import and biometric sync.
         </div>
 
         <div class="flex gap-3">

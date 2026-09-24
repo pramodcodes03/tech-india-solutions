@@ -5,9 +5,9 @@ namespace App\Services;
 use App\Models\Expense;
 use App\Support\Tenancy\CurrentBusiness;
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class ExpenseService
 {
@@ -24,7 +24,7 @@ class ExpenseService
         return $prefix.str_pad($next, 4, '0', STR_PAD_LEFT);
     }
 
-    public function create(array $data, ?\Illuminate\Http\UploadedFile $attachment = null): Expense
+    public function create(array $data, ?UploadedFile $attachment = null): Expense
     {
         return DB::transaction(function () use ($data, $attachment) {
             $businessId = app(CurrentBusiness::class)->id();
@@ -70,7 +70,7 @@ class ExpenseService
         });
     }
 
-    public function update(Expense $expense, array $data, ?\Illuminate\Http\UploadedFile $attachment = null): Expense
+    public function update(Expense $expense, array $data, ?UploadedFile $attachment = null): Expense
     {
         return DB::transaction(function () use ($expense, $data, $attachment) {
             $data['updated_by'] = Auth::guard('admin')->id();
@@ -132,7 +132,7 @@ class ExpenseService
         $latest = Expense::withoutGlobalScopes()
             ->where(function ($q) use ($template) {
                 $q->where('id', $template->id)
-                  ->orWhere('recurring_template_id', $template->id);
+                    ->orWhere('recurring_template_id', $template->id);
             })
             ->orderByDesc('due_date')
             ->first();
@@ -142,7 +142,7 @@ class ExpenseService
         }
 
         $frequency = $template->recurrence_frequency ?? Expense::FREQ_MONTHLY;
-        $nextDue   = $this->advanceDueDate($latest->due_date->copy(), $frequency);
+        $nextDue = $this->advanceDueDate($latest->due_date->copy(), $frequency);
 
         // For monthly, honour the template's preferred day-of-month (capped
         // at 28 to avoid Feb edge cases). Other frequencies use whatever day
@@ -153,19 +153,20 @@ class ExpenseService
             $nextDue->day($day);
         }
 
-        // Stay roughly one cycle ahead. Lookahead window scales with cadence
-        // so yearly templates aren't generated 11 months early, and weekly
-        // templates aren't blocked because the next due is 7 days away.
-        $lookaheadDays = match ($frequency) {
-            Expense::FREQ_WEEKLY      => 10,    // ~1.5 weeks ahead
-            Expense::FREQ_MONTHLY     => 35,    // ~5 weeks ahead (existing)
-            Expense::FREQ_QUARTERLY   => 100,   // ~3.3 months
-            Expense::FREQ_HALF_YEARLY => 200,   // ~6.5 months
-            Expense::FREQ_YEARLY      => 380,   // ~12.5 months
-            default                   => 35,
-        };
+        // Only raise the next payment once its own period has actually begun.
+        //
+        // This used to run a cycle ahead, so paying October's rent in September
+        // immediately spawned November's unpaid row and the tracker always
+        // showed a month that had not started yet. A monthly payment due in
+        // October is now created on 1 October, by the daily job.
+        //
+        // Weekly is the exception: waiting for the week to start would leave no
+        // notice at all, so it keeps a short runway.
+        $tooEarly = $frequency === Expense::FREQ_WEEKLY
+            ? $nextDue->isAfter(now()->addDays(7))
+            : $nextDue->copy()->startOfMonth()->isAfter(now()->startOfMonth());
 
-        if ($nextDue->isAfter(now()->addDays($lookaheadDays))) {
+        if ($tooEarly) {
             return null;
         }
 
@@ -205,11 +206,11 @@ class ExpenseService
     protected function advanceDueDate(Carbon $from, string $frequency): Carbon
     {
         return match ($frequency) {
-            Expense::FREQ_WEEKLY      => $from->addWeek(),
-            Expense::FREQ_QUARTERLY   => $from->addMonthsNoOverflow(3),
+            Expense::FREQ_WEEKLY => $from->addWeek(),
+            Expense::FREQ_QUARTERLY => $from->addMonthsNoOverflow(3),
             Expense::FREQ_HALF_YEARLY => $from->addMonthsNoOverflow(6),
-            Expense::FREQ_YEARLY      => $from->addYearNoOverflow(),
-            default                   => $from->addMonthNoOverflow(),
+            Expense::FREQ_YEARLY => $from->addYearNoOverflow(),
+            default => $from->addMonthNoOverflow(),
         };
     }
 

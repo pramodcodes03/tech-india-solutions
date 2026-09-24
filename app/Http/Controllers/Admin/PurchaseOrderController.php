@@ -8,8 +8,12 @@ use App\Http\Requests\Admin\StorePurchaseOrderRequest;
 use App\Http\Requests\Admin\UpdatePurchaseOrderRequest;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
+use App\Models\Setting;
 use App\Models\Vendor;
+use App\Notifications\NotificationDispatcher;
 use App\Services\PurchaseOrderService;
+use App\Support\Tenancy\CurrentBusiness;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -32,7 +36,7 @@ class PurchaseOrderController extends Controller
             ->when($request->vendor_id, fn ($q, $v) => $q->where('vendor_id', $v))
             // Date-range filter on po_date — view sends `date_from` / `date_to`.
             ->when($request->date_from, fn ($q, $d) => $q->whereDate('po_date', '>=', $d))
-            ->when($request->date_to,   fn ($q, $d) => $q->whereDate('po_date', '<=', $d))
+            ->when($request->date_to, fn ($q, $d) => $q->whereDate('po_date', '<=', $d))
             ->latest()
             ->paginate(10);
 
@@ -74,7 +78,7 @@ class PurchaseOrderController extends Controller
 
         $po = $this->purchaseOrderService->create($data, $items);
 
-        \App\Notifications\NotificationDispatcher::fire('purchase_order.issued', $po->loadMissing('vendor'));
+        NotificationDispatcher::fire('purchase_order.issued', $po->loadMissing('vendor'));
 
         return redirect()->route('admin.purchase-orders.index')->with('success', 'Purchase order created successfully.');
     }
@@ -143,12 +147,41 @@ class PurchaseOrderController extends Controller
             $request->input('notes', ''),
         );
 
-        \App\Notifications\NotificationDispatcher::fire(
+        NotificationDispatcher::fire(
             'goods_receipt.received',
             $grn->loadMissing('purchaseOrder'),
         );
 
         return redirect()->route('admin.purchase-orders.show', $purchaseOrder->id)
             ->with('success', "Goods received successfully. GRN #{$grn->grn_number}");
+    }
+
+    /**
+     * Purchase Order PDF.
+     *
+     * The template (admin.purchase-orders.pdf) has been in the repository since
+     * the sales documents were built but was never routed, so the PO was the
+     * one commercial document with no printable copy. It expects the order as
+     * `$entity`, matching the other sales templates.
+     */
+    public function pdf($id)
+    {
+        abort_unless(Auth::guard('admin')->user()->can('purchase_orders.view'), 403);
+
+        $entity = PurchaseOrder::with(['vendor', 'items.product', 'creator', 'business'])
+            ->findOrFail($id);
+
+        $settings = Setting::pluck('value', 'key')->toArray();
+
+        // Tenant identity comes from the order's own business, not the session,
+        // so a Super Admin who switched business does not get a header reading
+        // someone else's company name.
+        $business = $entity->business
+            ?? app(CurrentBusiness::class)->get();
+
+        return Pdf::loadView(
+            'admin.purchase-orders.pdf',
+            compact('entity', 'settings', 'business'),
+        )->stream("PurchaseOrder-{$entity->po_number}.pdf");
     }
 }

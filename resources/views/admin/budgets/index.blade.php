@@ -6,6 +6,16 @@
     @if(session('success'))<div class="alert alert-success mb-4">{{ session('success') }}</div>@endif
     @foreach($errors->all() as $e)<div class="alert alert-danger mb-4">{{ $e }}</div>@endforeach
 
+    @php
+        // One label list for every employee picker on this page — the roster runs
+        // into the hundreds, so these render as type-to-search dropdowns.
+        $employeeOptions = collect($employees)->map(fn ($emp) => [
+            'id' => $emp->id,
+            'name' => $emp->full_name.' ('.$emp->employee_code.')'
+                .($isSuperAdmin && $emp->business ? ' · '.$emp->business->name : ''),
+        ])->values()->all();
+    @endphp
+
     {{-- Filters --}}
     <form method="GET" class="panel p-3 mb-4 flex flex-wrap items-end gap-3">
         @if($isSuperAdmin)
@@ -41,8 +51,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div class="lg:col-span-2 space-y-4">
             @forelse($budgets as $b)
-                @php $pct = $b->utilization_percent; $bar = $pct >= 100 ? 'danger' : ($pct >= 80 ? 'warning' : 'success'); @endphp
-                <div class="panel p-4" x-data="{ open: false, editing: false }">
+                <div class="panel p-4" x-data="{ open: false, editing: false, toppingUp: false }">
                     <div class="flex items-center justify-between">
                         <div>
                             <div class="font-semibold">
@@ -60,11 +69,46 @@
                         </div>
                         @can('budgets.manage')
                             <div class="flex items-center gap-3">
-                                <button type="button" @click="editing = !editing; open = false" class="text-info text-xs font-semibold" x-text="editing ? 'Close' : 'Edit'"></button>
+                                <button type="button" @click="toppingUp = !toppingUp; editing = false"
+                                    class="btn btn-sm btn-outline-success px-2 py-1 text-xs"
+                                    x-text="toppingUp ? 'Cancel Top-up' : '+ Top-up'"></button>
+                                <button type="button" @click="editing = !editing; toppingUp = false; open = false" class="text-info text-xs font-semibold" x-text="editing ? 'Close' : 'Edit'"></button>
                                 <form method="POST" action="{{ route('admin.budgets.destroy', $b) }}" onsubmit="return confirm('Delete budget?')">@csrf @method('DELETE')<button class="text-danger text-xs">Delete</button></form>
                             </div>
                         @endcan
                     </div>
+
+                    {{-- Add money to a running budget (mid-period top-up) --}}
+                    @can('budgets.manage')
+                    <div x-show="toppingUp" x-cloak x-collapse class="mt-3 mb-1 rounded-lg border border-success/30 bg-success/5 p-3">
+                        <div class="text-[11px] font-bold uppercase tracking-wide text-success mb-2">Add money to this budget</div>
+                        <form method="POST" action="{{ route('admin.budgets.topup', $b) }}" class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+                            @csrf
+                            <div>
+                                <label class="text-[10px] font-bold text-gray-400 uppercase">Top-up Amount *</label>
+                                <input type="number" step="0.01" min="0.01" name="amount" required placeholder="e.g. 15000"
+                                    class="form-input form-input-sm mt-1">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-gray-400 uppercase">Added On</label>
+                                <input type="date" name="added_on" value="{{ date('Y-m-d') }}" class="form-input form-input-sm mt-1">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-gray-400 uppercase">Reason / Note</label>
+                                <input name="note" maxlength="255" placeholder="e.g. Budget exhausted in 10 days"
+                                    class="form-input form-input-sm mt-1">
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="btn btn-success px-3 py-1 text-xs">Add Top-up</button>
+                                <button type="button" @click="toppingUp = false" class="btn btn-outline-secondary px-3 py-1 text-xs">Cancel</button>
+                            </div>
+                            <p class="sm:col-span-4 text-[10px] text-gray-400">
+                                Current total &#8377;{{ number_format($b->total_amount, 2) }}. A top-up raises the spendable
+                                total and is visible to {{ $b->employee?->full_name ?? 'the team' }} on their budget screen.
+                            </p>
+                        </form>
+                    </div>
+                    @endcan
 
                     {{-- Inline edit form --}}
                     @can('budgets.manage')
@@ -79,10 +123,13 @@
                             </div>
                             <div>
                                 <label class="text-[10px] font-bold text-gray-400 uppercase">Assign to Employee</label>
-                                <select name="employee_id" class="form-select form-select-sm mt-1">
-                                    <option value="">— Category-wide —</option>
-                                    @foreach($employees as $emp)<option value="{{ $emp->id }}" @selected($b->employee_id == $emp->id)>{{ $emp->full_name }} ({{ $emp->employee_code }})</option>@endforeach
-                                </select>
+                                <div class="mt-1">
+                                    <x-admin.searchable-select
+                                        name="employee_id"
+                                        :options="$employeeOptions"
+                                        :selected="$b->employee_id"
+                                        placeholder="— Category-wide —" />
+                                </div>
                             </div>
                             @if($isSuperAdmin)
                                 <div>
@@ -117,19 +164,14 @@
                         </form>
                     </div>
                     @endcan
-                    <div class="grid grid-cols-3 gap-2 mt-2 text-sm">
-                        <div><span class="text-gray-500">Total</span><div class="font-semibold">{{ number_format($b->amount, 2) }}</div></div>
-                        <div><span class="text-gray-500">Utilised</span><div class="font-semibold">{{ number_format($b->utilized, 2) }}</div></div>
-                        <div><span class="text-gray-500">Remaining</span><div class="font-semibold {{ $b->remaining < 0 ? 'text-danger' : 'text-success' }}">{{ number_format($b->remaining, 2) }}</div></div>
-                    </div>
-                    <div class="h-2 rounded-full bg-gray-100 mt-2 overflow-hidden"><div class="h-full bg-{{ $bar }}" style="width: {{ min(100,$pct) }}%"></div></div>
-                    <div class="flex items-center justify-between mt-1">
-                        <div class="text-[11px] text-gray-400">{{ $pct }}% utilised</div>
+                    <x-budget-meter :budget="$b">
                         <button type="button" @click="open = !open" class="text-[11px] text-primary font-semibold">
                             <span x-show="!open">View {{ $b->expenses->count() }} spend(s) ▾</span>
                             <span x-show="open" x-cloak>Hide spends ▴</span>
                         </button>
-                    </div>
+                    </x-budget-meter>
+
+                    <x-budget-topups :budget="$b" :manage="auth('admin')->user()?->can('budgets.manage') ?? false" />
 
                     {{-- Drill-down: actual expenses submitted against this budget --}}
                     <div x-show="open" x-cloak class="mt-3 border-t pt-3">
@@ -150,7 +192,7 @@
                                                 <td>{{ $ex->submittedByEmployee?->full_name ?? '—' }}</td>
                                                 <td class="whitespace-nowrap">{{ optional($ex->expense_date)->format('d M Y') }}</td>
                                                 <td>
-                                                    {{ $ex->payment_method ? ucfirst($ex->payment_method) : '—' }}
+                                                    <x-payment-mode :mode="$ex->payment_method" />
                                                     @if($ex->payment_reference)<div class="text-[10px] text-gray-400">{{ $ex->payment_reference }}</div>@endif
                                                 </td>
                                                 <td class="text-right font-semibold whitespace-nowrap">&#8377;{{ number_format($ex->amount, 2) }}</td>
@@ -182,10 +224,10 @@
                 <div><label class="text-xs text-gray-500">Category *</label><select name="expense_category_id" class="form-select" required>@foreach($categories as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach</select></div>
                 <div>
                     <label class="text-xs text-gray-500">Assign to Employee</label>
-                    <select name="employee_id" class="form-select">
-                        <option value="">— Category-wide (no employee) —</option>
-                        @foreach($employees as $emp)<option value="{{ $emp->id }}">{{ $emp->full_name }} ({{ $emp->employee_code }}){{ $isSuperAdmin && $emp->business ? ' · '.$emp->business->name : '' }}</option>@endforeach
-                    </select>
+                    <x-admin.searchable-select
+                        name="employee_id"
+                        :options="$employeeOptions"
+                        placeholder="— Category-wide (no employee) —" />
                     <p class="text-[10px] text-gray-400 mt-1">Sanction this budget to one person; they spend it via "Utilize Budget" and utilisation updates live.</p>
                 </div>
                 @if($isSuperAdmin)

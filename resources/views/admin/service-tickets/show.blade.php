@@ -128,11 +128,11 @@
                 @forelse($ticket->comments ?? [] as $comment)
                     <div class="flex gap-3 pb-4 mb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 last:mb-0 last:pb-0">
                         <div class="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                            {{ strtoupper(substr($comment->creator?->name ?? 'S', 0, 1)) }}
+                            {{ \App\Support\SuperAdminMask::initial($comment->creator) }}
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-1 flex-wrap">
-                                <span class="font-semibold">{{ $comment->creator?->name ?? 'System' }}</span>
+                                <span class="font-semibold">{{ \App\Support\SuperAdminMask::label($comment->creator) }}</span>
                                 <span class="text-xs text-gray-400">{{ $comment->created_at?->format('d M Y, h:i A') }}</span>
                             </div>
                             <p class="whitespace-pre-line text-sm">{{ $comment->comment }}</p>

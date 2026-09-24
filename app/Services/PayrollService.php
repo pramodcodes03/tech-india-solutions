@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\AdminNotification;
 use App\Models\Employee;
+use App\Models\PayrollAdjustment;
 use App\Models\Payslip;
 use App\Models\Penalty;
 use App\Models\SalaryStructure;
@@ -78,7 +80,7 @@ class PayrollService
                 // Clear any "Pending approval" bell rows for the superseded
                 // structures — otherwise they linger as phantom unread items.
                 foreach ($superseded as $old) {
-                    \App\Models\AdminNotification::markRelatedAsRead($old, ['salary_structure.submitted']);
+                    AdminNotification::markRelatedAsRead($old, ['salary_structure.submitted']);
                 }
             }
 
@@ -172,14 +174,14 @@ class PayrollService
 
             $summary = $this->attendance->monthlySummary($employee->id, $month, $year);
             $periodStart = Carbon::createFromDate($year, $month, 1)->startOfMonth();
-            $periodEnd   = $periodStart->copy()->endOfMonth();
+            $periodEnd = $periodStart->copy()->endOfMonth();
             $daysInMonth = $periodStart->daysInMonth;
 
             // Total calendar days used as denominator so week-offs + holidays
             // don't artificially inflate the ratio above 1.
             $totalCalendarDays = (int) $daysInMonth;
-            $paidDays  = (float) $summary['paid_days'];
-            $lopDays   = (float) $summary['lop_days'];
+            $paidDays = (float) $summary['paid_days'];
+            $lopDays = (float) $summary['lop_days'];
 
             // Pro-rate earnings: paidDays / totalCalendarDays, capped at 1
             $ratio = $totalCalendarDays > 0 ? min(1.0, $paidDays / $totalCalendarDays) : 1.0;
@@ -222,11 +224,11 @@ class PayrollService
             // Per-month payroll overrides (incentive / arrears / bonus / extra
             // deduction) entered for this employee, applied without creating a
             // new salary-structure version.
-            $adjustments = \App\Models\PayrollAdjustment::where('employee_id', $employee->id)
+            $adjustments = PayrollAdjustment::where('employee_id', $employee->id)
                 ->where('month', $month)->where('year', $year)
                 ->where('applied', false)
                 ->get();
-            $bonus = round($adjustments->whereIn('component', \App\Models\PayrollAdjustment::EARNINGS)->sum('amount'), 2);
+            $bonus = round($adjustments->whereIn('component', PayrollAdjustment::EARNINGS)->sum('amount'), 2);
             $otherDeductions = round($adjustments->where('component', 'extra_deduction')->sum('amount'), 2);
 
             // Bonus/incentive/arrears add to gross (not pro-rated).
@@ -241,7 +243,14 @@ class PayrollService
                     'payslip_code' => $this->generatePayslipCode(),
                     'period_start' => $periodStart->toDateString(),
                     'period_end' => $periodEnd->toDateString(),
-                    'working_days' => $totalCalendarDays,
+                    // `working_days` now means what it says — days the employee
+                    // was expected at work. The calendar count (used as the
+                    // pro-rata base) and the off-days are recorded separately so
+                    // the payslip can show the full breakdown.
+                    'working_days' => (int) round((float) ($summary['working_days'] ?? $totalCalendarDays)),
+                    'calendar_days' => $totalCalendarDays,
+                    'week_off_days' => (float) (($summary['fixed_week_offs'] ?? 0) + ($summary['dynamic_week_offs'] ?? 0)),
+                    'holiday_days' => (float) ($summary['holidays'] ?? 0),
                     'paid_days' => $paidDays,
                     'lop_days' => $lopDays,
                     'basic' => $basic,
@@ -303,8 +312,62 @@ class PayrollService
 
         return [
             'candidates' => $employees->count(),
-            'success'    => $success,
-            'errors'     => $errors,
+            'success' => $success,
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * Delete payslips and unwind everything generation linked to them.
+     *
+     * Built for the "wrong run, clear the month and generate again" case. The
+     * unwinding is the important part: generate() marks each consumed penalty
+     * `deducted` and each payroll adjustment `applied`, and only ever picks up
+     * penalties with a null payslip_id / adjustments with applied = false. The
+     * foreign keys are nullOnDelete, so deleting a payslip clears the link but
+     * leaves those flags set — the penalty would be silently written off and the
+     * incentive silently dropped from the re-run. Both are reset here.
+     *
+     * A payslip already marked Paid is left alone unless $overridePaid is set,
+     * which the caller only passes for an admin holding payroll.delete_paid.
+     *
+     * @param  iterable<Payslip>  $payslips
+     * @return array{deleted:int, skipped_paid:int, released_penalties:int, released_adjustments:int, codes:array<int,string>}
+     */
+    public function deletePayslips(iterable $payslips, bool $overridePaid = false): array
+    {
+        $deleted = 0;
+        $skippedPaid = 0;
+        $releasedPenalties = 0;
+        $releasedAdjustments = 0;
+        $codes = [];
+
+        foreach ($payslips as $payslip) {
+            if ($payslip->status === 'paid' && ! $overridePaid) {
+                $skippedPaid++;
+
+                continue;
+            }
+
+            DB::transaction(function () use ($payslip, &$deleted, &$releasedPenalties, &$releasedAdjustments, &$codes) {
+                $releasedPenalties += Penalty::where('payslip_id', $payslip->id)
+                    ->update(['status' => 'pending', 'payslip_id' => null]);
+
+                $releasedAdjustments += PayrollAdjustment::where('payslip_id', $payslip->id)
+                    ->update(['applied' => false, 'payslip_id' => null]);
+
+                $codes[] = $payslip->payslip_code;
+                $payslip->delete();
+                $deleted++;
+            });
+        }
+
+        return [
+            'deleted' => $deleted,
+            'skipped_paid' => $skippedPaid,
+            'released_penalties' => $releasedPenalties,
+            'released_adjustments' => $releasedAdjustments,
+            'codes' => $codes,
         ];
     }
 }

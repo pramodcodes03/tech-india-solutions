@@ -83,7 +83,7 @@
                 <div class="divide-y divide-gray-100 dark:divide-[#1b2e4b]">
                     <template x-for="(item, index) in items" :key="index">
                         <div class="px-5 py-4 group">
-                            {{-- Row 1: Product | Description | HSN | Delete --}}
+                            {{-- Row 1: Product | Description | HSN/SAC | Delete --}}
                             <div class="flex gap-3 items-start mb-3">
                                 <div class="flex items-center justify-center w-7 h-7 rounded-full bg-info/15 border border-info/30 text-xs font-bold text-info shrink-0 mt-6" x-text="index + 1"></div>
                                 <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -96,8 +96,8 @@
                                         <input type="text" class="form-input" :name="`items[${index}][description]`" x-model="item.description" placeholder="Item description" />
                                     </div>
                                     <div>
-                                        <label class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5 block">HSN Code</label>
-                                        <input type="text" class="form-input" :name="`items[${index}][hsn_code]`" x-model="item.hsn_code" placeholder="e.g. 6403" />
+                                        <label class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5 block">HSN / SAC Code</label>
+                                        <input type="text" class="form-input" :name="`items[${index}][hsn_code]`" x-model="item.hsn_code" placeholder="e.g. 998313 (SAC) or 6403 (HSN)" />
                                     </div>
                                 </div>
                                 <button type="button"

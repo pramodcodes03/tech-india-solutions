@@ -81,8 +81,9 @@
                     <thead>
                         <tr>
                             <th class="px-4 py-2">#</th>
+                            <th class="px-4 py-2">Product Name</th>
                             <th class="px-4 py-2">Description</th>
-                            <th class="px-4 py-2">HSN Code</th>
+                            <th class="px-4 py-2">HSN / SAC</th>
                             <th class="px-4 py-2 text-right">Qty</th>
                             <th class="px-4 py-2">Unit</th>
                             <th class="px-4 py-2 text-right">Rate</th>
@@ -95,6 +96,7 @@
                         @forelse($invoice->items as $index => $item)
                             <tr>
                                 <td class="px-4 py-2">{{ $index + 1 }}</td>
+                                <td class="px-4 py-2 font-semibold">{{ $item->product->name ?? '-' }}</td>
                                 <td class="px-4 py-2">{{ $item->description }}</td>
                                 <td class="px-4 py-2">{{ $item->hsn_code ?? '-' }}</td>
                                 <td class="px-4 py-2 text-right">{{ $item->quantity }}</td>
@@ -106,7 +108,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="px-4 py-4 text-center text-gray-500">No items found.</td>
+                                <td colspan="10" class="px-4 py-4 text-center text-gray-500">No items found.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -181,7 +183,7 @@
                                 <td class="px-4 py-2">{{ $index + 1 }}</td>
                                 <td class="px-4 py-2 font-semibold">{{ $payment->payment_number }}</td>
                                 <td class="px-4 py-2">@formatDate($payment->payment_date)</td>
-                                <td class="px-4 py-2">{{ ucfirst(str_replace('_', ' ', $payment->mode)) }}</td>
+                                <td class="px-4 py-2"><x-payment-mode :mode="$payment->mode" /></td>
                                 <td class="px-4 py-2">{{ $payment->reference_number ?? '-' }}</td>
                                 <td class="px-4 py-2 text-right font-semibold">{{ number_format($payment->amount, 2) }}</td>
                                 <td class="px-4 py-2 text-center">

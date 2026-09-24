@@ -2,13 +2,20 @@
 
 namespace App\Http\Controllers\Admin\Hr;
 
+use App\Exports\AttendanceMonthlySummaryExport;
+use App\Exports\DailyAttendanceExport;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\Shift;
 use App\Services\AttendanceService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Excel;
 
 class AttendanceController extends Controller
 {
@@ -20,9 +27,15 @@ class AttendanceController extends Controller
 
         $date = $request->input('date', now()->toDateString());
 
-        $records = Attendance::with('employee.department', 'employee.designation')
+        $records = Attendance::with('employee.department', 'employee.designation', 'employee.shift')
             ->whereDate('date', $date)
             ->when($request->department_id, fn ($q, $id) => $q->whereHas('employee', fn ($e) => $e->where('department_id', $id)))
+            // Shift filter. The literal "none" targets employees with no shift
+            // assigned — they fall back to the total-hours rule instead of the
+            // shift window, so HR needs to be able to find them.
+            ->when($request->shift_id, fn ($q, $id) => $q->whereHas('employee', fn ($e) => $id === 'none'
+                ? $e->whereNull('shift_id')
+                : $e->where('shift_id', $id)))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->search, fn ($q, $s) => $q->whereHas('employee', fn ($e) => $e->where(function ($q) use ($s) {
                 $q->where('first_name', 'like', "%{$s}%")
@@ -35,8 +48,9 @@ class AttendanceController extends Controller
             ->withQueryString();
 
         $departments = Department::where('status', 'active')->orderBy('name')->get();
+        $shifts = Shift::where('status', 'active')->orderBy('name')->get();
 
-        return view('admin.hr.attendance.index', compact('records', 'date', 'departments'));
+        return view('admin.hr.attendance.index', compact('records', 'date', 'departments', 'shifts'));
     }
 
     /**
@@ -47,10 +61,10 @@ class AttendanceController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('attendance.view'), 403);
 
         $date = $request->input('date', now()->toDateString());
-        $filters = $request->only(['department_id', 'status', 'search']);
+        $filters = $request->only(['department_id', 'shift_id', 'status', 'search']);
 
         return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\DailyAttendanceExport($date, $filters),
+            new DailyAttendanceExport($date, $filters),
             'daily-attendance-'.$date.'.xlsx',
         );
     }
@@ -87,14 +101,14 @@ class AttendanceController extends Controller
 
         $data = $request->validate([
             'month' => ['nullable', 'integer', 'between:1,12'],
-            'year'  => ['nullable', 'integer', 'between:2020,2100'],
+            'year' => ['nullable', 'integer', 'between:2020,2100'],
             'department_id' => ['nullable', 'integer'],
             'search' => ['nullable', 'string', 'max:120'],
             'format' => ['nullable', 'in:xlsx,csv'],
         ]);
 
         $month = (int) ($data['month'] ?? now()->month);
-        $year  = (int) ($data['year']  ?? now()->year);
+        $year = (int) ($data['year'] ?? now()->year);
         $format = strtolower($data['format'] ?? 'xlsx');
 
         // Same filter pipeline as monthly() — but pull every matching row,
@@ -105,19 +119,19 @@ class AttendanceController extends Controller
 
         $rows = $employees->map(fn ($emp) => [
             'employee' => $emp,
-            'summary'  => $this->service->monthlySummary($emp->id, $month, $year),
+            'summary' => $this->service->monthlySummary($emp->id, $month, $year),
         ]);
 
-        $stamp = \Carbon\Carbon::createFromDate($year, $month, 1)->format('Y-m');
+        $stamp = Carbon::createFromDate($year, $month, 1)->format('Y-m');
         $extension = $format === 'csv' ? 'csv' : 'xlsx';
         $filename = "attendance-monthly-{$stamp}.{$extension}";
 
         $writerType = $format === 'csv'
-            ? \Maatwebsite\Excel\Excel::CSV
-            : \Maatwebsite\Excel\Excel::XLSX;
+            ? Excel::CSV
+            : Excel::XLSX;
 
         return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\AttendanceMonthlySummaryExport($rows, $month, $year),
+            new AttendanceMonthlySummaryExport($rows, $month, $year),
             $filename,
             $writerType,
         );
@@ -177,25 +191,25 @@ class AttendanceController extends Controller
         abort_unless(Auth::guard('admin')->user()->can('attendance.edit'), 403);
 
         $data = $request->validate([
-            'check_in'  => ['nullable', 'date_format:H:i'],
+            'check_in' => ['nullable', 'date_format:H:i'],
             'check_out' => ['nullable', 'date_format:H:i', 'after:check_in'],
-            'remarks'   => ['nullable', 'string', 'max:500'],
+            'remarks' => ['nullable', 'string', 'max:500'],
         ]);
 
         // Normalise to H:i:s so calcHours() / DB TIME columns are happy.
         $normalise = fn ($t) => $t ? $t.':00' : null;
 
-        $newCheckIn  = $normalise($data['check_in']  ?? null);
+        $newCheckIn = $normalise($data['check_in'] ?? null);
         $newCheckOut = $normalise($data['check_out'] ?? null);
 
-        $oldCheckIn  = $attendance->check_in  ? \Carbon\Carbon::parse($attendance->check_in)->format('H:i:s')  : null;
-        $oldCheckOut = $attendance->check_out ? \Carbon\Carbon::parse($attendance->check_out)->format('H:i:s') : null;
+        $oldCheckIn = $attendance->check_in ? Carbon::parse($attendance->check_in)->format('H:i:s') : null;
+        $oldCheckOut = $attendance->check_out ? Carbon::parse($attendance->check_out)->format('H:i:s') : null;
 
         // Lock a field once it's been edited; preserve any pre-existing lock.
         // Comparing against the formatted old value handles the case where
         // admin opens the form, leaves a field as-is, and saves — that field
         // stays unlocked because the value didn't actually change.
-        $checkInLocked  = $attendance->check_in_locked  || ($newCheckIn  !== $oldCheckIn);
+        $checkInLocked = $attendance->check_in_locked || ($newCheckIn !== $oldCheckIn);
         $checkOutLocked = $attendance->check_out_locked || ($newCheckOut !== $oldCheckOut);
 
         // Append "+edit" once; avoid runaway "+edit+edit+edit" on re-saves.
@@ -205,15 +219,15 @@ class AttendanceController extends Controller
         }
 
         $this->service->upsert([
-            'employee_id'      => $attendance->employee_id,
-            'business_id'      => $attendance->business_id,
-            'date'             => $attendance->date->toDateString(),
-            'check_in'         => $newCheckIn,
-            'check_out'        => $newCheckOut,
-            'check_in_locked'  => $checkInLocked,
+            'employee_id' => $attendance->employee_id,
+            'business_id' => $attendance->business_id,
+            'date' => $attendance->date->toDateString(),
+            'check_in' => $newCheckIn,
+            'check_out' => $newCheckOut,
+            'check_in_locked' => $checkInLocked,
             'check_out_locked' => $checkOutLocked,
-            'remarks'          => $data['remarks'] ?? $attendance->remarks,
-            'source'           => $source,
+            'remarks' => $data['remarks'] ?? $attendance->remarks,
+            'source' => $source,
             // status intentionally omitted — let deriveStatus() recompute.
         ]);
 
@@ -230,7 +244,9 @@ class AttendanceController extends Controller
             'date' => ['required', 'date'],
             'check_in' => ['nullable', 'date_format:H:i'],
             'check_out' => ['nullable', 'date_format:H:i'],
-            'status' => ['required', 'in:present,absent,half_day,on_leave,holiday,weekend'],
+            // One list, shared with the dropdown that posts here — see
+            // Attendance::SELECTABLE_STATUSES.
+            'status' => ['required', Rule::in(Attendance::SELECTABLE_STATUSES)],
             'remarks' => ['nullable', 'string'],
         ]);
         $data['source'] = 'manual';
@@ -249,7 +265,7 @@ class AttendanceController extends Controller
     {
         abort_unless(Auth::guard('admin')->user()->can('attendance.import'), 403);
 
-        $lastSyncLog = \Illuminate\Support\Facades\DB::table('biometric_sync_logs')
+        $lastSyncLog = DB::table('biometric_sync_logs')
             ->orderByDesc('id')
             ->first();
 

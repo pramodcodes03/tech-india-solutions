@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Invoice;
 use App\Models\ProformaInvoice;
 use App\Models\ProformaInvoiceItem;
+use App\Support\Tenancy\CurrentBusiness;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -20,7 +21,7 @@ class ProformaInvoiceService
     public function generateNumber(): string
     {
         $year = date('Y');
-        $base = app(\App\Support\Tenancy\CurrentBusiness::class)->get()?->proforma_prefix ?? 'PFI-';
+        $base = app(CurrentBusiness::class)->get()?->proforma_prefix ?? 'PFI-';
         $prefix = $base.$year.'-';
         $last = ProformaInvoice::withTrashed()
             ->where('proforma_number', 'like', $prefix.'%')
@@ -115,6 +116,14 @@ class ProformaInvoiceService
 
             $afterDisc = ($qty * $rate) * (1 - $discPct / 100);
             $items[$i]['line_total'] = round($afterDisc * (1 + $taxPct / 100), 2);
+
+            // Write the coerced numerics back: the item columns are NOT NULL
+            // (default 0), and a blank form field arrives as an explicit null
+            // that passes the 'nullable' rule but violates the constraint.
+            $items[$i]['quantity'] = $qty;
+            $items[$i]['rate'] = $rate;
+            $items[$i]['discount_percent'] = $discPct;
+            $items[$i]['tax_percent'] = $taxPct;
         }
 
         return $items;

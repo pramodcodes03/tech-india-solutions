@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Attendance;
+use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
@@ -12,15 +13,17 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
  */
 class DailyAttendanceExport implements FromCollection, WithHeadings
 {
-    public function __construct(private string $date, private array $filters = [])
-    {
-    }
+    public function __construct(private string $date, private array $filters = []) {}
 
     public function collection()
     {
-        return Attendance::with('employee.department', 'employee.designation')
+        return Attendance::with('employee.department', 'employee.designation', 'employee.shift')
             ->whereDate('date', $this->date)
             ->when($this->filters['department_id'] ?? null, fn ($q, $id) => $q->whereHas('employee', fn ($e) => $e->where('department_id', $id)))
+            // Mirrors the on-screen shift filter, including the "none" bucket.
+            ->when($this->filters['shift_id'] ?? null, fn ($q, $id) => $q->whereHas('employee', fn ($e) => $id === 'none'
+                ? $e->whereNull('shift_id')
+                : $e->where('shift_id', $id)))
             ->when($this->filters['status'] ?? null, fn ($q, $s) => $q->where('status', $s))
             ->when($this->filters['search'] ?? null, fn ($q, $s) => $q->whereHas('employee', fn ($e) => $e->where(function ($q) use ($s) {
                 $q->where('first_name', 'like', "%{$s}%")
@@ -34,7 +37,12 @@ class DailyAttendanceExport implements FromCollection, WithHeadings
                 $a->employee?->employee_code,
                 trim(($a->employee?->first_name ?? '').' '.($a->employee?->last_name ?? '')),
                 $a->employee?->department?->name,
-                \Carbon\Carbon::parse($a->date)->format('Y-m-d'),
+                $a->employee?->shift?->name ?? 'No shift',
+                $a->employee?->shift
+                    ? Carbon::parse($a->employee->shift->start_time)->format('H:i')
+                        .'-'.Carbon::parse($a->employee->shift->end_time)->format('H:i')
+                    : '',
+                Carbon::parse($a->date)->format('Y-m-d'),
                 $a->check_in,
                 $a->check_out,
                 $a->hours_worked,
@@ -45,6 +53,6 @@ class DailyAttendanceExport implements FromCollection, WithHeadings
 
     public function headings(): array
     {
-        return ['Employee Code', 'Employee', 'Department', 'Date', 'Check-in', 'Check-out', 'Hours', 'Status', 'Source'];
+        return ['Employee Code', 'Employee', 'Department', 'Shift', 'Shift Timing', 'Date', 'Check-in', 'Check-out', 'Hours', 'Status', 'Source'];
     }
 }

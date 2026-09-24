@@ -6,6 +6,7 @@
             <h5 class="text-lg font-semibold dark:text-white-light">Purchase Order Details</h5>
             <div class="flex items-center gap-2">
                 @if(!in_array($purchaseOrder->status, ['received', 'cancelled']))
+                    <a href="{{ route('admin.purchase-orders.pdf', $purchaseOrder->id) }}" target="_blank" rel="noopener" class="btn btn-outline-info btn-sm">PDF</a>
                     <a href="{{ route('admin.purchase-orders.edit', $purchaseOrder->id) }}" class="btn btn-outline-primary btn-sm">Edit</a>
                 @endif
                 @can('assets.create')
@@ -79,7 +80,7 @@
                         <tr>
                             <th class="px-4 py-2">#</th>
                             <th class="px-4 py-2">Description</th>
-                            <th class="px-4 py-2">HSN Code</th>
+                            <th class="px-4 py-2">HSN / SAC</th>
                             <th class="px-4 py-2 text-right">Qty</th>
                             <th class="px-4 py-2">Unit</th>
                             <th class="px-4 py-2 text-right">Rate</th>

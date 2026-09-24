@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>System Enhancements — QA Test Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --navy:#0f2b5b; --navy-2:#12356f; --teal:#0d9488; --teal-br:#2dd4bf;
+  --bg:#eef1f6; --surface:#ffffff; --surface-2:#f7f9fc; --line:#e3e8f0;
+  --ink:#111827; --ink-2:#4b5563; --ink-3:#8a94a6;
+  --pass:#059669; --fail:#dc2626; --block:#d97706; --info:#2563eb;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06);
+  --radius:14px;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1220; --surface:#111a2b; --surface-2:#0e1728; --line:#1f2c42;
+    --ink:#e8edf6; --ink-2:#a8b3c7; --ink-3:#6b7789;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b1220; --surface:#111a2b; --surface-2:#0e1728; --line:#1f2c42;
+  --ink:#e8edf6; --ink-2:#a8b3c7; --ink-3:#6b7789;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+code,kbd,.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+a{color:var(--info); text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3,h4{line-height:1.2; margin:0}
+
+/* ── Top bar ─────────────────────────────────────────────── */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 60%,#071b3d 100%);
+  color:#fff; border-bottom:1px solid rgba(255,255,255,.08);
+}
+.topbar-inner{
+  max-width:1400px; margin:0 auto; padding:14px 24px;
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+}
+.brandmark{display:flex; align-items:center; gap:12px; margin-right:auto}
+.brandmark .dot{
+  width:38px;height:38px;border-radius:11px;flex:none;
+  background:rgba(45,212,191,.16); border:1.5px solid rgba(45,212,191,.45);
+  display:grid;place-content:center; color:var(--teal-br); font-weight:900; font-size:15px;
+}
+.brandmark h1{font-size:17px; font-weight:800; letter-spacing:-.2px}
+.brandmark p{margin:1px 0 0; font-size:11.5px; color:rgba(255,255,255,.62); font-weight:600; letter-spacing:.4px}
+
+.tally{display:flex; gap:8px; flex-wrap:wrap}
+.tally .chip{
+  padding:5px 11px; border-radius:999px; font-size:11.5px; font-weight:800;
+  background:rgba(255,255,255,.09); border:1px solid rgba(255,255,255,.14); color:#fff;
+  letter-spacing:.3px; white-space:nowrap;
+}
+.tally .chip b{font-variant-numeric:tabular-nums}
+.chip.p{background:rgba(5,150,105,.22); border-color:rgba(16,185,129,.5); color:#6ee7b7}
+.chip.f{background:rgba(220,38,38,.22); border-color:rgba(248,113,113,.5); color:#fca5a5}
+.chip.b{background:rgba(217,119,6,.22); border-color:rgba(251,191,36,.5); color:#fcd34d}
+
+.progress-wrap{display:flex; align-items:center; gap:10px; min-width:190px}
+.progress{height:8px; flex:1; border-radius:99px; background:rgba(255,255,255,.14); overflow:hidden}
+.progress i{display:block; height:100%; width:0; border-radius:99px;
+  background:linear-gradient(90deg,var(--teal),var(--teal-br)); transition:width .35s ease}
+.progress-pct{font-size:12px; font-weight:800; color:var(--teal-br); font-variant-numeric:tabular-nums; min-width:38px; text-align:right}
+
+.tool{
+  appearance:none; cursor:pointer; font:inherit; font-size:12px; font-weight:700;
+  padding:7px 13px; border-radius:9px; color:#fff;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18);
+  transition:background .15s;
+}
+.tool:hover{background:rgba(255,255,255,.16)}
+
+/* ── Layout ──────────────────────────────────────────────── */
+.shell{max-width:1400px; margin:0 auto; padding:26px 24px 90px; display:grid; grid-template-columns:250px 1fr; gap:26px}
+@media (max-width:1040px){ .shell{grid-template-columns:1fr; padding:20px 16px 70px} .toc{display:none} }
+
+.toc{position:sticky; top:86px; align-self:start; max-height:calc(100vh - 110px); overflow-y:auto}
+.toc h4{font-size:10.5px; text-transform:uppercase; letter-spacing:1.4px; color:var(--ink-3); margin:0 0 10px 12px}
+.toc a{
+  display:flex; align-items:center; gap:9px; padding:7px 12px; border-radius:9px;
+  color:var(--ink-2); font-size:13px; font-weight:600; text-decoration:none; margin-bottom:2px;
+}
+.toc a:hover{background:var(--surface); color:var(--ink); text-decoration:none}
+.toc a.on{background:var(--surface); color:var(--navy); box-shadow:var(--shadow)}
+:root[data-theme="dark"] .toc a.on, :root:not([data-theme="light"]) .toc a.on{color:var(--teal-br)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .toc a.on{color:var(--teal-br)} }
+.toc a .n{
+  width:22px;height:22px;border-radius:7px;flex:none;display:grid;place-content:center;
+  font-size:10px; font-weight:900; background:var(--line); color:var(--ink-2);
+}
+.toc a.on .n{background:var(--teal); color:#fff}
+.toc .mini{margin-left:auto; font-size:10.5px; font-weight:800; color:var(--ink-3); font-variant-numeric:tabular-nums}
+
+/* ── Cards ───────────────────────────────────────────────── */
+section{scroll-margin-top:92px; margin-bottom:26px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden}
+.card + .card{margin-top:16px}
+.card-head{padding:20px 22px 16px; border-bottom:1px solid var(--line)}
+.card-body{padding:20px 22px}
+.eyebrow{font-size:10.5px; font-weight:900; letter-spacing:1.8px; text-transform:uppercase; color:var(--teal)}
+.card-head h2{font-size:21px; font-weight:800; letter-spacing:-.3px; margin:6px 0 0}
+.card-head h3{font-size:17px; font-weight:800; margin:6px 0 0}
+.card-head p{margin:6px 0 0; color:var(--ink-2); font-size:13.5px; max-width:70ch}
+
+.lede{font-size:15.5px; color:var(--ink-2); max-width:74ch}
+.grid-2{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px}
+.grid-3{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px}
+
+.fact{background:var(--surface-2); border:1px solid var(--line); border-radius:11px; padding:13px 15px}
+.fact .k{font-size:10px; font-weight:900; letter-spacing:1.3px; text-transform:uppercase; color:var(--ink-3)}
+.fact .v{font-size:15px; font-weight:800; margin-top:3px}
+.fact .v small{display:block; font-size:12px; font-weight:600; color:var(--ink-2); margin-top:2px}
+
+.note{border-left:4px solid var(--teal); background:color-mix(in srgb,var(--teal) 8%, transparent);
+  padding:13px 16px; border-radius:0 10px 10px 0; font-size:13.5px; color:var(--ink-2)}
+.note strong{color:var(--ink)}
+.note.warn{border-left-color:var(--block); background:color-mix(in srgb,var(--block) 10%, transparent)}
+
+/* ── Sidebar mockup ──────────────────────────────────────── */
+.nav-demo{display:grid; grid-template-columns:270px 1fr; gap:20px; align-items:start}
+@media (max-width:720px){ .nav-demo{grid-template-columns:1fr} }
+.fake-sidebar{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:10px; font-size:13px;
+}
+.fake-sidebar .sec{
+  font-size:10px; font-weight:900; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink-3);
+  padding:9px 10px 6px; margin-top:4px; border-top:1px solid var(--line);
+}
+.fake-sidebar .sec:first-child{border-top:0; margin-top:0}
+.fake-sidebar .item{display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:8px; color:var(--ink-2); font-weight:600}
+.fake-sidebar .item.dim{opacity:.42}
+.fake-sidebar .item.hit{background:var(--navy); color:#fff; box-shadow:0 4px 14px rgba(15,43,91,.25)}
+.fake-sidebar .item .ico{width:16px;height:16px;flex:none;opacity:.85}
+.fake-sidebar .sub{padding:2px 0 4px 30px}
+.fake-sidebar .sub .item{padding:5px 10px; font-size:12.5px; font-weight:600}
+.fake-sidebar .sub .item.tgt{background:color-mix(in srgb,var(--teal) 16%, transparent); color:var(--teal); font-weight:800}
+.fake-sidebar .caret{margin-left:auto; font-size:10px; opacity:.6}
+
+.steps{counter-reset:s; list-style:none; margin:0; padding:0}
+.steps li{counter-increment:s; position:relative; padding:0 0 14px 38px; font-size:14px; color:var(--ink-2)}
+.steps li:last-child{padding-bottom:0}
+.steps li::before{
+  content:counter(s); position:absolute; left:0; top:0;
+  width:25px;height:25px;border-radius:8px; display:grid;place-content:center;
+  background:var(--navy); color:#fff; font-size:11px; font-weight:900;
+}
+.steps li strong{color:var(--ink)}
+
+/* ── Tables ──────────────────────────────────────────────── */
+.tw{overflow-x:auto; border:1px solid var(--line); border-radius:11px; background:var(--surface)}
+table{width:100%; border-collapse:collapse; font-size:13.2px; min-width:520px}
+th{
+  text-align:left; padding:10px 13px; background:var(--surface-2); color:var(--ink-3);
+  font-size:10.5px; font-weight:900; letter-spacing:1px; text-transform:uppercase;
+  border-bottom:1px solid var(--line); white-space:nowrap;
+}
+td{padding:10px 13px; border-bottom:1px solid var(--line); color:var(--ink-2); vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+td strong{color:var(--ink)}
+td.mono, th.mono{font-family:'JetBrains Mono',monospace; font-size:12px}
+
+.pill{display:inline-block; padding:2px 8px; border-radius:6px; font-size:10.5px; font-weight:800; letter-spacing:.3px; white-space:nowrap}
+.pill.g{background:color-mix(in srgb,var(--pass) 14%,transparent); color:var(--pass)}
+.pill.r{background:color-mix(in srgb,var(--fail) 14%,transparent); color:var(--fail)}
+.pill.a{background:color-mix(in srgb,var(--block) 16%,transparent); color:var(--block)}
+.pill.b{background:color-mix(in srgb,var(--info) 14%,transparent); color:var(--info)}
+.pill.n{background:var(--line); color:var(--ink-2)}
+
+kbd{
+  display:inline-block; padding:1.5px 6px; border-radius:5px; font-size:11.5px; font-weight:600;
+  background:var(--surface-2); border:1px solid var(--line); border-bottom-width:2px; color:var(--ink);
+}
+.path{display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:12.5px; font-weight:700}
+.path span{background:var(--surface-2); border:1px solid var(--line); padding:3px 9px; border-radius:7px; color:var(--ink)}
+.path i{color:var(--ink-3); font-style:normal}
+
+/* ── Test cases ──────────────────────────────────────────── */
+.filterbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px}
+.fbtn{
+  appearance:none; cursor:pointer; font:inherit; font-size:12px; font-weight:700;
+  padding:6px 13px; border-radius:999px; border:1px solid var(--line);
+  background:var(--surface); color:var(--ink-2);
+}
+.fbtn.on{background:var(--navy); border-color:var(--navy); color:#fff}
+.fbtn:hover{border-color:var(--navy)}
+
+.case{border:1px solid var(--line); border-radius:12px; background:var(--surface); margin-bottom:10px; overflow:hidden}
+.case[data-status="pass"]{border-color:color-mix(in srgb,var(--pass) 42%,var(--line))}
+.case[data-status="fail"]{border-color:color-mix(in srgb,var(--fail) 46%,var(--line))}
+.case[data-status="block"]{border-color:color-mix(in srgb,var(--block) 46%,var(--line))}
+.case-top{display:flex; align-items:flex-start; gap:12px; padding:13px 15px}
+.case-id{
+  font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; flex:none;
+  background:var(--surface-2); border:1px solid var(--line); padding:3px 8px; border-radius:6px; color:var(--ink-2);
+}
+.case-title{flex:1; font-weight:700; font-size:14.2px; color:var(--ink); min-width:180px}
+.case-title em{display:block; font-style:normal; font-weight:500; font-size:12.5px; color:var(--ink-3); margin-top:2px}
+.marks{display:flex; gap:5px; flex:none}
+.mark{
+  appearance:none; cursor:pointer; font:inherit; font-size:11px; font-weight:800; letter-spacing:.3px;
+  width:32px; height:28px; border-radius:8px; border:1px solid var(--line);
+  background:var(--surface-2); color:var(--ink-3); transition:.12s;
+}
+.mark:hover{border-color:var(--ink-3)}
+.mark[aria-pressed="true"][data-m="pass"]{background:var(--pass); border-color:var(--pass); color:#fff}
+.mark[aria-pressed="true"][data-m="fail"]{background:var(--fail); border-color:var(--fail); color:#fff}
+.mark[aria-pressed="true"][data-m="block"]{background:var(--block); border-color:var(--block); color:#fff}
+.case-body{padding:0 15px 14px 15px; display:grid; grid-template-columns:1fr 1fr; gap:14px}
+@media (max-width:700px){ .case-body{grid-template-columns:1fr} }
+.case-body h5{
+  margin:0 0 5px; font-size:10px; font-weight:900; letter-spacing:1.2px; text-transform:uppercase; color:var(--ink-3);
+}
+.case-body ol,.case-body ul{margin:0; padding-left:17px; font-size:13.2px; color:var(--ink-2)}
+.case-body li{margin-bottom:3px}
+.case-body .exp{background:color-mix(in srgb,var(--pass) 7%,transparent); border-radius:9px; padding:10px 12px}
+.case-body .exp li::marker{color:var(--pass)}
+
+/* ── Misc ────────────────────────────────────────────────── */
+.csv{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:10px;
+  padding:12px 14px; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--ink-2);
+  white-space:pre; overflow-x:auto; line-height:1.75;
+}
+.copyrow{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:7px}
+.copyrow .lbl{font-size:11px; font-weight:900; letter-spacing:1.1px; text-transform:uppercase; color:var(--ink-3)}
+.copybtn{
+  appearance:none; cursor:pointer; font:inherit; font-size:11px; font-weight:800;
+  padding:5px 11px; border-radius:7px; border:1px solid var(--line); background:var(--surface); color:var(--ink-2);
+}
+.copybtn:hover{border-color:var(--teal); color:var(--teal)}
+footer{max-width:1400px; margin:0 auto; padding:0 24px 40px; color:var(--ink-3); font-size:12.5px}
+
+@media print{
+  .topbar,.toc,.marks,.filterbar,.tool,.copybtn{display:none !important}
+  .shell{grid-template-columns:1fr; padding:0}
+  body{background:#fff; font-size:11px}
+  .card,.case{box-shadow:none; break-inside:avoid}
+  section{break-inside:avoid-page}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brandmark">
+      <div class="dot">QA</div>
+      <div>
+        <h1>System Enhancements — Test Plan</h1>
+        <p>MODULE C · LEAVE GATE · SUPER ADMIN MASKING · PAYSLIP DELETE · COMBINED LEAVE</p>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress"><i id="bar"></i></div>
+      <div class="progress-pct" id="pct">0%</div>
+    </div>
+
+    <div class="tally">
+      <span class="chip">Total <b id="t-all">0</b></span>
+      <span class="chip p">Pass <b id="t-pass">0</b></span>
+      <span class="chip f">Fail <b id="t-fail">0</b></span>
+      <span class="chip b">Blocked <b id="t-block">0</b></span>
+    </div>
+
+    <button class="tool" id="btn-summary">Copy summary</button>
+    <button class="tool" id="btn-reset">Reset</button>
+  </div>
+</header>
+
+<div class="shell">
+
+  <nav class="toc" id="toc">
+    <h4>Test plan</h4>
+    <a href="#start"><span class="n">0</span> Before you start</a>
+    <a href="#navigate"><span class="n">1</span> Where each item lives</a>
+    <a href="#ts-gate"><span class="n">2</span> Leave Balance Gate</a>
+    <a href="#ts-lwp"><span class="n">3</span> LWP exception</a>
+    <a href="#ts-mask"><span class="n">4</span> Super Admin masking</a>
+    <a href="#ts-payslip"><span class="n">5</span> Bulk payslip delete</a>
+    <a href="#ts-unwind"><span class="n">6</span> Re-running a cleared month</a>
+    <a href="#ts-combined"><span class="n">7</span> Combined Leave</a>
+    <a href="#ts-perms"><span class="n">8</span> Permissions</a>
+    <a href="#data"><span class="n">9</span> Test data pack</a>
+    <a href="#bugs"><span class="n">10</span> Raising a bug</a>
+  </nav>
+
+  <main>
+
+  <!-- ══ 0. BEFORE YOU START ══════════════════════════════ -->
+  <section id="start">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 0</div>
+        <h2>Before you start</h2>
+        <p class="lede">Four changes to the running system. Three of them alter behaviour people already rely on —
+        read <strong>what changed</strong> below before you decide whether something is a bug.</p>
+      </div>
+      <div class="card-body">
+        <div class="grid-2" style="margin-bottom:18px">
+          <div class="fact"><div class="k">Item 1 · Leave Balance Gate</div><div class="v">Behaviour change<small>Employees can no longer apply for more leave than they hold. On by default.</small></div></div>
+          <div class="fact"><div class="k">Item 2 · Super Admin masking</div><div class="v">Display change<small>Super Admin actions read as “System Admin” to everyone else.</small></div></div>
+          <div class="fact"><div class="k">Item 3 · Bulk payslip delete</div><div class="v">New capability<small>Clear a wrong payroll run — a month, a department, or one employee.</small></div></div>
+          <div class="fact"><div class="k">Item 4 · Combined Leave</div><div class="v">New capability<small>Fund one request from two leave types: 0.5 Casual + 0.5 Sick = one day.</small></div></div>
+        </div>
+
+        <h3 style="font-size:15px; margin-bottom:8px">Logins you will need</h3>
+        <div class="tw" style="margin-bottom:18px">
+          <table>
+            <thead><tr><th>Login</th><th>Used for</th><th>How to get it</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Super Admin</strong></td><td>Sections 4 and 8 — you must compare what a Super Admin sees against what an Admin sees</td><td>Ask the developer; there is normally one on the system already</td></tr>
+              <tr><td><strong>Admin</strong></td><td>Most of the plan</td><td>Any account with the Admin role</td></tr>
+              <tr><td><strong>HR Manager</strong></td><td>Section 8 — HR may clear a run but not delete a Paid payslip</td><td>Management → Users → create one with the HR Manager role</td></tr>
+              <tr><td><strong>An employee</strong></td><td>Sections 2, 3 and 7 — all leave testing is done from the employee portal</td><td>Any active employee; you need their portal password</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note warn">
+          <strong>Use two browsers, not two tabs.</strong> Several cases need you signed in as two different people at once
+          (Super Admin vs Admin, HR vs employee). Use one normal window and one private/incognito window, otherwise
+          logging in as the second person signs you out of the first.
+        </div>
+
+        <h3 style="font-size:15px; margin:18px 0 8px">How to use this page</h3>
+        <ol class="steps">
+          <li>Work through the sections in order. Section 6 depends on records created in Section 5.</li>
+          <li>Mark each case <kbd>P</kbd>, <kbd>F</kbd> or <kbd>B</kbd>. Marks are saved in this browser.</li>
+          <li>At the end press <strong>Copy summary</strong> and paste the result into the QA thread.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 1. WHERE IT LIVES ════════════════════════════════ -->
+  <section id="navigate">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 1</div>
+        <h2>Where each item lives</h2>
+        <p>Nothing here adds a new sidebar entry — these are changes inside screens you already know.</p>
+      </div>
+      <div class="card-body">
+        <div class="nav-demo">
+          <div class="fake-sidebar" aria-label="Sidebar navigation map">
+            <div class="sec">Management</div>
+            <div class="item dim">Users</div>
+            <div class="item dim">Roles &amp; Permissions</div>
+            <div class="sec">Human Resources</div>
+            <div class="item dim">HR Dashboard</div>
+            <div class="item hit">Leaves <span class="caret">⌄</span></div>
+            <div class="sub">
+              <div class="item dim">All Requests</div>
+              <div class="item dim">Leave Balances</div>
+              <div class="item tgt">Leave Settings</div>
+            </div>
+            <div class="item hit">Payroll <span class="caret">⌄</span></div>
+            <div class="sub">
+              <div class="item tgt">Payslips</div>
+              <div class="item dim">Generate Payroll</div>
+            </div>
+            <div class="item dim">Trackers <span class="caret">›</span></div>
+          </div>
+
+          <div>
+            <div class="tw">
+              <table>
+                <thead><tr><th>Item</th><th>Where</th><th class="mono">URL</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>Leave Balance Gate</strong><br><span style="font-size:12px;color:var(--ink-3)">the two switches</span></td><td>HR → Leaves → Leave Settings → <em>Leave Balance Gate</em> panel</td><td class="mono">/admin/hr/leave-settings</td></tr>
+                  <tr><td><strong>The gate in action</strong></td><td>Employee Portal → Leaves → Apply for Leave</td><td class="mono">/employee/leaves/create</td></tr>
+                  <tr><td><strong>Super Admin masking</strong></td><td>Admin Dashboard → <em>Recent Activity</em> panel</td><td class="mono">/admin/dashboard</td></tr>
+                  <tr><td><strong>Bulk payslip delete</strong></td><td>HR → Payroll → Payslips (tick the checkboxes)</td><td class="mono">/admin/hr/payroll</td></tr>
+                  <tr><td><strong>Single payslip delete</strong></td><td>HR → Payroll → open a payslip → <em>Delete Payslip</em></td><td class="mono">/admin/hr/payroll/{id}</td></tr>
+                  <tr><td><strong>Combined Leave</strong></td><td>Employee Portal → Apply for Leave → tick <em>Combine two or more leave types</em></td><td class="mono">/employee/leaves/create</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 2. GATE ══════════════════════════════════════════ -->
+  <section id="ts-gate">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 1 · 10 cases</div>
+        <h2>Leave Balance Gate</h2>
+        <p>An employee can no longer apply for more leave than they actually have. The form stops it, and so does the
+        server if the form is bypassed.</p>
+      </div>
+      <div class="card-body">
+        <div class="note" style="margin-bottom:16px">
+          <strong>What changed.</strong> Previously an employee could apply for any number of days and HR decided the
+          paid / unpaid split at approval. With the gate on, a request that exceeds the balance never reaches HR.
+          It fires on <em>any</em> shortfall — 2 days in hand and a 3-day request is refused, not just a zero balance.
+        </div>
+        <div id="suite-gate"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 3. LWP ═══════════════════════════════════════════ -->
+  <section id="ts-lwp">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 2 · 7 cases</div>
+        <h2>The Leave Without Pay exception</h2>
+        <p>The second switch decides what happens to a genuine unpaid-leave request once the balance is gone.</p>
+      </div>
+      <div class="card-body">
+        <div class="tw" style="margin-bottom:16px">
+          <table>
+            <thead><tr><th>Gate</th><th>LWP exception</th><th>Paid leave type</th><th>Unpaid / LWP type</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pill g">On</span></td><td><span class="pill g">On</span> <em>(shipped default)</em></td><td><span class="pill r">Blocked over balance</span></td><td><span class="pill g">Always allowed</span></td></tr>
+              <tr><td><span class="pill g">On</span></td><td><span class="pill r">Off</span></td><td><span class="pill r">Blocked over balance</span></td><td><span class="pill r">Blocked once every paid balance is exhausted</span></td></tr>
+              <tr><td><span class="pill r">Off</span></td><td><em>no effect</em></td><td><span class="pill g">Allowed</span> — HR splits at approval</td><td><span class="pill g">Allowed</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="suite-lwp"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 4. MASKING ═══════════════════════════════════════ -->
+  <section id="ts-mask">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 3 · 9 cases</div>
+        <h2>Super Admin masking</h2>
+        <p>Anything the Super Admin does reads as <strong>System Admin</strong> to everyone else. The stored record still
+        holds the real account, so a database audit is unaffected.</p>
+      </div>
+      <div class="card-body">
+        <div class="note" style="margin-bottom:16px">
+          <strong>Set-up.</strong> Sign in as the <strong>Super Admin</strong> in one browser and do something that
+          leaves a trail — edit a customer, create a lead, change a setting. Then open the second browser as a
+          plain <strong>Admin</strong> and compare what each of you sees on the dashboard.
+        </div>
+        <div id="suite-mask"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 5. PAYSLIP DELETE ════════════════════════════════ -->
+  <section id="ts-payslip">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 4 · 12 cases</div>
+        <h2>Bulk payslip delete</h2>
+        <p>For the case you described: a run generated by mistake, or on a wrong calculation, cleared so the month can be
+        generated again.</p>
+      </div>
+      <div class="card-body">
+        <div class="note warn" style="margin-bottom:16px">
+          <strong>Use a test month.</strong> Generate payroll for a month you do not mind losing before you start
+          deleting. Do not practise on a month that has been paid out.
+        </div>
+        <div id="suite-payslip"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 6. UNWIND ════════════════════════════════════════ -->
+  <section id="ts-unwind">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 5 · 6 cases</div>
+        <h2>Re-running a cleared month</h2>
+        <p>The part that matters most: deleting a payslip must put back everything it had consumed, or money silently
+        disappears from the next run.</p>
+      </div>
+      <div class="card-body">
+        <div class="note" style="margin-bottom:16px">
+          <strong>Why this matters.</strong> Generating a payslip marks the penalties it deducted as <em>deducted</em>
+          and the incentives it paid as <em>applied</em>. The generator only ever picks up penalties and adjustments
+          that have not been used yet. If deleting a payslip left those flags set, the penalty would be written off and
+          the incentive would never be paid — and nobody would notice until an employee complained.
+        </div>
+        <div id="suite-unwind"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 7. COMBINED ══════════════════════════════════════ -->
+  <section id="ts-combined">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 6 · 12 cases</div>
+        <h2>Combined Leave</h2>
+        <p>One request funded from more than one leave type, so leftover half-days in different buckets still add up to a
+        day off.</p>
+      </div>
+      <div class="card-body">
+        <div class="note" style="margin-bottom:16px">
+          <strong>The headline case.</strong> An employee with <strong>0.5 Casual</strong> and <strong>0.5 Sick</strong>
+          left has no full day anywhere — and with the Balance Gate on, neither type alone will let them apply.
+          Combining the two halves gives them their day, and deducts 0.5 from each.
+        </div>
+        <div id="suite-combined"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 8. PERMISSIONS ═══════════════════════════════════ -->
+  <section id="ts-perms">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Suite 7 · 6 cases</div>
+        <h2>Permissions</h2>
+        <p>Deleting payslips is split into two permissions so the “already paid” safeguard is a real boundary, not a
+        checkbox anyone can tick.</p>
+      </div>
+      <div class="card-body">
+        <div class="tw" style="margin-bottom:16px">
+          <table>
+            <thead><tr><th>Permission</th><th>Allows</th><th>Granted to</th></tr></thead>
+            <tbody>
+              <tr><td class="mono"><strong>payroll.delete</strong></td><td>Delete a generated (unpaid) payslip — bulk or one employee</td><td>Admin · Business Admin · HR Manager</td></tr>
+              <tr><td class="mono"><strong>payroll.delete_paid</strong></td><td>The override that also deletes payslips already marked <strong>Paid</strong></td><td>Admin · Business Admin only</td></tr>
+              <tr><td class="mono"><strong>leave_settings.edit</strong></td><td>Change the two Leave Balance Gate switches</td><td>Admin · HR Manager</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="suite-perms"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 9. TEST DATA ═════════════════════════════════════ -->
+  <section id="data">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 9</div>
+        <h2>Test data pack</h2>
+        <p>Set the balances below from <strong>HR → Leaves → Leave Balances</strong> before you start the leave sections.
+        The numbers are chosen so every expected result is obvious.</p>
+      </div>
+      <div class="card-body">
+
+        <h3 style="font-size:15px; margin-bottom:4px">Employee A — for the Balance Gate</h3>
+        <p style="font-size:13.2px; color:var(--ink-2); margin:0 0 10px">Has a little left, but not much.</p>
+        <div class="tw" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th>Leave type</th><th class="mono">Allocated</th><th class="mono">Used</th><th>Available</th><th>What it proves</th></tr></thead>
+            <tbody>
+              <tr><td>Casual Leave (paid)</td><td class="mono">2</td><td class="mono">0</td><td><strong>2 days</strong></td><td>A 2-day request passes; a 3-day request is refused</td></tr>
+              <tr><td>Sick Leave (paid)</td><td class="mono">1</td><td class="mono">1</td><td><strong>0 days</strong></td><td>Refused with “no Sick Leave balance left”</td></tr>
+              <tr><td>Leave Without Pay (unpaid)</td><td class="mono">—</td><td class="mono">—</td><td><strong>n/a</strong></td><td>Always allowed while the LWP exception is on</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="font-size:15px; margin-bottom:4px">Employee B — for Combined Leave</h3>
+        <p style="font-size:13.2px; color:var(--ink-2); margin:0 0 10px">Two half-days and nothing else — no single type can fund a full day.</p>
+        <div class="tw" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th>Leave type</th><th class="mono">Allocated</th><th>Available</th><th>Expected</th></tr></thead>
+            <tbody>
+              <tr><td>Casual Leave (paid)</td><td class="mono">0.5</td><td><strong>0.5 days</strong></td><td>Alone: refused for a full day</td></tr>
+              <tr><td>Sick Leave (paid)</td><td class="mono">0.5</td><td><strong>0.5 days</strong></td><td>Alone: refused for a full day</td></tr>
+              <tr><td colspan="2"><strong>Combined 0.5 + 0.5</strong></td><td><strong>1 day</strong></td><td><span class="pill g">Submits</span> · 0.5 deducted from each</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="font-size:15px; margin-bottom:4px">Payroll — for the delete cases</h3>
+        <div class="tw" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th>Set up</th><th>How</th><th>Why</th></tr></thead>
+            <tbody>
+              <tr><td>A payroll run for a spare month</td><td>HR → Payroll → Generate Payroll</td><td>Something to delete</td></tr>
+              <tr><td>One payslip marked <strong>Paid</strong></td><td>Open a payslip → Mark Paid</td><td>Proves the Paid safeguard</td></tr>
+              <tr><td>A pending <strong>penalty</strong> before you generate</td><td>HR → Performance → Penalties → Add Penalty</td><td>Must return to <em>pending</em> when the payslip is deleted</td></tr>
+              <tr><td>An <strong>incentive</strong> before you generate</td><td>HR → Payroll → Adjustments → add an incentive</td><td>Must be released for the next run</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <strong>Tip for the gate cases.</strong> Leave Settings is per business. If you switch business from the header
+          dropdown, check the switches again — each business keeps its own setting, and that is deliberate
+          (case <span class="mono">TC-GATE-10</span>).
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 10. BUGS ═════════════════════════════════════════ -->
+  <section id="bugs">
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Section 10</div>
+        <h2>Raising a bug</h2>
+        <p>Use the case ID, and always say which login you were using — most of this module behaves differently per role.</p>
+      </div>
+      <div class="card-body">
+        <div class="copyrow"><span class="lbl">Bug template</span><button class="copybtn" data-copy="bug-tpl">Copy</button></div>
+        <div class="csv" id="bug-tpl">Case ID     : TC-COMB-04
+Screen      : Employee Portal → Leaves → Apply for Leave
+Logged in as: Employee (EMP-0012)
+Settings    : Balance Gate ON, LWP exception ON
+Steps       : 1. …
+              2. …
+Expected    : 0.5 deducted from Casual and 0.5 from Sick
+Actual      : 1.0 deducted from Casual, Sick untouched
+Severity    : High / Medium / Low
+Evidence    : screenshot of the leave card before and after</div>
+
+        <div class="grid-3" style="margin-top:18px">
+          <div class="fact"><div class="k">High</div><div class="v">Money or data is wrong<small>Wrong balance deducted, a payslip deleted that should not have been, a penalty lost</small></div></div>
+          <div class="fact"><div class="k">Medium</div><div class="v">Works, but wrongly<small>Confusing message, a count that disagrees with the screen, a switch that does not hold</small></div></div>
+          <div class="fact"><div class="k">Low</div><div class="v">Cosmetic<small>Spacing, wording, alignment</small></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<footer>
+  System Enhancements — QA test plan · Module C · Leave Balance Gate, Super Admin masking, bulk payslip delete, Combined Leave.
+  Marks are stored in this browser only; use <strong>Copy summary</strong> to share results.
+</footer>
+
+<script>
+/* ────────────────────────────────────────────────────────────
+   Test cases. Everything below Section 1 is built from this
+   array so the counters, the filter and the summary can never
+   drift out of sync with what is rendered.
+   ──────────────────────────────────────────────────────────── */
+const SUITES = {
+  'suite-gate': [
+    ['TC-GATE-01','The two switches exist and are on by default','Leave Settings, as shipped.',
+      ['HR → Leaves → Leave Settings.','Scroll to the Leave Balance Gate panel.'],
+      ['Two checkboxes: “Block leave requests that exceed the available balance” and “Allow Leave Without Pay as an exception”.','Both are ticked out of the box.','Each carries a plain-English explanation of on vs off.']],
+    ['TC-GATE-02','A request within the balance still submits','Employee A: 2 days Casual available.',
+      ['Employee Portal → Leaves → Apply for Leave.','Choose Casual Leave, pick 2 working days, write a reason, submit.'],
+      ['It submits and appears as Pending.','The Casual balance now shows the 2 days held as pending.']],
+    ['TC-GATE-03','A request over the balance is blocked on the form','Employee A: 2 days Casual available.',
+      ['Apply for Casual Leave across 3 working days.'],
+      ['A red panel appears: “This request cannot be submitted”.','It states you have 2 day(s) available but applied for 3.','The Submit button is greyed out and cannot be clicked.']],
+    ['TC-GATE-04','A zero balance is blocked with its own wording','Employee A: 0 days Sick.',
+      ['Apply for Sick Leave for one day.'],
+      ['The message reads “You have no Sick Leave balance left (0 days available)”.','It points the employee at Leave Without Pay.']],
+    ['TC-GATE-05','The server blocks it too, not just the form','Proves the rule is enforced, not just displayed.',
+      ['Apply for more days than the balance.','Before submitting, re-enable the button using the browser’s developer tools (or ask the developer to post the form directly).'],
+      ['The page comes back with a red error banner carrying the same message.','No leave request is created — check HR → Leaves → All Requests.']],
+    ['TC-GATE-06','The old “you can still submit” warning is gone','It contradicted the block.',
+      ['With the gate ON, apply for more days than the balance.'],
+      ['You see only the red block.','You do NOT also see the amber “HR may approve some as paid and the rest as unpaid” note.']],
+    ['TC-GATE-07','Turning the gate off restores the old behaviour','',
+      ['Leave Settings → untick “Block leave requests…” → save.','Apply for more days than the balance.'],
+      ['It submits.','The amber over-balance warning is back.','Only the days the balance can fund are held as pending; HR splits the rest at approval.']],
+    ['TC-GATE-08','Unticking actually turns it off','The classic failure is a checkbox that will not switch off.',
+      ['Untick the gate, save, then reload Leave Settings.'],
+      ['It is still unticked after the reload.','Tick it again, save, reload — it is still ticked.']],
+    ['TC-GATE-09','The balance panel states the policy in force','',
+      ['With the gate ON, open Apply for Leave and read the right-hand Your Balance panel.'],
+      ['An amber note explains the policy.','With the LWP exception on it says to apply under a Leave Without Pay type instead.','With the gate off the note is absent.']],
+    ['TC-GATE-10','The setting is per business','Only if you run more than one business.',
+      ['Set the gate OFF for business A.','Switch business from the header dropdown and open Leave Settings for business B.'],
+      ['Business B still has the gate ON.','Changing one never changes the other.']],
+  ],
+
+  'suite-lwp': [
+    ['TC-LWP-01','LWP stays open when the exception is allowed','Default setting. Employee A with a zero balance.',
+      ['Leave Settings: gate ON, exception ON.','Employee Portal → apply under the Leave Without Pay type.'],
+      ['It submits normally.','No block appears, because no paid balance is involved.']],
+    ['TC-LWP-02','The refusal message points at LWP','',
+      ['With the exception ON, apply for a paid type over the balance.'],
+      ['The message ends with “apply under a Leave Without Pay type instead.”']],
+    ['TC-LWP-03','Turning the exception off makes the block absolute','',
+      ['Leave Settings: untick “Allow Leave Without Pay as an exception” → save.','Employee with no paid balance left → apply under LWP.'],
+      ['Refused: “…not permitted as an exception under the current policy. Please contact HR.”','No request is created.']],
+    ['TC-LWP-04','Under an absolute block the paid message changes too','',
+      ['With the exception OFF, apply for a paid type over the balance.'],
+      ['The message ends with “Please contact HR.”','It does NOT tell them to use LWP — that route is closed.']],
+    ['TC-LWP-05','An employee who still has paid balance is not blocked from LWP','The subtle one.',
+      ['With the exception OFF, use an employee who still has 3 days of Casual left.','Apply under LWP.'],
+      ['It submits.','The absolute block only bites once every paid bucket is exhausted.']],
+    ['TC-LWP-06','The exception is greyed out while the gate is off','',
+      ['Leave Settings → untick the gate.'],
+      ['The exception row dims and a note says it has no effect while the gate is off.','It is still saved — ticking the gate back on restores whatever it was.']],
+    ['TC-LWP-07','With the gate off, LWP is never blocked','',
+      ['Gate OFF, exception OFF. Employee with zero balance → apply under LWP.'],
+      ['It submits — the exception only applies while the gate is on.']],
+  ],
+
+  'suite-mask': [
+    ['TC-MASK-01','A Super Admin action reads as System Admin','Two browsers.',
+      ['As Super Admin, do something logged — edit a customer, create a lead.','In the other browser, sign in as a plain Admin and open the Dashboard.','Read the Recent Activity panel.'],
+      ['The entry shows “System Admin”.','The Super Admin’s real name appears nowhere on the page.']],
+    ['TC-MASK-02','A Super Admin sees real names','',
+      ['As the Super Admin, open the same Dashboard.'],
+      ['The same entry shows the real name.','Auditing is unaffected for whoever holds the role.']],
+    ['TC-MASK-03','Ordinary admins are never masked','',
+      ['As a plain Admin, do something logged. Look at Recent Activity as another Admin.'],
+      ['The ordinary admin’s real name is shown.','Only the Super Admin is masked.']],
+    ['TC-MASK-04','Employees see the mask too','',
+      ['As Super Admin, approve an employee’s leave request.','Sign in to the Employee Portal as that employee and open the request.'],
+      ['The “By …” line reads System Admin.','The employee never learns a Super Admin exists.']],
+    ['TC-MASK-05','Approval and issuer trails are masked','',
+      ['As Super Admin, issue a warning to an employee and record a penalty.','As a plain Admin, open the warning; as the employee, open the penalty.'],
+      ['Both show System Admin as the issuer.']],
+    ['TC-MASK-06','The Super Admin role is not offered anywhere','',
+      ['As a plain Admin: Management → Roles & Permissions.','Then Management → Users → Create User and open the Role dropdown.'],
+      ['Super Admin is not in the roles list.','It is not selectable when creating or editing a user.','No user list shows a Super Admin account.']],
+    ['TC-MASK-07','The record underneath is untouched','Ask the developer to confirm, or check with them present.',
+      ['After the masked entries exist, have the developer read the activity log row in the database.'],
+      ['causer_id still points at the real Super Admin account.','Only the display is changed — the audit trail is intact for compliance.']],
+    ['TC-MASK-08','Nothing breaks where there is no actor','',
+      ['Look at activity rows caused by the system rather than a person (for example an automatic status change).'],
+      ['They read “System”, not a blank or the word “null”.']],
+    ['TC-MASK-09','Signed out, the mask still applies','Fail safe, not fail open.',
+      ['Open any employee-facing page that shows an approver name while signed out or as an employee.'],
+      ['A Super Admin still reads as System Admin.']],
+  ],
+
+  'suite-payslip': [
+    ['TC-PAY-01','Checkboxes appear on the payslip list','',
+      ['HR → Payroll → Payslips, for a month that has payslips.'],
+      ['Each row has a checkbox, and the header has a select-all checkbox.','No action bar is shown until something is ticked.']],
+    ['TC-PAY-02','The action bar appears with a count','',
+      ['Tick two rows.'],
+      ['A red bar appears reading “2 payslips selected”.','It has a Delete Selected button.','Ticked rows are tinted.']],
+    ['TC-PAY-03','The confirmation states the exact number','The requirement, word for word.',
+      ['With 2 rows ticked, press Delete Selected.'],
+      ['A confirmation asks “Delete 2 payslips?”.','It says what happens to penalties and adjustments.','Cancelling deletes nothing.']],
+    ['TC-PAY-04','Confirming deletes exactly those rows','',
+      ['Confirm the deletion.'],
+      ['Only the ticked payslips are gone.','A green message reports how many were deleted.','The totals above the table recalculate.']],
+    ['TC-PAY-05','Select-all on the page','',
+      ['Tick the header checkbox.'],
+      ['Every row on the current page is ticked.','Unticking it clears them all.']],
+    ['TC-PAY-06','Select everything matching the filter','For a month with more than 25 payslips.',
+      ['Tick the header checkbox on a month with more than one page.'],
+      ['A link offers “Select all N payslips matching this filter”.','Clicking it changes the count to the full N.','A Clear selection link is offered.']],
+    ['TC-PAY-07','Delete a whole month','',
+      ['Filter to a spare month, select all matching, confirm.'],
+      ['Every payslip in that month is gone.','Other months are untouched — check the previous month still has its payslips.']],
+    ['TC-PAY-08','Delete a whole department','',
+      ['Filter by a department, select all matching, confirm.'],
+      ['Only that department’s payslips are deleted.','Other departments in the same month are untouched.']],
+    ['TC-PAY-09','Employee-wise delete from the list','',
+      ['Press Delete on a single row.'],
+      ['The confirmation names that payslip code and employee.','Only that one is removed; the rest of the run is untouched.']],
+    ['TC-PAY-10','Employee-wise delete from the payslip page','',
+      ['Open a payslip → Delete Payslip.'],
+      ['It is removed and you land back on the payslip list with a success message.']],
+    ['TC-PAY-11','A Paid payslip is protected','The safeguard.',
+      ['Tick a payslip marked Paid along with two generated ones and delete.'],
+      ['The two generated ones are deleted.','The Paid one survives.','The message says how many were kept and that they need an admin override.']],
+    ['TC-PAY-12','The override removes a Paid payslip','Admin only.',
+      ['As an Admin, tick the Paid payslip, tick “Also delete payslips already marked Paid”, delete.'],
+      ['The confirmation warns that Paid payslips are included.','After confirming, it is removed.']],
+  ],
+
+  'suite-unwind': [
+    ['TC-UNW-01','Set up a payslip that consumed something','Do this before the cases below.',
+      ['Add a pending penalty for an employee (HR → Performance → Penalties).','Add an incentive for the same employee and month (HR → Payroll → Adjustments).','Generate payroll for that month.'],
+      ['The payslip shows the penalty under deductions and the incentive in earnings.','The penalty now reads Deducted.']],
+    ['TC-UNW-02','Deleting returns the penalty to pending','',
+      ['Delete that payslip.','Open HR → Performance → Penalties.'],
+      ['The penalty is back to Pending.','It is no longer linked to any payslip.','The success message mentions the penalty was returned to pending.']],
+    ['TC-UNW-03','Deleting releases the incentive','',
+      ['Open HR → Payroll → Adjustments.'],
+      ['The incentive is no longer marked as applied.','The success message mentions it was released for the next run.']],
+    ['TC-UNW-04','Re-running the month picks both up again','The whole point.',
+      ['Generate payroll for the same month again.'],
+      ['The new payslip deducts the same penalty.','It pays the same incentive.','The net pay matches the original run.']],
+    ['TC-UNW-05','Nothing is double-counted','',
+      ['Check the penalty and the adjustment after the re-run.'],
+      ['Each appears once on the new payslip, not twice.','The penalty reads Deducted again, linked to the new payslip.']],
+    ['TC-UNW-06','The deletion is in the audit log','',
+      ['Ask the developer to show the activity log entry for the deletion, or check Recent Activity.'],
+      ['An entry reads “Deleted N payslip(s) for <Month Year>”.','It records who did it and when.','It lists the payslip codes that were removed.']],
+  ],
+
+  'suite-combined': [
+    ['TC-COMB-01','Neither half alone can fund a day','Employee B: 0.5 Casual, 0.5 Sick. Sets the scene.',
+      ['Employee Portal → Apply for Leave → Casual Leave → one full day.','Then try the same with Sick Leave.'],
+      ['Both are refused by the Balance Gate, each stating 0.5 available against 1 requested.']],
+    ['TC-COMB-02','The combine option is on the form','',
+      ['On the same form, look above the Leave Type field.'],
+      ['A checkbox reads “Combine two or more leave types”, with an explanation mentioning 0.5 Casual + 0.5 Sick.']],
+    ['TC-COMB-03','Ticking it swaps the form over','',
+      ['Tick the combine option.'],
+      ['The single Leave Type dropdown is hidden.','Two rows appear, each with a leave type dropdown and a Days box.','A link offers to add another leave type.']],
+    ['TC-COMB-04','Half plus half makes one full day','The headline case.',
+      ['Pick one working day as the date.','Row 1: Casual Leave, 0.5. Row 2: Sick Leave, 0.5.','Write a reason and submit.'],
+      ['The reconciliation strip turns green: “Combined total: 1.0 of 1.0 day(s) ✓ Matches”.','Submit is enabled and the request is created.','The request shows a COMBINED badge and “0.5 Casual Leave + 0.5 Sick Leave”.']],
+    ['TC-COMB-05','A split that does not add up is refused','',
+      ['Pick two working days but enter 0.5 and 0.5.'],
+      ['The strip stays amber: “Combined total: 1.0 of 2.0 day(s)”.','Submit stays disabled.','Correcting the numbers to add up turns it green.']],
+    ['TC-COMB-06','The same type cannot be used twice','',
+      ['Set both rows to Casual Leave.'],
+      ['The form does not accept it as a valid combination and Submit stays disabled.']],
+    ['TC-COMB-07','A type with no balance still blocks the whole request','Proves the gate runs per type, not just the first one.',
+      ['Combine 0.5 Casual with 0.5 of a leave type the employee has none of.'],
+      ['Submitting is refused, naming the empty type.','No request is created.']],
+    ['TC-COMB-08','Both balances are held while pending','',
+      ['After submitting the 0.5 + 0.5 request, check the employee’s leave balances.'],
+      ['Casual shows 0.5 pending; Sick shows 0.5 pending.','Neither shows the full day against one type.']],
+    ['TC-COMB-09','HR sees the split before approving','',
+      ['As Admin: HR → Leaves → All Requests → open the combined request.'],
+      ['A COMBINED badge and “0.5 Casual Leave + 0.5 Sick Leave” are shown.','The Available figure covers both types together, not just one.','The list view also flags it as Combined.']],
+    ['TC-COMB-10','Approving deducts from both correctly','',
+      ['Approve the request as fully paid.','Check the employee’s leave balances.'],
+      ['Casual used = 0.5, Sick used = 0.5.','Neither shows pending any more.','Neither goes negative, and no type is deducted the full day.']],
+    ['TC-COMB-11','A part-paid approval shares out correctly','',
+      ['Create a 2-day combined request (1 Casual + 1 Sick) for an employee who has both.','Approve with only 1 day paid.'],
+      ['The request shows 1 paid and 1 unpaid.','The per-type breakdown on the request adds up to exactly 1 paid and 1 unpaid — no missing or extra half.']],
+    ['TC-COMB-12','Rejecting or cancelling returns both halves','',
+      ['Submit another combined request, then reject it.','Submit and approve a third, then cancel it.'],
+      ['After the rejection, both types show 0 pending and 0 used for it.','After the cancellation, both types have their days back — not just the primary type.']],
+  ],
+
+  'suite-perms': [
+    ['TC-PERM-01','The two payroll permissions exist','',
+      ['Management → Roles & Permissions → Create Role → find the payroll row.'],
+      ['It offers delete and delete_paid as separate actions, alongside view / generate / approve / edit.']],
+    ['TC-PERM-02','HR can clear a run','',
+      ['Sign in as HR Manager → HR → Payroll.'],
+      ['Checkboxes and Delete Selected are available.','Generated payslips can be deleted.']],
+    ['TC-PERM-03','HR cannot delete a Paid payslip','The boundary that matters.',
+      ['As HR Manager, tick a payslip marked Paid and delete.'],
+      ['The “Also delete payslips already marked Paid” option is not offered to them.','The Paid payslip survives and the message says it needs an admin override.']],
+    ['TC-PERM-04','A role without delete sees no delete controls','',
+      ['Sign in with a role that has payroll.view but not payroll.delete (Sales, for example, or make one).'],
+      ['No checkboxes, no action bar, no Delete link on any row.','No Delete button on the payslip page.']],
+    ['TC-PERM-05','The URL cannot be used to get around it','',
+      ['As that same role, have the developer post to the bulk-delete URL directly.'],
+      ['A 403 Forbidden is returned.','No payslip is deleted.']],
+    ['TC-PERM-06','Leave Settings is permission-gated','',
+      ['Sign in with a role that cannot edit leave settings.'],
+      ['Leave Settings is missing from the sidebar, and the URL returns 403.','The two gate switches cannot be changed.']],
+  ],
+};
+/* ── Render ─────────────────────────────────────────────── */
+const KEY = 'module-c-qa-v1';
+let marks = {};
+try { marks = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { marks = {}; }
+
+function esc(s){ return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function caseEl([id, title, hint, steps, expected]){
+  const el = document.createElement('article');
+  el.className = 'case';
+  el.dataset.status = marks[id] || 'none';
+  el.innerHTML = `
+    <div class="case-top">
+      <span class="case-id">${id}</span>
+      <div class="case-title">${esc(title)}${hint ? `<em>${esc(hint)}</em>` : ''}</div>
+      <div class="marks">
+        <button class="mark" data-m="pass"  data-id="${id}" title="Pass"    aria-pressed="false">P</button>
+        <button class="mark" data-m="fail"  data-id="${id}" title="Fail"    aria-pressed="false">F</button>
+        <button class="mark" data-m="block" data-id="${id}" title="Blocked" aria-pressed="false">B</button>
+      </div>
+    </div>
+    <div class="case-body">
+      <div>
+        <h5>Steps</h5>
+        <ol>${steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+      </div>
+      <div class="exp">
+        <h5>Expected result</h5>
+        <ul>${expected.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
+      </div>
+    </div>`;
+  return el;
+}
+
+const ALL_IDS = [];
+for (const [host, cases] of Object.entries(SUITES)) {
+  const mount = document.getElementById(host);
+  if (!mount) continue;
+  cases.forEach(c => { ALL_IDS.push(c[0]); mount.appendChild(caseEl(c)); });
+}
+
+/* Filter bar, injected above the first suite */
+const filterbar = document.createElement('div');
+filterbar.className = 'filterbar';
+filterbar.innerHTML = `
+  <span style="font-size:11px;font-weight:900;letter-spacing:1.1px;text-transform:uppercase;color:var(--ink-3)">Show</span>
+  <button class="fbtn on" data-f="all">All cases</button>
+  <button class="fbtn" data-f="none">Not run</button>
+  <button class="fbtn" data-f="fail">Failed</button>
+  <button class="fbtn" data-f="block">Blocked</button>`;
+document.getElementById('suite-gate').before(filterbar);
+
+let activeFilter = 'all';
+filterbar.addEventListener('click', e => {
+  const b = e.target.closest('.fbtn');
+  if (!b) return;
+  activeFilter = b.dataset.f;
+  filterbar.querySelectorAll('.fbtn').forEach(x => x.classList.toggle('on', x === b));
+  applyFilter();
+});
+
+function applyFilter(){
+  document.querySelectorAll('.case').forEach(c => {
+    c.style.display = (activeFilter === 'all' || c.dataset.status === activeFilter) ? '' : 'none';
+  });
+}
+
+/* Marking */
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.mark');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  marks[id] = (marks[id] === btn.dataset.m) ? undefined : btn.dataset.m;
+  if (!marks[id]) delete marks[id];
+  try { localStorage.setItem(KEY, JSON.stringify(marks)); } catch (e) {}
+  paint();
+  applyFilter();
+});
+
+function paint(){
+  document.querySelectorAll('.case').forEach(c => {
+    const id = c.querySelector('.case-id').textContent;
+    const m = marks[id] || 'none';
+    c.dataset.status = m;
+    c.querySelectorAll('.mark').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+  });
+
+  const counts = { pass:0, fail:0, block:0 };
+  ALL_IDS.forEach(id => { if (marks[id]) counts[marks[id]]++; });
+  const done = counts.pass + counts.fail + counts.block;
+
+  document.getElementById('t-all').textContent   = ALL_IDS.length;
+  document.getElementById('t-pass').textContent  = counts.pass;
+  document.getElementById('t-fail').textContent  = counts.fail;
+  document.getElementById('t-block').textContent = counts.block;
+
+  const pct = ALL_IDS.length ? Math.round(done / ALL_IDS.length * 100) : 0;
+  document.getElementById('bar').style.width = pct + '%';
+  document.getElementById('pct').textContent = pct + '%';
+
+  document.querySelectorAll('.toc a').forEach(a => {
+    const sec = document.querySelector(a.getAttribute('href'));
+    const cases = sec ? sec.querySelectorAll('.case') : [];
+    if (!cases.length) return;
+    let ok = 0;
+    cases.forEach(c => { if (c.dataset.status !== 'none') ok++; });
+    let mini = a.querySelector('.mini');
+    if (!mini) { mini = document.createElement('span'); mini.className = 'mini'; a.appendChild(mini); }
+    mini.textContent = `${ok}/${cases.length}`;
+  });
+}
+paint();
+applyFilter();
+
+/* Header tools */
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (!confirm('Clear every pass / fail / blocked mark on this page?')) return;
+  marks = {};
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  paint(); applyFilter();
+});
+
+document.getElementById('btn-summary').addEventListener('click', () => copy(buildSummary()));
+
+function buildSummary(){
+  const counts = { pass:0, fail:0, block:0 };
+  const failed = [], blocked = [], notRun = [];
+  ALL_IDS.forEach(id => {
+    const m = marks[id];
+    if (m) counts[m]++;
+    if (m === 'fail') failed.push(id);
+    else if (m === 'block') blocked.push(id);
+    else if (!m) notRun.push(id);
+  });
+  const done = counts.pass + counts.fail + counts.block;
+  return [
+    'System Enhancements (Module C) — QA run',
+    `Cases: ${ALL_IDS.length} · Run: ${done} · Pass: ${counts.pass} · Fail: ${counts.fail} · Blocked: ${counts.block}`,
+    failed.length  ? `Failed:  ${failed.join(', ')}`   : 'Failed:  none',
+    blocked.length ? `Blocked: ${blocked.join(', ')}`  : 'Blocked: none',
+    notRun.length  ? `Not run: ${notRun.join(', ')}`   : 'Not run: none',
+  ].join('\n');
+}
+
+function copy(text){
+  const done = btn => { const o = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => btn.textContent = o, 1400); };
+  const btn = document.getElementById('btn-summary');
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => done(btn)).catch(() => fallback(text, btn));
+  } else fallback(text, btn);
+}
+function fallback(text, btn){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); btn.textContent = 'Copied'; setTimeout(() => btn.textContent = 'Copy summary', 1400); }
+  catch (e) { alert(text); }
+  document.body.removeChild(ta);
+}
+
+/* Copy buttons on the data blocks */
+document.addEventListener('click', e => {
+  const b = e.target.closest('.copybtn');
+  if (!b) return;
+  const src = document.getElementById(b.dataset.copy);
+  if (!src) return;
+  const text = src.textContent;
+  const restore = () => { b.textContent = 'Copy'; };
+  const ok = () => { b.textContent = 'Copied'; setTimeout(restore, 1400); };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(ok).catch(() => { fallbackBlock(text, b, ok); });
+  else fallbackBlock(text, b, ok);
+});
+function fallbackBlock(text, b, ok){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); ok(); } catch (e) { alert(text); }
+  document.body.removeChild(ta);
+}
+
+/* TOC highlight */
+const secs = [...document.querySelectorAll('main section')];
+const links = new Map([...document.querySelectorAll('.toc a')].map(a => [a.getAttribute('href').slice(1), a]));
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    const a = links.get(en.target.id);
+    if (a && en.isIntersecting) {
+      document.querySelectorAll('.toc a').forEach(x => x.classList.remove('on'));
+      a.classList.add('on');
+    }
+  });
+}, { rootMargin: '-90px 0px -70% 0px' });
+secs.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

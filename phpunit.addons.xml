@@ -6,6 +6,21 @@
     <testsuites>
         <testsuite name="Addons">
             <file>tests/Feature/HrmsAddonsTest.php</file>
+            <file>tests/Feature/TrackersTest.php</file>
+            <file>tests/Feature/LeaveBalanceGateTest.php</file>
+            <file>tests/Feature/ModuleCEnhancementsTest.php</file>
+            <file>tests/Feature/PerformanceModuleTest.php</file>
+            <file>tests/Feature/DocumentPackTest.php</file>
+            <file>tests/Feature/AllPdfGenerationTest.php</file>
+            <file>tests/Feature/AttendanceCorrectionFiltersTest.php</file>
+            <file>tests/Feature/LeavePriorityFixesTest.php</file>
+            <file>tests/Feature/BusinessAccessTest.php</file>
+            <file>tests/Feature/HelpdeskReportTest.php</file>
+            <file>tests/Feature/AttendanceStatusTest.php</file>
+            <file>tests/Feature/HeadcountAndInactiveDateTest.php</file>
+            <file>tests/Feature/PayrollTableTest.php</file>
+            <file>tests/Feature/EmployeeBreakSheetTest.php</file>
+            <file>tests/Feature/RecurringExpenseTimingTest.php</file>
         </testsuite>
     </testsuites>
     <source>

@@ -14,8 +14,11 @@
         <div><label class="text-xs font-semibold text-gray-500 uppercase">Check-out</label><input type="time" name="check_out" class="form-input mt-1" /></div>
         <div><label class="text-xs font-semibold text-gray-500 uppercase">Status *</label>
             <select name="status" required class="form-select mt-1">
-                @foreach(['present','absent','half_day','on_leave','holiday','weekend'] as $s)
-                    <option value="{{ $s }}">{{ ucfirst(str_replace('_',' ',$s)) }}</option>
+                {{-- Same list the controller validates against, and labelled
+                     from the one status catalogue, so the dropdown can never
+                     offer something the server rejects. --}}
+                @foreach(\App\Models\Attendance::SELECTABLE_STATUSES as $s)
+                    <option value="{{ $s }}" @selected(old('status') === $s)>{{ \App\Models\Attendance::statusLabel($s) }}</option>
                 @endforeach
             </select>
         </div>

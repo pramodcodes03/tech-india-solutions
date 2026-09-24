@@ -159,7 +159,7 @@
                     <div class="flex pb-5 last:pb-0">
                         <div class="flex-shrink-0 relative z-10">
                             <div class="w-8 h-8 rounded-full flex items-center justify-center bg-primary text-white text-xs font-bold">
-                                {{ strtoupper(substr($activity->causer->name ?? 'S', 0, 1)) }}
+                                {{ \App\Support\SuperAdminMask::initial($activity->causer) }}
                             </div>
                         </div>
                         <div class="ltr:ml-4 rtl:mr-4 flex-1">
@@ -168,7 +168,7 @@
                                 <span class="text-xs text-gray-500 dark:text-gray-400">{{ $activity->created_at->diffForHumans() }}</span>
                             </div>
                             @if($activity->causer)
-                                <p class="text-xs text-gray-500 dark:text-gray-400">by {{ $activity->causer->name }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">by {{ \App\Support\SuperAdminMask::label($activity->causer) }}</p>
                             @endif
                             @if($activity->properties && $activity->properties->count())
                                 <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
